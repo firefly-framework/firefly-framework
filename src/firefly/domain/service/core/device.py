@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from ..messaging.message_bus import MessageBusAware
 
 
-class Hub(MessageBusAware, ABC):
+class Device(MessageBusAware, ABC):
     def __init__(self):
         self._ports = []
 

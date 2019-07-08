@@ -48,3 +48,7 @@ def required(**kwargs):
     metadata = {'required': True}
     metadata.update(kwargs)
     return field(default_factory=lambda: Empty(), metadata=metadata)
+
+
+def optional(**kwargs):
+    return field(default=None, metadata=kwargs)

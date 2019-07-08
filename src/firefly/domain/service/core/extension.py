@@ -16,7 +16,7 @@ class Extension(LoggerAware, MessageBusAware):
                  container: di.Container = None):
         self.name = name
         self._logger = logger
-        self._config = config
+        self.config = config
         self._bus = bus
         self._listeners = []
         self._handlers = []
@@ -33,6 +33,8 @@ class Extension(LoggerAware, MessageBusAware):
     def initialize(self):
         self._load_application_services()
         self._load_api_layer()
+
+        self._bus.dispatch(ffd.InitializationComplete(self.name))
 
     def service_instance(self, cls):
         if cls not in self._service_instances:
@@ -52,11 +54,10 @@ class Extension(LoggerAware, MessageBusAware):
             class EmptyContainer(di.Container):
                 pass
             container_class = EmptyContainer
+            container_class.__annotations__ = {}
 
-        self.debug('Injecting message bus into container')
-        container_class.message_bus = self._bus
-        container_class.__annotations__['message_bus'] = ffd.MessageBus
         self.container = container_class()
+        self._bus.dispatch(ffd.ContainerRegistered(self.name))
 
     def _load_api_layer(self):
         try:
@@ -68,7 +69,8 @@ class Extension(LoggerAware, MessageBusAware):
 
         for name, cls in module.__dict__.items():
             if hasattr(cls, '__ff_port'):
-                self.dispatch(ffd.RegisterPort(target=cls, **getattr(cls, '__ff_port')))
+                for port in getattr(cls, '__ff_port'):
+                    self.dispatch(ffd.RegisterPort(target=cls, **port))
             if hasattr(cls, '__ff_middleware'):
                 self.dispatch(ffd.RegisterPresentationMiddleware(self.container.build(cls)))
 
@@ -81,8 +83,11 @@ class Extension(LoggerAware, MessageBusAware):
             return
 
         for name, cls in module.__dict__.items():
-            if inspect.isclass(cls) and issubclass(cls, ffd.Service):
-                self._services.append(cls)
+            if inspect.isclass(cls):
+                if issubclass(cls, ffd.Service):
+                    self._services.append(cls)
+                elif issubclass(cls, ffd.Middleware):
+                    self._bus.add(self.container.build(cls))
 
     def _load_framework_event_listeners_and_handlers(self):
         try:
@@ -95,13 +100,13 @@ class Extension(LoggerAware, MessageBusAware):
         for name, cls in module.__dict__.items():
             if inspect.isclass(cls) and issubclass(cls, ffd.Service):
                 if hasattr(cls, '__ff_listener'):
-                    listener = getattr(cls, '__ff_listener')
-                    listener['cls'] = cls
-                    self._listeners.append(listener)
+                    for listener in getattr(cls, '__ff_listener'):
+                        listener['cls'] = cls
+                        self._listeners.append(listener)
                 if hasattr(cls, '__ff_handler'):
-                    handler = getattr(cls, '__ff_handler')
-                    handler['cls'] = cls
-                    self._handlers.append(handler)
+                    for handler in getattr(cls, '__ff_handler'):
+                        handler['cls'] = cls
+                        self._handlers.append(handler)
 
     def _handle_message(self, message: ffd.Message, next_: Callable):
         if isinstance(message, ffd.Event):
@@ -119,8 +124,7 @@ class Extension(LoggerAware, MessageBusAware):
             return next_(message)
 
         for listener in self._listeners:
-            if (isinstance(listener['event'], str) and listener['event'] == message.__name__) \
-                    or isinstance(message, listener['event']):
+            if listener['event'] == message:
                 self._execute_service(self.service_instance(listener['cls']), message)
 
         return next_(message)

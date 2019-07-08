@@ -8,10 +8,8 @@ from typing import Optional
 import firefly.domain as ffd
 import inflection
 
-from .hub import Hub
 
-
-class CliHub(Hub):
+class CliDevice(ffd.Device):
     def __init__(self, app_id: str = None):
         super().__init__()
         
@@ -53,6 +51,7 @@ class CliHub(Hub):
             if middleware is not None:
                 self._bus.add(middleware)
             request = ffd.Request(headers=args)
+            request.header('origin', 'cli')
             request.service = port.service
             return self.dispatch(request)
         else:
@@ -81,9 +80,9 @@ class CliHub(Hub):
         if inspect.isclass(port.target):
             for k, v in port.target.__dict__.items():
                 if hasattr(v, '__ff_port'):
-                    kwargs = getattr(v, '__ff_port')
-                    kwargs['target'] = v
-                    self._build_ports(kwargs, port)
+                    for kwargs in getattr(v, '__ff_port'):
+                        kwargs['target'] = v
+                        self._build_ports(kwargs, port)
 
         self._ports.append(port)
 
@@ -120,7 +119,10 @@ class CliHub(Hub):
             'params': {},
         }
         if port.service is not None:
-            ret['params'].update(port.service.get_arguments())
+            try:
+                ret['params'].update(port.service.get_arguments())
+            except AttributeError:
+                pass
         if port.params is not None:
             ret['params'].update(port.params)
 

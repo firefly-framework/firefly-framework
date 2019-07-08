@@ -2,18 +2,21 @@ from typing import Callable, Optional
 
 import firefly.application as ffa
 from firefly.domain import cli, middleware, Middleware, Message, Kernel
-from firefly.domain.service.core.CliHub import CliHub
+from firefly.infrastructure import CliDevice
 from terminaltables import SingleTable
 
 
 def main():
-    Kernel(CliHub('firefly')).run()
+    Kernel(CliDevice('firefly')).run()
 
 
 @middleware()
 class CliOutput(Middleware):
     def __call__(self, message: Message, next_: Callable, **kwargs) -> Optional[dict]:
         response = next_(message)
+
+        if response.get('origin') != 'cli':
+            return response
 
         output = response.body()
         if isinstance(output, dict):
@@ -50,4 +53,17 @@ class FireflyCli:
             }
         )
         def containers(self):
+            pass
+
+    @cli(description='Firefly HTTP server')
+    class Http:
+
+        @cli(
+            for_=ffa.DeployHttp,
+            description='Deploy services to the HTTP server',
+            alias={
+                'port': 'p',
+            }
+        )
+        def deploy(self):
             pass

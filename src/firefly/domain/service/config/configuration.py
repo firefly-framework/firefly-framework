@@ -24,19 +24,16 @@ class Configuration(ABC):
     def extensions(self):
         return self._config.get('extensions', {})
 
-    def _load_config(self) -> dict:
-        if self._config is None:
-            try:
-                original_dir = self._move_to_project_root()
-            except ffd.ProjectConfigNotFound:
-                self._config = {}
-                return self._config
+    def _load_config(self):
+        try:
+            original_dir = self._move_to_project_root()
+        except ffd.ProjectConfigNotFound:
+            self._config = {}
+            return
 
-            with open('firefly.yml', 'r') as fp:
-                self._config = self.load(fp.read())
-            os.chdir(original_dir)
-
-        return self._config
+        with open('firefly.yml', 'r') as fp:
+            self._config = self.load(fp.read())
+        os.chdir(original_dir)
 
     def _load_environment_vars(self):
         stage = os.environ.get('STAGE', 'local')

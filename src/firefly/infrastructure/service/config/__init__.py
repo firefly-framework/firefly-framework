@@ -1,1 +1,1 @@
-from .yaml_config_loader import YamlConfiguration
+from .yaml_configuration import YamlConfiguration

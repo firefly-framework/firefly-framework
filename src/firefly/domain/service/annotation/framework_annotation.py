@@ -10,7 +10,11 @@ class FrameworkAnnotation(ABC):
 
     def __call__(self, **kwargs):
         def wrapper(cls):
-            setattr(cls, self.name(), kwargs)
+            prop = []
+            if hasattr(cls, self.name()):
+                prop = getattr(cls, self.name())
+            prop.append(kwargs)
+            setattr(cls, self.name(), prop)
             return cls
 
         return wrapper

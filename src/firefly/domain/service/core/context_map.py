@@ -60,6 +60,7 @@ class ContextMap(LoggerAware):
     def _load_contexts(self):
         for name, config in self._config.contexts.items():
             self._contexts[name] = ffd.Context(name, self._logger, config, self._bus)
+            self._contexts[name].container.register_container(self._firefly_container)
 
     def _handle_framework_commands(self, message: ffd.Message, next_: Callable):
         if isinstance(message, ffd.FrameworkCommand):
@@ -67,18 +68,4 @@ class ContextMap(LoggerAware):
         return next_(message)
 
     def _handle(self, command: ffd.FrameworkCommand):
-        if isinstance(command, ffd.RegisterContainer):
-            self.debug('Registering firefly container for context {}'.format(command.body()))
-            self._contexts[command.body()].container.register_container(self._firefly_container)
-            for name, config in self._contexts[command.body()].extensions.items():
-                self.debug('Registering {} extension container for context {}'.format(name, command.body()))
-                self._contexts[command.body()].container.register_container(self._extensions[name].container)
-            return True
-
-    def _pass_message_to_kernel(self, message: ffd.Message, next_: Callable):
-        ret = next_(message)
-        self._kernel_bus.dispatch(ret)
-        return ret
-
-    def _get_message_from_kernel(self, message: ffd.Message, next_: Callable):
-        return next_(self._bus.dispatch(message))
+        pass

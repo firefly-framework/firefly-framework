@@ -13,12 +13,11 @@ class ContextMap(LoggerAware):
     _config: ffd.Configuration = None
     _firefly_container: di.Container = None
 
-    def __init__(self, bus: ffd.MessageBus):
+    def __init__(self, bus: ffd.SystemBus):
         self._contexts: Dict[str, ffd.Context] = {}
         self._extensions: Dict[str, ffd.Extension] = {}
         self._bus = bus
-        self._bus.add(ffd.LoggingMiddleware('Message is in context map: {}'))
-        self._bus.add(self._handle_framework_commands)
+        self._bus.add_command_handler(self._handle_framework_commands)
 
         self._load_extensions()
         self._load_contexts()

@@ -1,66 +1,92 @@
 from __future__ import annotations
 
-import inspect
 from collections import Callable
-from dataclasses import fields, MISSING
+from dataclasses import fields
 from typing import List, get_type_hints
 
+import firefly.domain as ffd
 import inflection
 
 from .framework_annotation import FrameworkAnnotation
 
 
 class Crud(FrameworkAnnotation):
+    OPS = ('create', 'delete', 'update', 'get')
+
     def name(self) -> str:
         return '__ff_port'
 
-    def __call__(self, for_: type, type_: Callable, params: dict = None, exclude: List[str] = None):
-        def wrapper(cls, exclude_=exclude, params_=params or {}):
-            exclude_ = exclude_ or []
-            for op in ('create', 'delete', 'update', 'get'):
+    def cli(self, for_: ffd.Entity, params: dict = None, exclude: List[str] = None):
+        def wrapper(cls, exclude_=exclude or [], params_=params or {}):
+            for op in self.OPS:
                 if op in exclude_:
                     continue
-                type_(
+                ffd.cli(
                     name=inflection.dasherize('{}-{}'.format(op, for_.__name__)).lower(),
-                    params=self._get_params(op, for_),
+                    params=for_.get_params(op),
                     for_='crud::{}.{}::{}'.format(for_.__module__, for_.__name__, op),
                     **params_
                 )(cls)
             return cls
         return wrapper
 
-    # TODO Move this into the Entity class.
-    def _get_params(self, op: str, entity: type):
-        if op in ('create', 'update'):
-            return self._get_create_update_params(entity)
-        else:
-            types = get_type_hints(entity)
-            for field_ in fields(entity):
-                if 'pk' in field_.metadata:
-                    return {field_.name: {
-                        'default': inspect.Parameter.empty,
-                        'type': types[field_.name],
-                    }}
+    def http(self, for_: ffd.Entity, params: dict = None, exclude: List[str] = None):
+        def wrapper(cls, exclude_=exclude or [], params_=params or {}):
+            for op in self.OPS:
+                if op in exclude_:
+                    continue
+                for method, path in self._rest_endpoints(for_, op):
+                    ffd.http(
+                        path=path,
+                        method=method,
+                        for_='crud::{}.{}::{}'.format(for_.__module__, for_.__name__, op),
+                        **params_
+                    )(cls)
+            for method, path in self._collection_endpoints(for_):
+                ffd.http(
+                    path=path,
+                    method=method,
+                    for_='crud::{}.{}::{}'.format(for_.__module__, for_.__name__, op),
+                    **params_
+                )(cls)
+            return cls
+        return wrapper
 
-    @staticmethod
-    def _get_create_update_params(entity: type):
-        ret = {}
+    def _rest_endpoints(self, entity: ffd.Entity, op: str, prefix: str = ''):
+        slug = self._entity_slug(entity)
+        id_ = self._id_slug(entity)
+        if op == 'create':
+            return [('POST', '{}/{}'.format(prefix, slug))]
+        if op == 'update':
+            return [('POST', '{}/{}/{{{}}}'.format(prefix, slug, id_))]
+        if op == 'delete':
+            return [('DELETE', '{}/{}/{{{}}}'.format(prefix, slug, id_))]
+        if op == 'get':
+            return [('GET', '{}/{}'.format(prefix, slug)), ('GET', '{}/{}/{{{}}}'.format(prefix, slug, id_))]
+
+    def _collection_endpoints(self, entity: ffd.Entity):
+        ret = []
+        types = get_type_hints(entity)
+        prefix = '/{}/{{{}}}'.format(self._entity_slug(entity), self._id_slug(entity))
         for field_ in fields(entity):
-            types = get_type_hints(entity)
-            default = inspect.Parameter.empty
-            if field_.default != MISSING:
-                default = field_.default
-            elif field_.default_factory != MISSING:
-                default = field_.default_factory()
-            if 'required' in field_.metadata:
-                default = inspect.Parameter.empty
-
-            ret[field_.name] = {
-                'default': default,
-                'type': types[field_.name],
-            }
+            try:
+                if types[field_.name]._name != 'List':
+                    continue
+            except AttributeError:
+                continue
+            collection_type = types[field_.name].__args__[0]
+            for op in self.OPS:
+                ret.extend(self._rest_endpoints(collection_type, op, prefix))
 
         return ret
+
+    @staticmethod
+    def _entity_slug(entity: ffd.Entity):
+        return inflection.dasherize(inflection.tableize(entity.__name__))
+
+    @staticmethod
+    def _id_slug(entity: ffd.Entity):
+        return '{}_id'.format(inflection.underscore(entity.__name__))
 
 
 crud = Crud()

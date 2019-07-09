@@ -4,6 +4,10 @@ from .message import Message
 
 
 class Event(Message):
+    def __init__(self, *args, **kwargs):
+        super(Event, self).__init__(*args, **kwargs)
+        self.context = self.__module__.split('.')[0]
+
     @property
     def context(self):
         return self.get('context')

@@ -5,7 +5,7 @@ from typing import Union
 from .framework_annotation import FrameworkAnnotation
 
 
-class Listen(FrameworkAnnotation):
+class Listener(FrameworkAnnotation):
     def name(self) -> str:
         return '__ff_listener'
 
@@ -13,4 +13,4 @@ class Listen(FrameworkAnnotation):
         return super().__call__(event=event)
 
 
-listen = Listen()
+listener = Listener()

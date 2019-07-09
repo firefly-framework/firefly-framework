@@ -13,8 +13,8 @@ class Kernel:
         Container.__annotations__['kernel'] = Kernel
 
         container = Container()
-        self._bus = container.message_bus
-        self._bus.add(self._listener)
+        self._bus = container.system_bus
+        self._bus.add_command_handler(self._command_handler)
 
         self._config = container.configuration
         self._context_map = container.context_map
@@ -39,8 +39,8 @@ class Kernel:
         self._ports.append(kwargs)
         self._device.register_port(**kwargs)
 
-    def _listener(self, message: ffd.Message, next_: Callable):
+    def _command_handler(self, message: ffd.Message, next_: Callable):
         if isinstance(message, ffd.RegisterPresentationMiddleware):
-            self._bus.add(message.body())
+            self._bus.add_query_handler(message.body())
 
         return next_(message)

@@ -7,18 +7,14 @@ import firefly.domain as ffd
 
 
 class Service(ABC):
-    bus: ffd.MessageBus = None
+    _bus: ffd.MessageBus = None
 
     @abstractmethod
     def __call__(self, **kwargs) -> Optional[Union[ffd.Message, object]]:
         pass
 
-    def dispatch(self, event: ffd.Event):
-        return self.bus.dispatch(event)
-
-    @classmethod
-    def with_(cls, **kwargs) -> ffd.Command:
-        return ffd.Command(service_name=cls.__name__, **kwargs)
+    def dispatch(self, message: ffd.Message):
+        return self._bus.dispatch(message)
 
     @classmethod
     def get_arguments(cls) -> dict:

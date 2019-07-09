@@ -7,7 +7,7 @@ import firefly.application.service.crud as crud
 import inflection
 
 
-@ffd.middleware()
+@ffd.command_handler()
 class HandleCrudOperation(ffd.Middleware):
     _registry: ffd.Registry = None
 

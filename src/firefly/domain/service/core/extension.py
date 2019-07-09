@@ -8,33 +8,32 @@ import firefly.domain as ffd
 import firefly_di as di
 
 from ..logging.logger import LoggerAware
-from ..messaging.message_bus import MessageBusAware
+from ..messaging.system_bus import SystemBusAware
 
 
-class Extension(LoggerAware, MessageBusAware):
-    def __init__(self, name: str, logger: ffd.Logger, config: dict, bus: ffd.MessageBus,
+class Extension(LoggerAware, SystemBusAware):
+    MODULES = [
+        '{}.infrastructure.service',
+        '{}.domain.entity',
+        '{}.application.service',
+        '{}.api',
+    ]
+
+    def __init__(self, name: str, logger: ffd.Logger, config: dict, bus: ffd.SystemBus,
                  container: di.Container = None):
         self.name = name
         self._logger = logger
         self.config = config
-        self._bus = bus
-        self._listeners = []
-        self._handlers = []
-        self._services = []
+        self._system_bus = bus
         self._service_instances = {}
         self.container = container
 
-        self._bus.insert(1, self._handle_message)
-
         if self.container is None:
             self._load_container()
-        self._load_framework_event_listeners_and_handlers()
 
     def initialize(self):
-        self._load_application_services()
-        self._load_api_layer()
-
-        self._bus.dispatch(ffd.InitializationComplete(self.name))
+        self._load_modules()
+        self.dispatch(ffd.InitializationComplete(self.name))
 
     def service_instance(self, cls):
         if cls not in self._service_instances:
@@ -57,97 +56,69 @@ class Extension(LoggerAware, MessageBusAware):
             container_class.__annotations__ = {}
 
         self.container = container_class()
-        self._bus.dispatch(ffd.ContainerRegistered(self.name))
+        self._system_bus.dispatch(ffd.ContainerRegistered(self.name))
 
-    def _load_api_layer(self):
-        try:
-            self.debug('Attempting to import module {}.api', self.name)
-            module = importlib.import_module('{}.api'.format(self.name))
-        except ModuleNotFoundError:
-            self.debug('Failed to load module. Ignoring.')
-            return
+    def _load_modules(self):
+        for module_name in self.MODULES:
+            try:
+                self.debug('Attempting to load {}', module_name.format(self.name))
+                module = importlib.import_module(module_name.format(self.name))
+            except ModuleNotFoundError:
+                self.debug('Failed to load module. Ignoring.')
+                continue
 
-        for name, cls in module.__dict__.items():
-            if hasattr(cls, '__ff_port'):
-                for port in getattr(cls, '__ff_port'):
-                    self.dispatch(ffd.RegisterPort(target=cls, **port))
-            if hasattr(cls, '__ff_middleware'):
-                self.dispatch(ffd.RegisterPresentationMiddleware(self.container.build(cls)))
+            for name, cls in module.__dict__.items():
+                if not inspect.isclass(cls):
+                    continue
 
-    def _load_application_services(self):
-        try:
-            self.debug('Attempting to import module {}.application.service', self.name)
-            module = importlib.import_module('{}.application.service'.format(self.name))
-        except ModuleNotFoundError:
-            self.debug('Failed to load module. Ignoring.')
-            return
+                if hasattr(cls, '__ff_port'):
+                    for port in getattr(cls, '__ff_port'):
+                        self.invoke(ffd.RegisterPort(target=cls, **port))
 
-        for name, cls in module.__dict__.items():
-            if inspect.isclass(cls):
-                if issubclass(cls, ffd.Service):
-                    self._services.append(cls)
-                elif issubclass(cls, ffd.Middleware):
-                    self._bus.add(self.container.build(cls))
+                if issubclass(cls, ffd.Middleware):
+                    self._add_middleware(cls)
+                elif issubclass(cls, ffd.Service):
+                    self._add_service(cls)
+                elif issubclass(cls, ffd.Entity):
+                    cls.event_buffer = self.container.event_buffer
 
-    def _load_framework_event_listeners_and_handlers(self):
-        try:
-            self.debug('Attempting to import module {}.infrastructure.service', self.name)
-            module = importlib.import_module('{}.infrastructure.service'.format(self.name))
-        except ModuleNotFoundError:
-            self.debug('Failed to load module. Ignoring.')
-            return
+    def _add_middleware(self, cls):
+        for key, method, port_key in (('__ff_command_handler', 'add_command_handler', 'command'),
+                                      ('__ff_listener', 'add_event_listener', 'event'),
+                                      ('__ff_query_handler', 'add_query_handler', 'query')):
+            if hasattr(cls, key):
+                for handler in getattr(cls, key):
+                    print(cls)
+                    getattr(self._system_bus, method)(self._wrap_mw(self.service_instance(cls), handler[port_key]))
 
-        for name, cls in module.__dict__.items():
-            if inspect.isclass(cls) and issubclass(cls, ffd.Service):
-                if hasattr(cls, '__ff_listener'):
-                    for listener in getattr(cls, '__ff_listener'):
-                        listener['cls'] = cls
-                        self._listeners.append(listener)
-                if hasattr(cls, '__ff_handler'):
-                    for handler in getattr(cls, '__ff_handler'):
-                        handler['cls'] = cls
-                        self._handlers.append(handler)
+    def _add_service(self, cls):
+        for key in ('__ff_command_handler', '__ff_listener', '__ff_query_handler'):
+            if hasattr(cls, key):
+                mw = self._wrap_service(cls)
+                setattr(mw, key, getattr(cls, key))
+                self._add_middleware(cls)
 
-    def _handle_message(self, message: ffd.Message, next_: Callable):
-        if isinstance(message, ffd.Event):
-            return self._handle_listeners(message, next_)
-        if isinstance(message, ffd.Command):
-            return self._handle_commands(message, next_)
-        if isinstance(message, ffd.Request) and message.service in self._services:
-            return next_(self._execute_service(self.service_instance(message.service), message))
+    def _wrap_mw(self, cls: ffd.Middleware, type_=None):
+        class Handler(ffd.Middleware):
+            def __init__(self, middleware: ffd.Middleware, message_type=None):
+                self._middleware = middleware
+                self._message_type = message_type
 
-        return next_(message)
+            def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
+                if self._message_type is not None and not isinstance(message, self._message_type):
+                    return next_(message)
+                return next_(self._middleware(message, next_))
 
-    def _handle_listeners(self, message: ffd.Message, next_: Callable):
-        self.debug('Looking for event listeners')
-        if not isinstance(message, ffd.Event):
-            return next_(message)
+        return Handler(cls, type_)
 
-        for listener in self._listeners:
-            if listener['event'] == message:
-                self._execute_service(self.service_instance(listener['cls']), message)
+    def _wrap_service(self, cls):
+        _service = self.service_instance(cls)
 
-        return next_(message)
+        class Middleware(ffd.Middleware):
+            def __init__(self, service):
+                self._service = service
 
-    def _handle_commands(self, message: ffd.Message, next_: Callable):
-        self.debug('Looking for command handler')
-        if not isinstance(message, ffd.Command):
-            return next_(message)
+            def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
+                return next_(self._service(body=message.body(), **message.headers()))
 
-        for handler in self._handlers:
-            if (isinstance(handler['command'], str) and handler['command'] == message.__name__) \
-                    or isinstance(message, handler['command']):
-                return self._execute_service(self.service_instance(handler['cls']), message)
-
-        return next_(message)
-
-    def _execute_service(self, service: ffd.Service, message: ffd.Message):
-        self.debug('Executing {}', service)
-        ret = service(body=message.body(), **message.headers())
-        if isinstance(ret, ffd.Message):
-            return ret
-
-        if ret is not None:
-            return ffd.Response(body=ret, headers=message.headers())
-
-        return message
+        return Middleware(_service)

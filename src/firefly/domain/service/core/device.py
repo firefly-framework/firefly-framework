@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
 
-from ..messaging.message_bus import MessageBusAware
+from ..messaging.system_bus import SystemBusAware
 
 
-class Device(MessageBusAware, ABC):
+class Device(SystemBusAware, ABC):
     def __init__(self):
         self._ports = []
 

@@ -1,7 +1,7 @@
 from typing import Callable, Optional
 
 import firefly.application as ffa
-from firefly.domain import cli, middleware, Middleware, Message, Kernel
+from firefly.domain import cli, query_handler, Middleware, Message, Kernel
 from firefly.infrastructure import CliDevice
 from terminaltables import SingleTable
 
@@ -10,7 +10,7 @@ def main():
     Kernel(CliDevice('firefly')).run()
 
 
-@middleware()
+@query_handler()
 class CliOutput(Middleware):
     def __call__(self, message: Message, next_: Callable, **kwargs) -> Optional[dict]:
         response = next_(message)

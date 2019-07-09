@@ -1,15 +1,16 @@
 from __future__ import annotations
 
-from typing import Optional, Union
+from typing import Optional, Union, Callable
 
 import firefly.domain as ffd
 
 
-@ffd.handle(ffd.RegisterPort)
-class RegisterPort(ffd.Service):
+@ffd.command_handler(ffd.RegisterPort)
+class RegisterPort(ffd.Middleware):
     kernel: ffd.Kernel = None
 
-    def __call__(self, body: dict, **kwargs) -> Optional[Union[ffd.Message, object]]:
+    def __call__(self, message: ffd.Message, next_: Callable):
+        body = message.body()
         del body['__class__']
         self.kernel.register_port(**body)
 

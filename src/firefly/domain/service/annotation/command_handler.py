@@ -5,12 +5,12 @@ from typing import Union
 from .framework_annotation import FrameworkAnnotation
 
 
-class Handle(FrameworkAnnotation):
+class CommandHandler(FrameworkAnnotation):
     def name(self) -> str:
-        return '__ff_handler'
+        return '__ff_command_handler'
 
-    def __call__(self, command: Union[str, type]):
+    def __call__(self, command: Union[str, type, None] = None):
         return super().__call__(command=command)
 
 
-handle = Handle()
+command_handler = CommandHandler()

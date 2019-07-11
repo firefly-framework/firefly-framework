@@ -11,10 +11,10 @@ import inflection
 
 
 class CliDevice(ffd.Device):
-    def __init__(self, app_id: str = None):
+    def __init__(self, device_id: str = None):
         super().__init__()
         
-        self._device_id = app_id
+        self._device_id = device_id
         self._parser = argparse.ArgumentParser()
         self._args = []
 
@@ -26,16 +26,16 @@ class CliDevice(ffd.Device):
         if args.debug is True:
             logging.getLogger().setLevel(logging.DEBUG)
 
-        if len(self._ports) == 0:
+        if len(self._args) == 0:
             return
 
-        port: Optional[ffd.CliPort] = None
-        if len(self._ports) == 1:
-            port = self._ports[0]
+        port: Optional[dict] = None
+        if len(self._args) == 1:
+            port = self._args[0]
         elif hasattr(args, 'service'):
             found = False
-            for port in self._ports:
-                if port.name == args.service:
+            for port in self._args:
+                if port['name'] == args.service:
                     found = True
                     break
             if not found:
@@ -48,14 +48,8 @@ class CliDevice(ffd.Device):
         except KeyError:
             pass
 
-        if port is not None and port.service is not None:
-            middleware = self._initialize_port(port, args)
-            if middleware is not None:
-                self._bus.add(middleware)
-            request = ffd.Query(headers=args)
-            request.header('origin', 'cli')
-            request.service = port.service
-            return self.dispatch(request)
+        if port is not None and port['target'] is not None:
+            return port['port'].handle(**args)
         else:
             self._parser.print_help()
 
@@ -63,21 +57,28 @@ class CliDevice(ffd.Device):
         if not isinstance(command, ffd.RegisterCliPort):
             return
 
-        self._args.append(asdict(command))
+        port = asdict(command)
+        target = port['target']
+        if target is not None:
+            if issubclass(target, ffd.Service):
+                target = target.get_message()
+            port['port'] = ffd.CliPort(target)
+            port['port']._system_bus = self._system_bus
+        self._args.append(port)
 
     def _initialize_port(self, port: dict, args: dict):
-        parent = port.parent
-        parent_class = self._instantiate_class(parent.target, args)
+        parent = self._get_parent(port)
+        parent_class = self._instantiate_class(parent['decorated'], args)
 
-        ancestor = parent.parent
+        ancestor = self._get_parent(parent)
         while True:
             if ancestor is None:
                 break
-            self._instantiate_class(ancestor.target, args)
-            ancestor = ancestor.parent
+            self._instantiate_class(ancestor['decorated'], args)
+            ancestor = self._get_parent(ancestor)
 
-        if 'next_' in inspect.signature(getattr(parent_class, port.target.__name__)).parameters:
-            return getattr(parent_class, port.target.__name__)
+        if 'next_' in inspect.signature(getattr(parent_class, port['decorated'].__name__)).parameters:
+            return getattr(parent_class, port['decorated'].__name__)
 
         return None
 

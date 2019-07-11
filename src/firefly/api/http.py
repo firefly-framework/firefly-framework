@@ -6,7 +6,6 @@ import firefly.domain as ffd
 import firefly.application as ffa
 
 
-@ffd.query_handler()
 class DefaultHttpMiddleware(ffd.Middleware):
     def __call__(self, message: ffd.Message, next_: callable):
         try:

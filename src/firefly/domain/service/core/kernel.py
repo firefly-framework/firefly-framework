@@ -17,7 +17,7 @@ class Kernel:
         self._context_map = container.context_map
 
         self._device = device
-        self._device._bus = self._bus
+        self._device._system_bus = self._bus
 
         self._ports = []
 

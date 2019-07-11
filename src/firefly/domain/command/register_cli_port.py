@@ -21,3 +21,4 @@ class RegisterCliPort(FrameworkCommand):
     description: str = ffd.optional()
     alias: Dict = ffd.dict_()
     help_: Dict = ffd.dict_()
+    decorated: object = ffd.required()

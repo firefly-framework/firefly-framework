@@ -1,15 +1,12 @@
 from __future__ import annotations
 
-from typing import Optional, Union
-
 import firefly.domain as ffd
 
 
 class GetRegisteredContainerServices(ffd.Service):
     _context_map: ffd.ContextMap = None
 
-    def __call__(self, flatten: bool = False, context: str = None, **kwargs)\
-            -> Optional[Union[ffd.Message, object]]:
+    def __call__(self, flatten: bool = False, context: str = None, **kwargs) -> dict:
         ret = {}
         contexts = {context: self._context_map.get_context(
             context)} if context is not None else self._context_map.contexts

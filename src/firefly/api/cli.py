@@ -15,17 +15,16 @@ class CliOutput(Middleware):
     def __call__(self, message: Message, next_: Callable, **kwargs) -> Optional[dict]:
         response = next_(message)
 
-        if response.get('origin') != 'cli':
+        if message.headers.get('origin') != 'cli':
             return response
 
-        output = response.body()
-        if isinstance(output, dict):
-            for title, data in output.items():
-                output[title].insert(0, ('Name', 'Type'))
+        if isinstance(response, dict):
+            for title, data in response.items():
+                response[title].insert(0, ('Name', 'Type'))
                 print(SingleTable(data, title).table)
-        elif isinstance(output, list):
-            output.insert(0, ('Name', 'Type'))
-            print(SingleTable(output).table)
+        elif isinstance(response, list):
+            response.insert(0, ('Name', 'Type'))
+            print(SingleTable(response).table)
 
         return response
 

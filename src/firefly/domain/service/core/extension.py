@@ -2,20 +2,24 @@ from __future__ import annotations
 
 import importlib
 import inspect
+from typing import Type, TypeVar
 
 import firefly.domain as ffd
 import firefly_di as di
 
 from ..logging.logger import LoggerAware
 from ..messaging.system_bus import SystemBusAware
+from .service import Service
+
+SERVICE = TypeVar('SERVICE', bound=Service)
 
 
 class Extension(LoggerAware, SystemBusAware):
     MODULES = [
         '{}.infrastructure.service',
         '{}.domain.entity',
-        '{}.application.service',
         '{}.api',
+        '{}.application.service',
     ]
 
     def __init__(self, name: str, logger: ffd.Logger, config: dict, bus: ffd.SystemBus,
@@ -36,7 +40,10 @@ class Extension(LoggerAware, SystemBusAware):
 
     def service_instance(self, cls):
         if cls not in self._service_instances:
-            self._service_instances[cls] = self.container.build(cls)
+            try:
+                self._service_instances[cls] = self.container.build(cls)
+            except TypeError:
+                return cls
 
         return self._service_instances[cls]
 
@@ -95,12 +102,24 @@ class Extension(LoggerAware, SystemBusAware):
                 for handler in getattr(cls, key):
                     getattr(self._system_bus, method)(self._wrap_mw(self.service_instance(cls), handler[port_key]))
 
-    def _add_service(self, cls):
+    def _add_service(self, cls: Type[SERVICE]):
+        registered = False
         for key in ('__ff_command_handler', '__ff_listener', '__ff_query_handler'):
             if hasattr(cls, key):
+                registered = True
                 mw = ffd.ServiceExecutingMiddleware(self.service_instance(cls))
                 setattr(mw, key, getattr(cls, key))
                 self._add_middleware(cls)
+
+        # Implicitly register this Service as a Command/Query handler
+        if not registered:
+            message = cls.get_message()
+            mw = ffd.ServiceExecutingMiddleware(self.service_instance(cls))
+            if isinstance(message, ffd.Command):
+                setattr(mw, '__ff_command_handler', [{'command': message}])
+            else:
+                setattr(mw, '__ff_query_handler', [{'query': message}])
+            self._add_middleware(mw)
 
     @staticmethod
     def _wrap_mw(cls: ffd.Middleware, type_=None):

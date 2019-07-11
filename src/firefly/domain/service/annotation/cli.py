@@ -31,6 +31,7 @@ class Cli(FrameworkAnnotation):
     def _callback(cls, kwargs):
         if kwargs['command'].name is None:
             kwargs['command'].name = inflection.dasherize(inflection.underscore(cls.__name__))
+        kwargs['command'].decorated = cls
         return kwargs
 
 

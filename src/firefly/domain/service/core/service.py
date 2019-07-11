@@ -1,20 +1,35 @@
 from __future__ import annotations
 
+import dataclasses
+import inspect
 from abc import ABC, abstractmethod
-from typing import Optional, Union
+from dataclasses import make_dataclass, field
 
 import firefly.domain as ffd
 
+from ..messaging.system_bus import SystemBusAware
 
-class Service(ABC):
-    _bus: ffd.MessageBus = None
 
+class Service(ABC, SystemBusAware):
     @abstractmethod
-    def __call__(self, **kwargs) -> Optional[Union[ffd.Message, object]]:
+    def __call__(self, **kwargs):
         pass
 
-    def dispatch(self, message: ffd.Message):
-        return self._bus.dispatch(message)
+    @classmethod
+    def get_message(cls):
+        if not hasattr(cls, '__ff_message'):
+            sig = inspect.signature(cls.__call__)
+            base = ffd.Query
+            if sig.return_annotation in ('None', inspect.Signature.empty):
+                base = ffd.Command
+
+            fields = []
+            for name, config in cls.get_arguments().items():
+                fields.append((name, config['type'], config['default']))
+
+            setattr(cls, '__ff_message', make_dataclass(cls.__name__, fields, bases=(base,)))
+
+        return getattr(cls, '__ff_message')
 
     @classmethod
     def get_arguments(cls) -> dict:

@@ -24,8 +24,8 @@ class DefaultHttpMiddleware(ffd.Middleware):
         return response
 
 
-@ffd.http(cors=True)
-class HttpApi:
-    @ffd.http('/services', for_=ffa.GetRegisteredContainerServices)
-    def services(self):
-        pass
+# @ffd.http(cors=True)
+# class HttpApi:
+#     @ffd.http('/services', for_=ffa.GetRegisteredContainerServices)
+#     def services(self):
+#         pass

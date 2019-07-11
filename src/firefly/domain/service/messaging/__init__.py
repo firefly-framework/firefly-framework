@@ -6,3 +6,4 @@ from .event_bus import EventBus
 from .query_bus import QueryBus
 from .system_bus import SystemBus, SystemBusAware
 from .service_executing_middleware import ServiceExecutingMiddleware
+from .subscription_wrapper import SubscriptionWrapper

@@ -1,23 +1,21 @@
 from __future__ import annotations
 
+from abc import ABC
+from dataclasses import dataclass, field
+
 from .message import Message
 
 
-class Event(Message):
-    def __init__(self, *args, **kwargs):
-        super(Event, self).__init__(*args, **kwargs)
+@dataclass
+class Event(Message, ABC):
+    context: str = field(default=None, init=False)
+
+    def __post_init__(self):
         self.context = self.__module__.split('.')[0]
 
-    @property
-    def context(self):
-        return self.get('context')
-
-    @context.setter
-    def context(self, value: str):
-        self.header('context', value)
-
     def __str__(self):
-        return '{}.{}'.format(self.context, self.__name__) if self.context is not None else type(self).__name__
+        return '{}.{}'.format(self.context,
+                              self.__class__.__name__) if self.context is not None else self.__class__.__name__
 
     def __repr__(self):
         return str(self)

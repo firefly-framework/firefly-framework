@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from .framework_command import FrameworkCommand
 
 
+@dataclass
 class RegisterContainer(FrameworkCommand):
-    def __init__(self, context_name: str):
-        super().__init__(body=context_name)
+    context_name: str = None

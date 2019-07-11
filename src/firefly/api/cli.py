@@ -31,7 +31,7 @@ class CliOutput(Middleware):
 
 
 @cli(
-    app_id='firefly',
+    device_id='firefly',
     description='Firefly command line utilities',
 )
 class FireflyCli:
@@ -39,7 +39,7 @@ class FireflyCli:
     class List:
 
         @cli(
-            for_=ffa.GetRegisteredContainerServices,
+            target=ffa.GetRegisteredContainerServices,
             description='Print registered services',
             alias={
                 'flatten': 'f',
@@ -59,7 +59,7 @@ class FireflyCli:
     class Http:
 
         @cli(
-            for_=ffa.DeployHttp,
+            target=ffa.DeployHttp,
             description='Deploy services to the HTTP server',
             alias={
                 'port': 'p',

@@ -17,7 +17,6 @@ class ContextMap(LoggerAware):
         self._contexts: Dict[str, ffd.Context] = {}
         self._extensions: Dict[str, ffd.Extension] = {}
         self._bus = bus
-        self._bus.add_command_handler(self._handle_framework_commands)
 
         self._load_extensions()
         self._load_contexts()
@@ -60,11 +59,3 @@ class ContextMap(LoggerAware):
         for name, config in self._config.contexts.items():
             self._contexts[name] = ffd.Context(name, self._logger, config, self._bus)
             self._contexts[name].container.register_container(self._firefly_container)
-
-    def _handle_framework_commands(self, message: ffd.Message, next_: Callable):
-        if isinstance(message, ffd.FrameworkCommand):
-            return self._handle(message)
-        return next_(message)
-
-    def _handle(self, command: ffd.FrameworkCommand):
-        pass

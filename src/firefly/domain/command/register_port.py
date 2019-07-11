@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from dataclasses import MISSING, dataclass
+
 from .framework_command import FrameworkCommand
 
 
+@dataclass
 class RegisterPort(FrameworkCommand):
-    def __init__(self, **kwargs):
-        super().__init__(body=kwargs)
+    args: dict = MISSING

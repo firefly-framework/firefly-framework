@@ -12,7 +12,7 @@ class HandleCrudOperation(ffd.Middleware):
     _registry: ffd.Registry = None
 
     def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
-        if isinstance(message, ffd.Request) and str(message.get('service', None)).startswith('crud'):
+        if isinstance(message, ffd.Query) and str(message.get('service', None)).startswith('crud'):
             _, entity_fqn, operation = message.header('service').split('::')
             entity_type = ffd.load_class(entity_fqn)
 

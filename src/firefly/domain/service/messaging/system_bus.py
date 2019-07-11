@@ -27,5 +27,5 @@ class SystemBusAware:
     def invoke(self, command: ffd.Command):
         return self._system_bus.invoke(command)
 
-    def query(self, request: ffd.Request):
+    def query(self, request: ffd.Query):
         return self._system_bus.query(request)

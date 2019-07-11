@@ -37,7 +37,7 @@ class HttpDevice(ffd.Device):
 
     async def _handle_request(self, request: web.Request, route: dict):
         port = route['port']
-        request = ffd.Request(body=await request.text(), headers=dict(request.headers))
+        request = ffd.Query(body=await request.text(), headers=dict(request.headers))
         request.header('origin', 'http')
         request.header('service', port.service)
         response = self.dispatch(request)

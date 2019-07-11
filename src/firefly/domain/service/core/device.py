@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 
+import firefly.domain as ffd
+
 from ..messaging.system_bus import SystemBusAware
 
 
@@ -12,5 +14,5 @@ class Device(SystemBusAware, ABC):
         pass
 
     @abstractmethod
-    def register_port(self, **kwargs):
+    def register_port(self, command: ffd.Command):
         pass

@@ -8,12 +8,12 @@ from .message_bus import MessageBus
 
 
 class QueryBus(MessageBus):
-    def query(self, request: ffd.Request):
+    def query(self, request: ffd.Query):
         return self.dispatch(request)
 
 
 class QueryBusAware(ABC):
     _query_bus: QueryBus = None
 
-    def query(self, request: ffd.Request):
+    def query(self, request: ffd.Query):
         return self._query_bus.query(request)

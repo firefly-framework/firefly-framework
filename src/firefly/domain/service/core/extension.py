@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import importlib
 import inspect
-from typing import Callable
 
 import firefly.domain as ffd
 import firefly_di as di
@@ -72,8 +71,7 @@ class Extension(LoggerAware, SystemBusAware):
                     continue
 
                 if hasattr(cls, '__ff_port'):
-                    for port in getattr(cls, '__ff_port'):
-                        self.invoke(ffd.RegisterPort(target=cls, **port))
+                    self._invoke_port_commands(cls)
 
                 if issubclass(cls, ffd.Middleware):
                     self._add_middleware(cls)
@@ -82,43 +80,30 @@ class Extension(LoggerAware, SystemBusAware):
                 elif issubclass(cls, ffd.Entity):
                     cls.event_buffer = self.container.event_buffer
 
+    def _invoke_port_commands(self, cls):
+        for data in getattr(cls, '__ff_port'):
+            self.invoke(data['command'])
+            for k, v in cls.__dict__.items():
+                if hasattr(v, '__ff_port'):
+                    self._invoke_port_commands(v)
+
     def _add_middleware(self, cls):
         for key, method, port_key in (('__ff_command_handler', 'add_command_handler', 'command'),
                                       ('__ff_listener', 'add_event_listener', 'event'),
                                       ('__ff_query_handler', 'add_query_handler', 'query')):
             if hasattr(cls, key):
                 for handler in getattr(cls, key):
-                    print(cls)
                     getattr(self._system_bus, method)(self._wrap_mw(self.service_instance(cls), handler[port_key]))
 
     def _add_service(self, cls):
         for key in ('__ff_command_handler', '__ff_listener', '__ff_query_handler'):
             if hasattr(cls, key):
-                mw = self._wrap_service(cls)
+                mw = ffd.ServiceExecutingMiddleware(self.service_instance(cls))
                 setattr(mw, key, getattr(cls, key))
                 self._add_middleware(cls)
 
-    def _wrap_mw(self, cls: ffd.Middleware, type_=None):
-        class Handler(ffd.Middleware):
-            def __init__(self, middleware: ffd.Middleware, message_type=None):
-                self._middleware = middleware
-                self._message_type = message_type
-
-            def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
-                if self._message_type is not None and not isinstance(message, self._message_type):
-                    return next_(message)
-                return next_(self._middleware(message, next_))
-
-        return Handler(cls, type_)
-
-    def _wrap_service(self, cls):
-        _service = self.service_instance(cls)
-
-        class Middleware(ffd.Middleware):
-            def __init__(self, service):
-                self._service = service
-
-            def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
-                return next_(self._service(body=message.body(), **message.headers()))
-
-        return Middleware(_service)
+    @staticmethod
+    def _wrap_mw(cls: ffd.Middleware, type_=None):
+        if type_ is not None:
+            return ffd.SubscriptionWrapper(cls, type_)
+        return cls

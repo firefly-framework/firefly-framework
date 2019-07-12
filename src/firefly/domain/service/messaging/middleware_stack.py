@@ -32,8 +32,3 @@ class MiddlewareStack:
                 return mw(message, next_=next_)
 
         return cb(msg)
-        # cb = lambda message, *args, **kwargs: message
-        # for m in reversed(self._middleware):
-        #     cb = lambda message, next_=cb, mw=m: mw(message, next_=next_)
-        #
-        # return cb(msg)

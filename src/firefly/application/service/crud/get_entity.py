@@ -10,15 +10,14 @@ from .crud_operation import CrudOperation
 T = TypeVar('T')
 
 
-class GetEntity(Generic[T], ffd.Service, ffd.GenericBase, CrudOperation):
+class GetEntity(Generic[T], ffd.Service, ffd.GenericBase, CrudOperation, ffd.SystemBusAware):
     _registry: ffd.Registry = None
-    _bus: ffd.MessageBus = None
 
     def __call__(self, **kwargs) -> Optional[Union[ffd.Message, object]]:
         type_ = self._type()
 
         ret = self._registry(type_).find(kwargs[self._find_pk(type_)])
-        self._bus.dispatch(self._build_event(type_, 'get'))
+        self.dispatch(self._build_event(type_, 'get'))
         return ret
 
     @staticmethod

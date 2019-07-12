@@ -3,3 +3,4 @@ from .register_container import RegisterContainer
 from .register_port import RegisterPort
 from .register_presentation_middleware import RegisterPresentationMiddleware
 from .register_cli_port import RegisterCliPort
+from .register_http_port import RegisterHttpPort

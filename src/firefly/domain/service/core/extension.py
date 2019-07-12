@@ -115,7 +115,7 @@ class Extension(LoggerAware, SystemBusAware):
         if not registered:
             message = cls.get_message()
             mw = ffd.ServiceExecutingMiddleware(self.service_instance(cls))
-            if isinstance(message, ffd.Command):
+            if issubclass(message, ffd.Command):
                 setattr(mw, '__ff_command_handler', [{'command': message}])
             else:
                 setattr(mw, '__ff_query_handler', [{'query': message}])

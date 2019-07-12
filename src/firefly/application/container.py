@@ -22,3 +22,7 @@ class Container(di.Container):
     ])
     system_bus: ffd.SystemBus = ffd.SystemBus
     context_map: ffd.ContextMap = ffd.ContextMap
+
+    # Infrastructure
+    cli_device: ffi.CliDevice = lambda self: self.build(ffi.CliDevice, device_id='firefly')
+    http_device: ffi.HttpDevice = ffi.HttpDevice

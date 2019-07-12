@@ -6,25 +6,20 @@ import firefly.domain as ffd
 import firefly.application as ffa
 
 
+@ffd.query_handler()
 class DefaultHttpMiddleware(ffd.Middleware):
     def __call__(self, message: ffd.Message, next_: callable):
-        try:
-            response = next_(message)
-            if response.get('origin') != 'http':
-                return response
-            response = ffd.Response(body=json.dumps(response.body()))
-            response.header('status_code', '200')
-            response.header('content-type', 'application/json')
-        except Exception as e:
-            response = ffd.Response()
-            response.header('status_code', '500')
-            raise e
+        response = next_(message)
+
+        if message.headers.get('origin') == 'http':
+            return ffd.HttpMessage(http_headers={'status_code': '200', 'content-type': 'application/json'},
+                                   body=json.dumps(response))
 
         return response
 
 
-# @ffd.http(cors=True)
-# class HttpApi:
-#     @ffd.http('/services', for_=ffa.GetRegisteredContainerServices)
-#     def services(self):
-#         pass
+@ffd.http(cors=True)
+class HttpApi:
+    @ffd.http('/services', target=ffa.GetRegisteredContainerServices)
+    def services(self):
+        pass

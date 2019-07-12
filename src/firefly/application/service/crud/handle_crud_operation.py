@@ -22,7 +22,7 @@ class HandleCrudOperation(ffd.Middleware):
             handle._registry = self._registry
 
             return next_(handle(body=message.body(), **message.headers()))
-        
+
         return next_(message)
 
     @staticmethod

@@ -1,58 +1,60 @@
 from __future__ import annotations
 
 import inspect
+from dataclasses import asdict
 
 import aiohttp_cors
 import firefly.domain as ffd
 from aiohttp import web
 
 
-class HttpDevice(ffd.Device):
+class HttpDevice(ffd.Device, ffd.LoggerAware):
     _context_map: ffd.ContextMap = None
 
     def __init__(self, port: int = 8080):
         super().__init__()
 
-        self._port = port
+        self.port = port
         self._app = web.Application()
         self._cors = aiohttp_cors.setup(self._app)
         self._routes = []
 
     def run(self):
         for port in self._ports:
-            for route in port.get_routes():
-                async def handle_request(request: web.Request, r=route):
-                    return await self._handle_request(request, r)
+            if port.target is None:
+                continue
 
-                app_route = getattr(web, route['method'].lower())(
-                    route['path'], handle_request
-                )
-                print('{} {}'.format(route['method'], route['path']))
-                self._routes.append(app_route)
-                if isinstance(port.cors, dict):
-                    self._cors.add(app_route, port.cors)
+            async def handle_request(request: web.Request, p=port):
+                return await self._handle_request(request, p)
+
+            app_route = getattr(web, port.endpoint.method.lower())(
+               port.endpoint.path, handle_request
+            )
+            self.info('Registering endpoint: %s %s', port.endpoint.method, port.endpoint.path)
+            self._routes.append(app_route)
+            if isinstance(port.cors, dict):
+                self._cors.add(app_route, port.cors)
 
         self._app.add_routes(self._routes)
-        web.run_app(self._app, port=self._port)
+        web.run_app(self._app, port=self.port)
 
-    async def _handle_request(self, request: web.Request, route: dict):
-        port = route['port']
-        request = ffd.Query(body=await request.text(), headers=dict(request.headers))
-        request.header('origin', 'http')
-        request.header('service', port.service)
-        response = self.dispatch(request)
+    async def _handle_request(self, request: web.Request, port: ffd.HttpPort):
+        self.info('Received request on port %s', port)
+        response = port.handle(body=await request.text(), headers=dict(request.headers))
 
+        print(response)
         return web.Response(
-            headers=response.headers(),
-            body=response.body()
+            headers=response.http_headers,
+            body=response.body
         )
 
-    def register_port(self, **kwargs):
-        if kwargs['port_type'] != 'http':
-            return
-
-        del kwargs['port_type']
-        self._build_ports(kwargs)
+    def register_port(self, command: ffd.RegisterHttpPort):
+        target = command.target
+        if target is not None and issubclass(target, ffd.Service):
+            target = target.get_message()
+        port = ffd.HttpPort(target, asdict(command), command.endpoint, command.cors)
+        port._system_bus = self._system_bus
+        self._ports.append(port)
 
     def _build_ports(self, args: dict, parent: ffd.HttpPort = None):
         if 'port_type' in args:

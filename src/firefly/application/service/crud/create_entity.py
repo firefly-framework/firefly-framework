@@ -10,15 +10,14 @@ from .crud_operation import CrudOperation
 T = TypeVar('T')
 
 
-class CreateEntity(Generic[T], ffd.Service, ffd.GenericBase, CrudOperation):
+class CreateEntity(Generic[T], ffd.Service, ffd.GenericBase, CrudOperation, ffd.SystemBusAware):
     _registry: ffd.Registry = None
-    _bus: ffd.MessageBus = None
 
     def __call__(self, **kwargs) -> Optional[Union[ffd.Message, object]]:
         type_ = self._type()
         entity = type_(**self._get_constructor_args(type_, kwargs))
         self._registry(type_).add(entity).commit()
-        self._bus.dispatch(self._build_event(type_, 'create'))
+        self.dispatch(self._build_event(type_, 'create'))
 
         return entity
 

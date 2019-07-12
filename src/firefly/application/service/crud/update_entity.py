@@ -10,9 +10,8 @@ from .crud_operation import CrudOperation
 T = TypeVar('T')
 
 
-class UpdateEntity(Generic[T], ffd.Service, ffd.GenericBase, CrudOperation):
+class UpdateEntity(Generic[T], ffd.Service, ffd.GenericBase, CrudOperation, ffd.SystemBusAware):
     _registry: ffd.Registry = None
-    _bus: ffd.MessageBus = None
 
     def __call__(self, **kwargs) -> Optional[Union[ffd.Message, object]]:
         type_ = self._type()
@@ -21,7 +20,7 @@ class UpdateEntity(Generic[T], ffd.Service, ffd.GenericBase, CrudOperation):
             if hasattr(entity, k):
                 setattr(entity, k, v)
         self._registry(type_).update(entity).commit()
-        self._bus.dispatch(self._build_event(type_, 'update'))
+        self.dispatch(self._build_event(type_, 'update'))
 
         return entity
 

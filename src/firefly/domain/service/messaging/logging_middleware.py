@@ -9,7 +9,7 @@ from .middleware import Middleware
 
 class LoggingMiddleware(Middleware, LoggerAware):
     def __init__(self, message: str = None):
-        self._message = message or 'Message added to bus: {}'
+        self._message = message or 'Message added to bus: %s'
 
     def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
         self.info(self._message, message)

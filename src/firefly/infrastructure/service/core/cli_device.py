@@ -16,7 +16,7 @@ class CliDevice(ffd.Device):
         
         self._device_id = device_id
         self._parser = argparse.ArgumentParser()
-        self._args = []
+        self._ports = []
 
     def run(self):
         self._configure_arguments(self._parser)
@@ -26,16 +26,16 @@ class CliDevice(ffd.Device):
         if args.debug is True:
             logging.getLogger().setLevel(logging.DEBUG)
 
-        if len(self._args) == 0:
+        if len(self._ports) == 0:
             return
 
-        port: Optional[dict] = None
-        if len(self._args) == 1:
-            port = self._args[0]
+        port: Optional[ffd.CliPort] = None
+        if len(self._ports) == 1:
+            port = self._ports[0]
         elif hasattr(args, 'service'):
             found = False
-            for port in self._args:
-                if port['name'] == args.service:
+            for port in self._ports:
+                if port.name == args.service:
                     found = True
                     break
             if not found:
@@ -48,37 +48,32 @@ class CliDevice(ffd.Device):
         except KeyError:
             pass
 
-        if port is not None and port['target'] is not None:
-            return port['port'].handle(**args)
+        if port is not None and port.target is not None:
+            return port.handle(**args)
         else:
             self._parser.print_help()
 
-    def register_port(self, command: ffd.Command):
-        if not isinstance(command, ffd.RegisterCliPort):
-            return
+    def register_port(self, command: ffd.RegisterCliPort):
+        target = command.target
+        if target is not None and issubclass(target, ffd.Service):
+            target = target.get_message()
+        port = ffd.CliPort(target, asdict(command))
+        port._system_bus = self._system_bus
+        self._ports.append(port)
 
-        port = asdict(command)
-        target = port['target']
-        if target is not None:
-            if issubclass(target, ffd.Service):
-                target = target.get_message()
-            port['port'] = ffd.CliPort(target)
-            port['port']._system_bus = self._system_bus
-        self._args.append(port)
-
-    def _initialize_port(self, port: dict, args: dict):
+    def _initialize_port(self, port: ffd.CliPort, args: dict):
         parent = self._get_parent(port)
-        parent_class = self._instantiate_class(parent['decorated'], args)
+        parent_class = self._instantiate_class(parent.decorated, args)
 
         ancestor = self._get_parent(parent)
         while True:
             if ancestor is None:
                 break
-            self._instantiate_class(ancestor['decorated'], args)
+            self._instantiate_class(ancestor.decorated, args)
             ancestor = self._get_parent(ancestor)
 
-        if 'next_' in inspect.signature(getattr(parent_class, port['decorated'].__name__)).parameters:
-            return getattr(parent_class, port['decorated'].__name__)
+        if 'next_' in inspect.signature(getattr(parent_class, port.decorated.__name__)).parameters:
+            return getattr(parent_class, port.decorated.__name__)
 
         return None
 
@@ -91,44 +86,44 @@ class CliDevice(ffd.Device):
                 kwargs[k] = args[k]
         return cls(**kwargs)
 
-    def _gather_params(self, port: dict) -> dict:
+    def _gather_params(self, port: ffd.CliPort) -> dict:
         ret = {
-            'help': port['help_'] or {},
-            'alias': port['alias'] or {},
+            'help': port.help_ or {},
+            'alias': port.alias or {},
             'params': {},
         }
-        if port['target'] is not None:
+        if port.target is not None:
             try:
-                ret['params'].update(port['target'].get_arguments())
+                ret['params'].update(port.target.get_arguments())
             except AttributeError:
                 pass
 
-        while port['parent'] is not None:
+        while port.parent is not None:
             port = self._get_parent(port)
-            if port['help_'] is not None:
-                ret['help'].update(port['help_'])
-            if port['alias'] is not None:
-                ret['alias'].update(port['alias'])
+            if port.help_ is not None:
+                ret['help'].update(port.help_)
+            if port.alias is not None:
+                ret['alias'].update(port.alias)
 
         return ret
 
     def _get_top_level_ports(self):
         containers = []
-        for port in self._args:
-            if port['device_id'] is not None and port['device_id'] == self._device_id:
+        for port in self._ports:
+            if port.device_id is not None and port.device_id == self._device_id:
                 containers.append(port)
 
         ret = []
-        for port in self._args:
+        for port in self._ports:
             for container in containers:
-                if port['parent'] == container['id_']:
+                if port.parent == container.id_:
                     ret.append(port)
 
         return ret
 
-    def _get_parent(self, port: dict):
-        for p in self._args:
-            if p['id_'] == port['parent']:
+    def _get_parent(self, port: ffd.CliPort):
+        for p in self._ports:
+            if p.id_ == port.parent:
                 return p
         return None
 
@@ -142,29 +137,29 @@ class CliDevice(ffd.Device):
 
     def _get_children(self, id_):
         ret = []
-        for port in self._args:
-            if port['parent'] == id_:
+        for port in self._ports:
+            if port.parent == id_:
                 ret.append(port)
         return ret
 
-    def _configure_arguments(self, parser, parent: dict = None):
+    def _configure_arguments(self, parser, parent: ffd.CliPort = None):
         if parent is None:
             ports = self._get_top_level_ports()
         else:
-            ports = self._get_children(parent['id_'])
+            ports = self._get_children(parent.id_)
             if len(ports) == 0:
                 return
 
         self._add_verbosity_arguments(parser)
 
         subparsers = None
-        only_one_service = len(ports) == 1 and ports[0]['parent'] is None
+        only_one_service = len(ports) == 1 and ports[0].parent is None
         if not only_one_service:
             subparsers = parser.add_subparsers(dest='service')
 
         for port in ports:
             if not only_one_service:
-                parser = subparsers.add_parser(port['name'], help=port['description'])
+                parser = subparsers.add_parser(port.name, help=port.description)
                 self._add_verbosity_arguments(parser)
 
             params = self._gather_params(port)

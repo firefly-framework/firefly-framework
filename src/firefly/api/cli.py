@@ -2,12 +2,11 @@ from typing import Callable, Optional
 
 import firefly.application as ffa
 from firefly.domain import cli, query_handler, Middleware, Message, Kernel
-from firefly.infrastructure import CliDevice
 from terminaltables import SingleTable
 
 
 def main():
-    Kernel(CliDevice('firefly')).run()
+    Kernel().run('cli_device')
 
 
 @query_handler()

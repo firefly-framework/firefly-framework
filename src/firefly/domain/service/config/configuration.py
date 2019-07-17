@@ -25,6 +25,8 @@ class Configuration(ABC):
         return self._config.get('extensions', {})
 
     def _load_config(self):
+        self._load_environment_vars()
+
         try:
             original_dir = self._move_to_project_root()
         except ffd.ProjectConfigNotFound:

@@ -7,19 +7,24 @@ from typing import Type, TypeVar
 import firefly.domain as ffd
 import firefly_di as di
 
+from .service import Service
 from ..logging.logger import LoggerAware
 from ..messaging.system_bus import SystemBusAware
-from .service import Service
+from ...event.api_loaded import ApiLoaded
+from ...event.application_services_loaded import ApplicationServicesLoaded
+from ...event.domain_entities_loaded import DomainEntitiesLoaded
+from ...event.infrastructure_loaded import InfrastructureLoaded
+from ...entity.messaging.event import Event
 
 SERVICE = TypeVar('SERVICE', bound=Service)
+EVENT = TypeVar('EVENT', bound=Event)
 
 
 class Extension(LoggerAware, SystemBusAware):
     MODULES = [
-        '{}.infrastructure.service',
-        '{}.domain.entity',
-        '{}.api',
-        '{}.application.service',
+        ('{}.domain.entity', DomainEntitiesLoaded),
+        ('{}.api', ApiLoaded),
+        ('{}.application.service', ApplicationServicesLoaded),
     ]
 
     def __init__(self, name: str, logger: ffd.Logger, config: dict, bus: ffd.SystemBus,
@@ -36,7 +41,7 @@ class Extension(LoggerAware, SystemBusAware):
 
     def initialize(self):
         self._load_modules()
-        self.dispatch(ffd.InitializationComplete(self.name))
+        self._initialize_container()
 
     def service_instance(self, cls):
         if cls not in self._service_instances:
@@ -46,6 +51,19 @@ class Extension(LoggerAware, SystemBusAware):
                 return cls
 
         return self._service_instances[cls]
+
+    def load_infrastructure(self):
+        self._load_module('{}.infrastructure.service', InfrastructureLoaded)
+
+    def _initialize_container(self):
+        c = self.container.__class__
+        if not hasattr(c, '__annotations__'):
+            c.__annotations__ = {}
+
+        c.registry = ffd.Registry
+        c.__annotations__['registry'] = ffd.Registry
+
+        self._system_bus.dispatch(ffd.ContainerInitialized(self.name))
 
     def _load_container(self):
         try:
@@ -62,30 +80,34 @@ class Extension(LoggerAware, SystemBusAware):
             container_class.__annotations__ = {}
 
         self.container = container_class()
-        self._system_bus.dispatch(ffd.ContainerRegistered(self.name))
 
     def _load_modules(self):
-        for module_name in self.MODULES:
-            try:
-                self.debug('Attempting to load {}', module_name.format(self.name))
-                module = importlib.import_module(module_name.format(self.name))
-            except ModuleNotFoundError:
-                self.debug('Failed to load module. Ignoring.')
+        for module_name, event in self.MODULES:
+            self._load_module(module_name, event)
+
+    def _load_module(self, module_name: str, event: Type[EVENT]):
+        try:
+            self.debug('Attempting to load {}', module_name.format(self.name))
+            module = importlib.import_module(module_name.format(self.name))
+        except ModuleNotFoundError:
+            self.debug('Failed to load module. Ignoring.')
+            return
+
+        for name, cls in module.__dict__.items():
+            if not inspect.isclass(cls):
                 continue
 
-            for name, cls in module.__dict__.items():
-                if not inspect.isclass(cls):
-                    continue
+            if hasattr(cls, '__ff_port'):
+                self._invoke_port_commands(cls)
 
-                if hasattr(cls, '__ff_port'):
-                    self._invoke_port_commands(cls)
+            if issubclass(cls, ffd.Middleware):
+                self._add_middleware(cls)
+            elif issubclass(cls, ffd.Service):
+                self._add_service(cls)
+            elif issubclass(cls, ffd.Entity):
+                cls.event_buffer = self.container.event_buffer
 
-                if issubclass(cls, ffd.Middleware):
-                    self._add_middleware(cls)
-                elif issubclass(cls, ffd.Service):
-                    self._add_service(cls)
-                elif issubclass(cls, ffd.Entity):
-                    cls.event_buffer = self.container.event_buffer
+        self.dispatch(event(self.name))
 
     def _invoke_port_commands(self, cls):
         for data in getattr(cls, '__ff_port'):
@@ -109,7 +131,7 @@ class Extension(LoggerAware, SystemBusAware):
                 registered = True
                 mw = ffd.ServiceExecutingMiddleware(self.service_instance(cls))
                 setattr(mw, key, getattr(cls, key))
-                self._add_middleware(cls)
+                self._add_middleware(mw)
 
         # Implicitly register this Service as a Command/Query handler
         if not registered:

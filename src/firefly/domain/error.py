@@ -17,6 +17,10 @@ class FrameworkError(Exception):
     pass
 
 
+class ConfigurationError(FrameworkError):
+    pass
+
+
 class ProjectConfigNotFound(FrameworkError):
     pass
 

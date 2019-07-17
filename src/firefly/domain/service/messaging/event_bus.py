@@ -8,12 +8,12 @@ from .message_bus import MessageBus
 
 
 class EventBus(MessageBus):
-    def dispatch(self, command: ffd.Event):
-        return super().dispatch(command)
+    def dispatch(self, event: ffd.Event):
+        return super().dispatch(event)
 
 
 class EventBusAware(ABC):
     _event_bus: EventBus = None
 
-    def dispatch(self, command: ffd.Event):
-        return self._event_bus.dispatch(command)
+    def dispatch(self, event: ffd.Event):
+        return self._event_bus.dispatch(event)

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import firefly.domain as ffd
+from ..entity.messaging.event import Event
 
 
-class FrameworkEvent(ffd.Event):
+class FrameworkEvent(Event):
     pass

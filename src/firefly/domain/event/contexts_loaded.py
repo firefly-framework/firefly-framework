@@ -5,5 +5,5 @@ from ..entity.entity import required
 
 
 @dataclass
-class ContainerRegistered(FrameworkEvent):
-    context: str = required()
+class ContextsLoaded(FrameworkEvent):
+    pass

@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import json
+from json import JSONDecodeError
 
-import firefly.domain as ffd
 import firefly.application as ffa
+import firefly.domain as ffd
 
 
 @ffd.query_handler()
@@ -12,8 +13,11 @@ class DefaultHttpMiddleware(ffd.Middleware):
         response = next_(message)
 
         if message.headers.get('origin') == 'http':
-            return ffd.HttpMessage(http_headers={'status_code': '200', 'content-type': 'application/json'},
-                                   body=json.dumps(response))
+            try:
+                return ffd.HttpMessage(http_headers={'status_code': '200', 'content-type': 'application/json'},
+                                       body=json.dumps(response))
+            except (JSONDecodeError, TypeError):
+                return response
 
         return response
 

@@ -6,17 +6,18 @@ from typing import Callable, Dict
 import firefly.domain as ffd
 import firefly_di as di
 
+from ..messaging.system_bus import SystemBusAware
 from ..logging.logger import LoggerAware
 
 
-class ContextMap(LoggerAware):
+class ContextMap(LoggerAware, SystemBusAware):
     _config: ffd.Configuration = None
     _firefly_container: di.Container = None
 
     def __init__(self, bus: ffd.SystemBus):
         self._contexts: Dict[str, ffd.Context] = {}
         self._extensions: Dict[str, ffd.Extension] = {}
-        self._bus = bus
+        self._system_bus = bus
 
         self._load_extensions()
         self._load_contexts()
@@ -34,28 +35,35 @@ class ContextMap(LoggerAware):
 
     def initialize(self):
         for extension in self._extensions.values():
+            extension.load_infrastructure()
+        self.dispatch(ffd.ExtensionsLoaded())
+
+        for context in self._contexts.values():
+            context.load_infrastructure()
+        self.dispatch(ffd.ContextsLoaded())
+
+        for extension in self._extensions.values():
             extension.initialize()
         for context in self._contexts.values():
             context.initialize()
 
-    def _load_container(self, context_name: str, config: dict):
-        try:
-            module = importlib.import_module(f'{context_name}.application')
-            container_class = getattr(module, 'Container')
-            container = container_class()
-            container.register_container(self._firefly_container)
-        except (ModuleNotFoundError, AttributeError):
-            self.debug('Failed to load application module for {}. Ignoring.', context_name)
+        for extension in self._extensions.values():
+            self.dispatch(ffd.InitializationComplete(extension.name))
+        for context in self._contexts.values():
+            self.dispatch(ffd.InitializationComplete(context.name))
 
     def _load_extensions(self):
         self._extensions['firefly'] = ffd.Extension('firefly', self._logger, self._config.all.get('firefly', {}),
-                                                    self._bus, self._firefly_container)
+                                                    self._system_bus, self._firefly_container)
         for name, config in self._config.extensions.items():
             if name == 'firefly':
                 continue
-            self._extensions[name] = ffd.Extension(name, self._logger, config, self._bus)
+            self._extensions[name] = ffd.Extension(name, self._logger, config, self._system_bus)
+            self._extensions[name].container.register_container(self._firefly_container)
 
     def _load_contexts(self):
         for name, config in self._config.contexts.items():
-            self._contexts[name] = ffd.Context(name, self._logger, config, self._bus)
+            if name == 'firefly':
+                continue
+            self._contexts[name] = ffd.Context(name, self._logger, config, self._system_bus)
             self._contexts[name].container.register_container(self._firefly_container)

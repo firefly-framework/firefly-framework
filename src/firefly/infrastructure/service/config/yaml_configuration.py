@@ -16,6 +16,8 @@ class YamlConfiguration(ffd.Configuration):
             value = node.value
             match = path_matcher.match(value)
             env_var = match.group()[2:-1]
+            if env_var not in os.environ:
+                raise ffd.ConfigurationError(f'Environment variable {env_var} is used in config, but is not set')
             return os.environ.get(env_var) + value[match.end():1]
 
         yaml.add_implicit_resolver('!path', path_matcher, None, yaml.SafeLoader)

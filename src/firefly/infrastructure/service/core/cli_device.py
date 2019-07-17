@@ -55,7 +55,7 @@ class CliDevice(ffd.Device):
 
     def register_port(self, command: ffd.RegisterCliPort):
         target = command.target
-        if target is not None and issubclass(target, ffd.Service):
+        if target is not None and not isinstance(target, str) and issubclass(target, ffd.Service):
             target = target.get_message()
         port = ffd.CliPort(target, asdict(command))
         port._system_bus = self._system_bus
@@ -90,7 +90,7 @@ class CliDevice(ffd.Device):
         ret = {
             'help': port.help_ or {},
             'alias': port.alias or {},
-            'params': {},
+            'params': port.params or {},
         }
         if port.target is not None:
             try:
@@ -104,6 +104,8 @@ class CliDevice(ffd.Device):
                 ret['help'].update(port.help_)
             if port.alias is not None:
                 ret['alias'].update(port.alias)
+            if port.params is not None:
+                ret['params'].update(port.params)
 
         return ret
 

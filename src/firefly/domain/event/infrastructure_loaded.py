@@ -5,5 +5,5 @@ from ..entity.entity import required
 
 
 @dataclass
-class ContainerRegistered(FrameworkEvent):
+class InfrastructureLoaded(FrameworkEvent):
     context: str = required()

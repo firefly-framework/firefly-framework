@@ -42,7 +42,6 @@ class HttpDevice(ffd.Device, ffd.LoggerAware):
         self.info('Received request on port %s', port)
         response = port.handle(body=await request.text(), headers=dict(request.headers))
 
-        print(response)
         return web.Response(
             headers=response.http_headers,
             body=response.body
@@ -50,28 +49,8 @@ class HttpDevice(ffd.Device, ffd.LoggerAware):
 
     def register_port(self, command: ffd.RegisterHttpPort):
         target = command.target
-        if target is not None and issubclass(target, ffd.Service):
+        if inspect.isclass(target) and issubclass(target, ffd.Service):
             target = target.get_message()
         port = ffd.HttpPort(target, asdict(command), command.endpoint, command.cors)
         port._system_bus = self._system_bus
         self._ports.append(port)
-
-    def _build_ports(self, args: dict, parent: ffd.HttpPort = None):
-        if 'port_type' in args:
-            del args['port_type']
-        if '__class__' in args:
-            del args['__class__']
-
-        port = ffd.HttpPort(**args)
-        if parent is not None:
-            port.extend(parent)
-
-        if inspect.isclass(port.target):
-            for k, v in port.target.__dict__.items():
-                if hasattr(v, '__ff_port'):
-                    for kwargs in getattr(v, '__ff_port'):
-                        kwargs['target'] = v
-                        self._build_ports(kwargs, port)
-
-        if port.path is not None:
-            self._ports.append(port)

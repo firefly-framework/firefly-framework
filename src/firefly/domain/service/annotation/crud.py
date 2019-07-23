@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections import Callable
 from dataclasses import fields, make_dataclass
 from typing import List, get_type_hints
 

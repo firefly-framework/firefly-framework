@@ -5,9 +5,9 @@ from typing import TypeVar, Type, Tuple, Union
 import firefly.domain as ffd
 
 from .repository import Repository
-from ..entity.entity import Entity
+from ..entity.aggregate_root import AggregateRoot
 
-E = TypeVar('E', bound=Entity)
+AR = TypeVar('AR', bound=AggregateRoot)
 
 
 class Registry:
@@ -15,7 +15,10 @@ class Registry:
         self._factories = {}
         self._default_factory = None
 
-    def __call__(self, entity: Type[E]) -> Repository:
+    def __call__(self, entity: Type[AR]) -> Repository:
+        if not issubclass(entity, ffd.AggregateRoot):
+            raise ffd.LogicError('Repositories can only be generated for aggregate roots')
+
         for k, v in self._factories.items():
             if issubclass(entity, k):
                 return v(entity)
@@ -28,7 +31,7 @@ class Registry:
             'like firefly_sqlalchemy? If so, you may have a configuration issue.'.format(entity)
         )
 
-    def register_factory(self, types: Union[Type[E], Tuple[Type[E]]], factory: ffd.RepositoryFactory):
+    def register_factory(self, types: Union[Type[AR], Tuple[Type[AR]]], factory: ffd.RepositoryFactory):
         self._factories[types] = factory
 
     def set_default_factory(self, factory: ffd.RepositoryFactory):

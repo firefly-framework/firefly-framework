@@ -17,6 +17,10 @@ class FrameworkError(Exception):
     pass
 
 
+class LogicError(FrameworkError):
+    pass
+
+
 class ConfigurationError(FrameworkError):
     pass
 

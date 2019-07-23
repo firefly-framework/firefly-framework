@@ -6,15 +6,17 @@ import firefly.domain as ffd
 
 
 class Kernel:
-    def __init__(self):
-        from firefly.application import Container
+    def __init__(self, container=None):
+        if container is None:
+            from firefly.application import Container
+            container = Container()
+
+        c = container.__class__
         # Inject our self into the container
-        Container.kernel = lambda s: self
-        Container.__annotations__['kernel'] = Kernel
+        c.kernel = lambda s: self
+        c.__annotations__['kernel'] = Kernel
 
-        container = Container()
         self._bus = container.system_bus
-
         self._config = container.configuration
         self._context_map = container.context_map
         self._container = container

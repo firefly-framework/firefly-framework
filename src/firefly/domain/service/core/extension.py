@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import inspect
+from dataclasses import is_dataclass, fields, MISSING
 from typing import Type, TypeVar
 
 import firefly.domain as ffd
@@ -15,18 +16,14 @@ from ...event.application_services_loaded import ApplicationServicesLoaded
 from ...event.domain_entities_loaded import DomainEntitiesLoaded
 from ...event.infrastructure_loaded import InfrastructureLoaded
 from ...entity.messaging.event import Event
+from ...entity import Entity
 
 SERVICE = TypeVar('SERVICE', bound=Service)
 EVENT = TypeVar('EVENT', bound=Event)
+ENTITY = TypeVar('ENTITY', bound=Entity)
 
 
 class Extension(LoggerAware, SystemBusAware):
-    MODULES = [
-        ('{}.domain.entity', DomainEntitiesLoaded),
-        ('{}.api', ApiLoaded),
-        ('{}.application.service', ApplicationServicesLoaded),
-    ]
-
     def __init__(self, name: str, logger: ffd.Logger, config: dict, bus: ffd.SystemBus,
                  container: di.Container = None):
         self.name = name
@@ -35,6 +32,12 @@ class Extension(LoggerAware, SystemBusAware):
         self._system_bus = bus
         self._service_instances = {}
         self.container = container
+
+        self.modules = [
+            (config.get('entity_module', '{}.domain.entity'), DomainEntitiesLoaded),
+            (config.get('api_module', '{}.api'), ApiLoaded),
+            (config.get('application_service_module', '{}.application.service'), ApplicationServicesLoaded),
+        ]
 
         if self.container is None:
             self._load_container()
@@ -68,7 +71,8 @@ class Extension(LoggerAware, SystemBusAware):
     def _load_container(self):
         try:
             self.debug('Attempting to import module {}.application', self.name)
-            module = importlib.import_module('{}.application'.format(self.name))
+            module_name = self.config.get('container_module', '{}.application')
+            module = importlib.import_module(module_name.format(self.name))
             container_class = getattr(module, 'Container')
             self.debug('Container imported successfully')
         except (ModuleNotFoundError, AttributeError):
@@ -82,7 +86,7 @@ class Extension(LoggerAware, SystemBusAware):
         self.container = container_class()
 
     def _load_modules(self):
-        for module_name, event in self.MODULES:
+        for module_name, event in self.modules:
             self._load_module(module_name, event)
 
     def _load_module(self, module_name: str, event: Type[EVENT]):
@@ -105,9 +109,12 @@ class Extension(LoggerAware, SystemBusAware):
             elif issubclass(cls, ffd.Service):
                 self._add_service(cls)
             elif issubclass(cls, ffd.Entity):
-                cls.event_buffer = self.container.event_buffer
+                self._initialize_entity(cls)
 
         self.dispatch(event(self.name))
+
+    def _initialize_entity(self, entity: Type[ENTITY]):
+        entity.event_buffer = self.container.event_buffer
 
     def _invoke_port_commands(self, cls):
         for data in getattr(cls, '__ff_port'):

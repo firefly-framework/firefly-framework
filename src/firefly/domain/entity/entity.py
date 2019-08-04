@@ -17,15 +17,14 @@ class Entity(ABC):
         self.event_buffer.append(event)
 
     def __post_init__(self):
-        if not is_dataclass(self):
-            return
-
-        missing = []
-        for field_ in fields(self):
-            if 'required' in field_.metadata and isinstance(getattr(self, field_.name), Empty):
-                missing.append(field_.name)
-        if len(missing) > 0:
-            raise TypeError(f'__init__ missing {len(missing)} required argument(s): {", ".join(missing)}')
+        if is_dataclass(self):
+            missing = []
+            # noinspection PyDataclass
+            for field_ in fields(self):
+                if 'required' in field_.metadata and isinstance(getattr(self, field_.name), Empty):
+                    missing.append(field_.name)
+            if len(missing) > 0:
+                raise TypeError(f'__init__ missing {len(missing)} required argument(s): {", ".join(missing)}')
 
     @classmethod
     def get_params(cls, op: str):
@@ -36,6 +35,7 @@ class Entity(ABC):
             return cls._get_create_update_params()
         else:
             types = get_type_hints(cls)
+            # noinspection PyDataclass
             for field_ in fields(cls):
                 if 'pk' in field_.metadata:
                     return {field_.name: {
@@ -46,6 +46,7 @@ class Entity(ABC):
     @classmethod
     def _get_create_update_params(cls):
         ret = {}
+        # noinspection PyDataclass
         for field_ in fields(cls):
             types = get_type_hints(cls)
             default = inspect.Parameter.empty
@@ -69,7 +70,7 @@ class Empty:
 
 
 def pk(**kwargs):
-    metadata = {'pk': True}
+    metadata = {'pk': True, 'length': 36}
     metadata.update(kwargs)
     return field(default_factory=lambda: str(uuid.uuid1()), metadata=metadata)
 
@@ -96,5 +97,7 @@ def required(**kwargs):
     return field(default_factory=lambda: Empty(), metadata=metadata)
 
 
-def optional(**kwargs):
+def optional(default=MISSING, **kwargs):
+    if default != MISSING:
+        return field(default_factory=lambda: default, metadata=kwargs)
     return field(default=None, metadata=kwargs)

@@ -3,6 +3,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import List, TypeVar, Generic
 
+import firefly.domain as ffd
+
 T = TypeVar('T')
 
 
@@ -28,9 +30,9 @@ class Repository(Generic[T], ABC):
         pass
 
     @abstractmethod
-    def find_all_by(self, **kwargs) -> List[T]:
+    def find_all_matching(self, criteria: ffd.BinaryOp) -> List[T]:
         pass
 
     @abstractmethod
-    def find_one_by(self, **kwargs) -> T:
+    def find_one_matching(self, criteria: ffd.BinaryOp) -> T:
         pass

@@ -18,14 +18,14 @@ class Kernel:
 
         self._bus = container.system_bus
         self._config = container.configuration
-        self._context_map = container.context_map
-        self._container = container
+        self.context_map = container.context_map
+        self.container = container
 
         self._ports = []
 
-        self._context_map.initialize()
+        self.context_map.initialize()
 
     def run(self, device: Union[str, ffd.Device]):
         if isinstance(device, str):
-            device = getattr(self._container, device)
+            device = getattr(self.container, device)
         device.run()

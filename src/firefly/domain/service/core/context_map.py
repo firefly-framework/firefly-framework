@@ -58,12 +58,15 @@ class ContextMap(LoggerAware, SystemBusAware):
         for name, config in self._config.extensions.items():
             if name == 'firefly':
                 continue
+            config = config or {}
             self._extensions[name] = ffd.Extension(name, self._logger, config, self._system_bus)
             self._extensions[name].container.register_container(self._firefly_container)
+            self._firefly_container.register_container(self._extensions[name].container)
 
     def _load_contexts(self):
         for name, config in self._config.contexts.items():
             if name == 'firefly':
                 continue
+            config = config or {}
             self._contexts[name] = ffd.Context(name, self._logger, config, self._system_bus)
             self._contexts[name].container.register_container(self._firefly_container)

@@ -16,4 +16,4 @@ class ServiceExecutingMiddleware(Middleware):
         return next_(self._service(_message=message, **asdict(message)))
 
     def __repr__(self):
-        return '<ServiceExecutingMiddleware {}>'.format(repr(self._service))
+        return f'<ServiceExecutingMiddleware {repr(self._service)}>'

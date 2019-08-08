@@ -37,6 +37,10 @@ class InvalidArgument(FrameworkError):
     pass
 
 
+class MissingArgument(FrameworkError):
+    pass
+
+
 class MissingRouter(FrameworkError):
     pass
 

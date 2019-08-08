@@ -10,7 +10,7 @@ class FrameworkAnnotation(ABC):
     def name(self) -> str:
         pass
 
-    def __call__(self, child_callback: Callable = None, **kwargs):
+    def _attach_annotation(self, child_callback: Callable = None, **kwargs):
         def wrapper(cls):
             prop = []
             if hasattr(cls, self.name()):

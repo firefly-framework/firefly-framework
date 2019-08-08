@@ -6,7 +6,7 @@ from firefly import MiddlewareStack, Middleware, Message
 
 def test_order(sut):
     result = sut(Message())
-    assert result.header('numbers') == [1, 2, 3]
+    assert result.headers['numbers'] == [1, 2, 3]
 
 
 @pytest.fixture()
@@ -16,9 +16,9 @@ def sut():
             self.number = number
 
         def __call__(self, message: Message, next_: Callable, *args, **kwargs):
-            numbers = message.get('numbers', [])
-            numbers.append(self.number)
-            message.header('numbers', numbers)
+            if 'numbers' not in message.headers:
+                message.headers['numbers'] = []
+            message.headers['numbers'].append(self.number)
             return next_(message)
 
     return MiddlewareStack([

@@ -8,14 +8,13 @@ class CrudOperation(ABC):
         'create': 'Created',
         'update': 'Updated',
         'delete': 'Deleted',
-        'get': 'Fetched',
+        'retrieve': 'Retrieved',
     }
 
-    def _build_event(self, type_: type, operation: str):
-        class CrudEvent(ffd.Event):
-            pass
-        CrudEvent.__name__ = '{}{}'.format(type_.__name__, self.MAPPINGS[operation])
-        event = CrudEvent()
-        event.context = type_.__module__.split('.')[0]
+    _message_factory: ffd.MessageFactory = None
+
+    def _build_event(self, message: ffd.Message, type_: type, operation: str, source_context: str):
+        event = self._message_factory.convert_type(message, f'{type_.__name__}{self.MAPPINGS[operation]}', ffd.Event)
+        event.source_context = source_context
 
         return event

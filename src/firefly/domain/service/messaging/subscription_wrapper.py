@@ -16,7 +16,8 @@ class SubscriptionWrapper(Middleware):
         self._type = type_
 
     def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
-        if isinstance(message, self._type):
+        if (isinstance(self._type, str) and message == self._type) or (
+                not isinstance(self._type, str) and isinstance(message, self._type)):
             return self._middleware(message, next_)
         else:
             return next_(message)

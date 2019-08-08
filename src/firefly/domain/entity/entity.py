@@ -5,7 +5,7 @@ import uuid
 from abc import ABC
 from dataclasses import is_dataclass, fields, field, MISSING
 from datetime import datetime, date
-from typing import get_type_hints
+from typing import get_type_hints, Union
 
 import firefly.domain as ffd
 
@@ -13,7 +13,8 @@ import firefly.domain as ffd
 class Entity(ABC):
     event_buffer: ffd.EventBuffer = None
 
-    def dispatch(self, event: ffd.Event):
+    def dispatch(self, event: Union[ffd.Event, str], data):
+        # TODO If even is str, build event class using data.
         self.event_buffer.append(event)
 
     def __post_init__(self):
@@ -25,6 +26,18 @@ class Entity(ABC):
                     missing.append(field_.name)
             if len(missing) > 0:
                 raise TypeError(f'__init__ missing {len(missing)} required argument(s): {", ".join(missing)}')
+
+    def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return False
+
+        return self.pk_value() == other.pk_value()
+
+    def pk_value(self):
+        # noinspection PyDataclass
+        for field_ in fields(self):
+            if 'pk' in field_.metadata:
+                return getattr(self, field_.name)
 
     @classmethod
     def get_params(cls, op: str):
@@ -69,7 +82,7 @@ class Empty:
     pass
 
 
-def pk(**kwargs):
+def id(**kwargs):
     metadata = {'pk': True, 'length': 36}
     metadata.update(kwargs)
     return field(default_factory=lambda: str(uuid.uuid1()), metadata=metadata)

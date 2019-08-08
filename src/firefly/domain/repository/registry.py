@@ -12,6 +12,7 @@ AR = TypeVar('AR', bound=AggregateRoot)
 
 class Registry:
     def __init__(self):
+        self._cache= {}
         self._factories = {}
         self._default_factory = None
 
@@ -19,17 +20,21 @@ class Registry:
         if not issubclass(entity, ffd.AggregateRoot):
             raise ffd.LogicError('Repositories can only be generated for aggregate roots')
 
-        for k, v in self._factories.items():
-            if issubclass(entity, k):
-                return v(entity)
+        if entity not in self._cache:
+            for k, v in self._factories.items():
+                if issubclass(entity, k):
+                    self._cache[entity] = v(entity)
 
-        if self._default_factory is not None:
-            return self._default_factory(entity)
+            if self._default_factory is not None:
+                self._cache[entity] = self._default_factory(entity)
 
-        raise ffd.FrameworkError(
-            'No registry found for entity {}. Have you installed a persistence extension, '
-            'like firefly_sqlalchemy? If so, you may have a configuration issue.'.format(entity)
-        )
+            if entity not in self._cache:
+                raise ffd.FrameworkError(
+                    'No registry found for entity {}. Have you installed a persistence extension, '
+                    'like firefly_sqlalchemy? If so, you may have a configuration issue.'.format(entity)
+                )
+
+        return self._cache[entity]
 
     def register_factory(self, types: Union[Type[AR], Tuple[Type[AR]]], factory: ffd.RepositoryFactory):
         self._factories[types] = factory

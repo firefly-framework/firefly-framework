@@ -23,6 +23,7 @@ class Container(di.Container):
     system_bus: ffd.SystemBus = ffd.SystemBus
     context_map: ffd.ContextMap = ffd.ContextMap
     registry: ffd.Registry = ffd.Registry
+    message_factory: ffd.MessageFactory = ffd.MessageFactory
 
     # Infrastructure
     cli_device: ffi.CliDevice = lambda self: self.build(ffi.CliDevice, device_id='firefly')

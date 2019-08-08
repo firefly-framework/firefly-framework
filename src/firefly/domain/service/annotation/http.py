@@ -21,7 +21,7 @@ class Http(FrameworkAnnotation):
         del kwargs['method']
         del kwargs['path']
         cmd = ffd.RegisterHttpPort(**kwargs)
-        return super().__call__(child_callback=self._cb, command=cmd)
+        return super()._attach_annotation(child_callback=self._cb, command=cmd)
 
     def _cb(self, parent: object, child: object):
         parent_cmd = getattr(parent, self.name())

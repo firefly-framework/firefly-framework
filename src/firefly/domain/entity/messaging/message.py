@@ -1,13 +1,33 @@
 from __future__ import annotations
 
-from typing import get_type_hints
-from dataclasses import dataclass, field, fields, MISSING
+from dataclasses import dataclass, field
+
 import firefly.domain as ffd
+from ..entity import dict_, optional
 
 
-@dataclass()
+@dataclass
 class Message:
-    headers: dict = field(default_factory=lambda: {}, init=False)
+    headers: dict = dict_()
+    source_context: str = optional()
 
     def get_parameters(self):
         return ffd.get_arguments(self.__init__)
+
+    def __post_init__(self):
+        self.source_context = self.__module__.split('.')[0]
+
+    def __str__(self):
+        return f'{self.source_context}.{self.__class__.__name__}' \
+            if self.source_context is not None else self.__class__.__name__
+
+    def __repr__(self):
+        return str(self)
+
+    def __eq__(self, other):
+        if isinstance(other, str) and other == str(self):
+            return True
+        try:
+            return isinstance(self, other)
+        except TypeError:
+            return False

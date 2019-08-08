@@ -13,14 +13,14 @@ class Cli(FrameworkAnnotation):
         return '__ff_port'
 
     def __call__(self, name: str = None, description: str = None, target: object = None, alias: dict = None,
-                 help_: dict = None, device_id: str = None, params: dict = None):
+                           help_: dict = None, device_id: str = None, params: dict = None):
         kwargs = locals()
         del kwargs['self']
         if '__class__' in kwargs:
             del kwargs['__class__']
         kwargs['id_'] = str(uuid.uuid1())
         cmd = ffd.RegisterCliPort(**kwargs)
-        return super().__call__(child_callback=self._cb, command=cmd)
+        return super()._attach_annotation(child_callback=self._cb, command=cmd)
 
     def _cb(self, parent: object, child: object):
         parent_cmd = getattr(parent, self.name())

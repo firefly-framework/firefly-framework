@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import fields
+import importlib
+from dataclasses import fields, asdict
+from pydoc import locate
 from typing import TypeVar, Generic, Optional, Union
 
 import firefly.domain as ffd
@@ -15,9 +17,9 @@ class CreateEntity(Generic[T], ffd.Service, ffd.GenericBase, CrudOperation, ffd.
 
     def __call__(self, **kwargs) -> Optional[Union[ffd.Message, object]]:
         type_ = self._type()
-        entity = type_(**self._get_constructor_args(type_, kwargs))
-        self._registry(type_).add(entity).commit()
-        self.dispatch(self._build_event(type_, 'create'))
+        entity = type_(**ffd.build_argument_list(kwargs, type_))
+        self._registry(type_).add(entity)
+        self.dispatch(self._build_event(kwargs['message'], type_, 'create', kwargs['message'].source_context))
 
         return entity
 

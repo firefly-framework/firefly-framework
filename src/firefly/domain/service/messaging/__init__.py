@@ -7,3 +7,4 @@ from .query_bus import QueryBus
 from .system_bus import SystemBus, SystemBusAware
 from .service_executing_middleware import ServiceExecutingMiddleware
 from .subscription_wrapper import SubscriptionWrapper
+from .message_factory import MessageFactory

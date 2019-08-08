@@ -22,7 +22,7 @@ class HandleCrudOperation(ffd.Middleware):
             handle = CrudOperation()
             handle._registry = self._registry
 
-            return next_(handle(_message=message, **asdict(message)))
+            return next_(handle(message=message, **asdict(message)))
 
         return next_(message)
 

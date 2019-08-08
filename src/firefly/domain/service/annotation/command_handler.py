@@ -10,7 +10,7 @@ class CommandHandler(FrameworkAnnotation):
         return '__ff_command_handler'
 
     def __call__(self, command: Union[str, type, None] = None):
-        return super().__call__(command=command)
+        return super()._attach_annotation(command=command)
 
 
 command_handler = CommandHandler()

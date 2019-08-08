@@ -10,7 +10,7 @@ class QueryHandler(FrameworkAnnotation):
         return '__ff_query_handler'
 
     def __call__(self, query: Union[str, type, None] = None):
-        return super().__call__(query=query)
+        return super()._attach_annotation(query=query)
 
 
 query_handler = QueryHandler()

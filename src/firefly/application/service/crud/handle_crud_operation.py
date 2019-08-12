@@ -12,6 +12,8 @@ import inflection
 @ffd.command_handler()
 class HandleCrudOperation(ffd.Middleware):
     _registry: ffd.Registry = None
+    _message_factory: ffd.MessageFactory = None
+    _system_bus: ffd.SystemBus = None
 
     def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
         if isinstance(message, (ffd.CrudCommand, ffd.CrudQuery)):
@@ -21,6 +23,8 @@ class HandleCrudOperation(ffd.Middleware):
                 pass
             handle = CrudOperation()
             handle._registry = self._registry
+            handle._message_factory = self._message_factory
+            handle._system_bus = self._system_bus
 
             return next_(handle(message=message, **asdict(message)))
 

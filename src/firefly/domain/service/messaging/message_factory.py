@@ -28,3 +28,22 @@ class MessageFactory:
         cls = make_dataclass(new_name, fields=message_fields, bases=new_base, eq=False, repr=False)
 
         return cls(**asdict(message))
+
+    def event(self, name: str, data: dict):
+        return self._build(name, data, (ffd.Event,))
+
+    def command(self, name: str, data: dict):
+        return self._build(name, data, (ffd.Command,))
+
+    @staticmethod
+    def _build(name: str, data: dict, bases: tuple):
+        if '.' in name:
+            context, name = name.split('.')
+            data['source_context'] = context
+
+        message_fields = []
+        for k, v in data.items():
+            message_fields.append((k, type(v), ffd.optional(default=v)))
+        cls = make_dataclass(name, fields=message_fields, bases=bases, eq=False, repr=False)
+
+        return cls(**data)

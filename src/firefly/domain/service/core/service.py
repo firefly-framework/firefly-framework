@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import dataclasses
 import inspect
 from abc import ABC, abstractmethod
-from dataclasses import make_dataclass, field
+from dataclasses import make_dataclass
 
 import firefly.domain as ffd
 

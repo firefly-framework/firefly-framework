@@ -15,7 +15,8 @@ class Message:
         return ffd.get_arguments(self.__init__)
 
     def __post_init__(self):
-        self.source_context = self.__module__.split('.')[0]
+        if self.source_context is None:
+            self.source_context = self.__module__.split('.')[0]
 
     def __str__(self):
         return f'{self.source_context}.{self.__class__.__name__}' \

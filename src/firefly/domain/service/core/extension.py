@@ -2,21 +2,21 @@ from __future__ import annotations
 
 import importlib
 import inspect
-from dataclasses import is_dataclass, fields, MISSING, asdict
 from typing import Type, TypeVar, Callable
 
 import firefly.domain as ffd
 import firefly_di as di
+import inflection
 
 from .service import Service
 from ..logging.logger import LoggerAware
 from ..messaging.system_bus import SystemBusAware
+from ...entity import Entity
+from ...entity.messaging.event import Event
 from ...event.api_loaded import ApiLoaded
 from ...event.application_services_loaded import ApplicationServicesLoaded
 from ...event.domain_entities_loaded import DomainEntitiesLoaded
 from ...event.infrastructure_loaded import InfrastructureLoaded
-from ...entity.messaging.event import Event
-from ...entity import Entity
 
 SERVICE = TypeVar('SERVICE', bound=Service)
 EVENT = TypeVar('EVENT', bound=Event)
@@ -32,6 +32,7 @@ class Extension(LoggerAware, SystemBusAware):
         self._system_bus = bus
         self._service_instances = {}
         self.container = container
+        self.entities = []
 
         self.modules = [
             (config.get('entity_module', '{}.domain.entity'), DomainEntitiesLoaded),
@@ -46,14 +47,19 @@ class Extension(LoggerAware, SystemBusAware):
         self._load_modules()
         self._initialize_container()
 
-    def service_instance(self, cls):
-        if cls not in self._service_instances:
+    def service_instance(self, cls, args: dict = None):
+        key = cls.__name__ if hasattr(cls, '__name__') else cls
+
+        if key not in self._service_instances:
             try:
-                self._service_instances[cls] = self.container.build(cls)
+                args = args or {}
+                self._service_instances[key] = self.container.build(cls, **args)
             except TypeError:
+                if inspect.isclass(cls):
+                    raise ffd.FrameworkError(f'Could not instantiate {cls}')
                 return cls
 
-        return self._service_instances[cls]
+        return self._service_instances[key]
 
     def load_infrastructure(self):
         self._load_module('{}.infrastructure.service', InfrastructureLoaded)
@@ -66,7 +72,7 @@ class Extension(LoggerAware, SystemBusAware):
         c.registry = ffd.Registry
         c.__annotations__['registry'] = ffd.Registry
 
-        self._system_bus.dispatch(ffd.ContainerInitialized(self.name))
+        self._system_bus.dispatch(ffd.ContainerInitialized(context=self.name))
 
     def _load_container(self):
         try:
@@ -107,14 +113,16 @@ class Extension(LoggerAware, SystemBusAware):
             if issubclass(cls, ffd.Middleware):
                 self._add_middleware(cls)
             elif issubclass(cls, ffd.Service):
-                self._add_service(cls)
+                self.add_service(cls)
             elif issubclass(cls, ffd.Entity):
                 self._initialize_entity(cls)
 
-        self.dispatch(event(self.name))
+        self.dispatch(event(context=self.name))
 
     def _initialize_entity(self, entity: Type[ENTITY]):
         entity.event_buffer = self.container.event_buffer
+        self.entities.append(entity)
+
         if hasattr(entity, '__ff_listener'):
             configs = getattr(entity, '__ff_listener')
             for config in configs:
@@ -142,32 +150,34 @@ class Extension(LoggerAware, SystemBusAware):
                 if hasattr(v, '__ff_port'):
                     self._invoke_port_commands(v)
 
-    def _add_middleware(self, cls):
+    def _add_middleware(self, cls, args: dict = None):
         for key, method, port_key in (('__ff_command_handler', 'add_command_handler', 'command'),
                                       ('__ff_listener', 'add_event_listener', 'event'),
                                       ('__ff_query_handler', 'add_query_handler', 'query')):
             if hasattr(cls, key):
                 for handler in getattr(cls, key):
-                    getattr(self._system_bus, method)(self._wrap_mw(self.service_instance(cls), handler[port_key]))
+                    getattr(self._system_bus, method)(
+                        self._wrap_mw(self.service_instance(cls, args), handler[port_key])
+                    )
 
-    def _add_service(self, cls: Type[SERVICE]):
+    def add_service(self, cls: Type[SERVICE], args: dict = None):
         registered = False
         for key in ('__ff_command_handler', '__ff_listener', '__ff_query_handler'):
             if hasattr(cls, key):
                 registered = True
-                mw = ffd.ServiceExecutingMiddleware(self.service_instance(cls))
+                mw = ffd.ServiceExecutingMiddleware(self.service_instance(cls, args))
                 setattr(mw, key, getattr(cls, key))
                 self._add_middleware(mw)
 
         # Implicitly register this Service as a Command/Query handler
-        if not registered:
-            message = cls.get_message()
-            mw = ffd.ServiceExecutingMiddleware(self.service_instance(cls))
-            if issubclass(message, ffd.Command):
-                setattr(mw, '__ff_command_handler', [{'command': message}])
-            else:
-                setattr(mw, '__ff_query_handler', [{'query': message}])
-            self._add_middleware(mw)
+        # if not registered:
+        #     message = cls.get_message()
+        #     mw = ffd.ServiceExecutingMiddleware(self.service_instance(cls))
+        #     if issubclass(message, ffd.Command):
+        #         setattr(mw, '__ff_command_handler', [{'command': message}])
+        #     else:
+        #         setattr(mw, '__ff_query_handler', [{'query': message}])
+        #     self._add_middleware(mw)
 
     @staticmethod
     def _wrap_mw(cls: ffd.Middleware, type_=None):

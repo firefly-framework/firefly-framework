@@ -46,5 +46,10 @@ def system_bus(kernel) -> ff.SystemBus:
 
 
 @pytest.fixture(scope="session")
+def message_factory(kernel) -> ff.MessageFactory:
+    return kernel.container.message_factory
+
+
+@pytest.fixture(scope="session")
 def registry(kernel) -> ff.Registry:
     return kernel.container.registry

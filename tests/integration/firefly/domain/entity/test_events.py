@@ -12,6 +12,7 @@ def test_inter_context_events(system_bus, registry):
         email: str = ff.required()
 
         def __post_init__(self):
+            # TODO See if we can reduce some of this configuration.
             self.headers['entity_fqn'] = 'tests.src.iam.domain.entity.User'
             self.headers['operation'] = 'create'
             self.source_context = 'iam'

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from typing import List
 
 import firefly as ff
@@ -21,13 +21,17 @@ class TodoList(ff.AggregateRoot):
         if self.name is None:
             self.name = f"{self.user.name}'s TODO List"
 
-    def add_task(self, name: str):
-        t = Task(name=name)
-        self.tasks.append(t)
-        self.dispatch('TaskAdded', t)
+    def add_task(self, task: Task):
+        self.tasks.append(task)
+        self.dispatch('TaskAdded', asdict(task))
 
     def remove_task(self, task: Task):
         self.tasks.remove(task)
 
-    def complete_task(self, task: Task):
-        pass
+    def complete_task(self, task_id: str):
+        for task in self.tasks:
+            if task_id == task.id:
+                task.complete_task()
+                self.dispatch('TaskCompleted', asdict(task))
+                return
+        raise Exception(f'Task {task_id} not found in TodoList {self}')

@@ -13,9 +13,11 @@ import firefly.domain as ffd
 class Entity(ABC):
     event_buffer: ffd.EventBuffer = None
 
-    def dispatch(self, event: Union[ffd.Event, str], data):
-        # TODO If even is str, build event class using data.
-        self.event_buffer.append(event)
+    def dispatch(self, event: Union[ffd.Event, str], data: dict = None):
+        if isinstance(event, str):
+            self.event_buffer.append((event, data))
+        else:
+            self.event_buffer.append(event)
 
     def __post_init__(self):
         if is_dataclass(self):

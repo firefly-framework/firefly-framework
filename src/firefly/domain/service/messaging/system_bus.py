@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Union
+
 import firefly.domain as ffd
 
 from .command_bus import CommandBusAware
@@ -21,11 +23,11 @@ class SystemBus(EventBusAware, CommandBusAware, QueryBusAware):
 class SystemBusAware:
     _system_bus: SystemBus = None
 
-    def dispatch(self, event: ffd.Event):
-        return self._system_bus.dispatch(event)
+    def dispatch(self, event: Union[ffd.Event, str], data: dict = None):
+        return self._system_bus.dispatch(event, data)
 
-    def invoke(self, command: ffd.Command):
-        return self._system_bus.invoke(command)
+    def invoke(self, command: Union[ffd.Command, str], data: dict = None):
+        return self._system_bus.invoke(command, data)
 
-    def query(self, request: ffd.Query):
-        return self._system_bus.query(request)
+    def query(self, request: Union[ffd.Query, str], data: dict = None):
+        return self._system_bus.query(request, data)

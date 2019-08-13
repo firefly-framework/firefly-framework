@@ -35,6 +35,9 @@ class MessageFactory:
     def command(self, name: str, data: dict):
         return self._build(name, data, (ffd.Command,))
 
+    def query(self, name: str, data: dict):
+        return self._build(name, data, (ffd.Query,))
+
     @staticmethod
     def _build(name: str, data: dict, bases: tuple):
         if '.' in name:

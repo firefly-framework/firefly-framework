@@ -11,13 +11,13 @@ class Container(di.Container):
     logger: ffd.Logger = ffi.PythonLogger
     serializer: ffd.Serializer = ffi.DefaultSerializer
     configuration: ffd.Configuration = ffi.YamlConfiguration
-    command_bus: ffd.CommandBus = lambda self: ffd.CommandBus([
+    command_bus: ffd.CommandBus = lambda self: self.build(ffd.CommandBus, middleware=[
         self.build(ffd.LoggingMiddleware)
     ])
-    event_bus: ffd.EventBus = lambda self: ffd.EventBus([
+    event_bus: ffd.EventBus = lambda self: self.build(ffd.EventBus, middleware=[
         self.build(ffd.LoggingMiddleware)
     ])
-    query_bus: ffd.QueryBus = lambda self: ffd.QueryBus([
+    query_bus: ffd.QueryBus = lambda self: self.build(ffd.QueryBus, middleware=[
         self.build(ffd.LoggingMiddleware)
     ])
     system_bus: ffd.SystemBus = ffd.SystemBus

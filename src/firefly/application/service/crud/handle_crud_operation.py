@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from dataclasses import asdict
 from typing import Callable
 
@@ -14,6 +15,10 @@ class HandleCrudOperation(ffd.Middleware):
     _registry: ffd.Registry = None
     _message_factory: ffd.MessageFactory = None
     _system_bus: ffd.SystemBus = None
+    _context_map: ffd.ContextMap = None
+
+    def __init__(self):
+        self._crud_regex = re.compile('^(Create)|(Retrieve)|(Update)|(Delete)')
 
     def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
         if isinstance(message, (ffd.CrudCommand, ffd.CrudQuery)):
@@ -33,3 +38,9 @@ class HandleCrudOperation(ffd.Middleware):
     @staticmethod
     def _generic_operation(operation: str):
         return getattr(crud, '{}Entity'.format(inflection.camelize(operation, uppercase_first_letter=True)))
+
+    def _is_crud_message(self, message: ffd.Message):
+        return bool(re.search(self._crud_regex, message.__class__.__name__))
+
+    def _handler_exists(self, message: ffd.Message):
+        pass

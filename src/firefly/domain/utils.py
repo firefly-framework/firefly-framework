@@ -79,7 +79,10 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type]):
         types = typing.get_type_hints(obj.__init__)
     else:
         sig = inspect.signature(obj)
-        types = typing.get_type_hints(obj)
+        try:
+            types = typing.get_type_hints(obj)
+        except NameError:
+            types = obj.__annotations__
 
     for name, param in sig.parameters.items():
         if name == 'self' or param.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
@@ -91,7 +94,7 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type]):
         elif param.default is not None:
             required = True
 
-        type_ = types[name]
+        type_ = types[name] if name in types else None
         if isinstance(type_, type) and issubclass(type_, ffd.Entity):
             entity_args = build_argument_list(params, type_)
             args[name] = type_(**entity_args)
@@ -101,6 +104,8 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type]):
                     del args[key]
         elif name in params:
             args[name] = params[name]
+        elif name.endswith('_') and name.rstrip('_') in params:
+            args[name] = params[name.rstrip('_')]
         elif required is True:
             raise ffd.MissingArgument(f'Argument: {name} is required')
 

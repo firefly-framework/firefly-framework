@@ -3,6 +3,7 @@ from dataclasses import dataclass
 import firefly as ff
 
 import tests.src.todo.domain as todo
+import tests.src.calendar.domain as calendar
 
 
 def test_inter_context_events(system_bus, registry):
@@ -22,3 +23,6 @@ def test_inter_context_events(system_bus, registry):
     todos = registry(todo.TodoList).all()
     assert len(todos) == 1
     assert todos[0].user.name == 'foo'
+
+    calendars = registry(calendar.Calendar).all()
+    assert len(calendars) == 1

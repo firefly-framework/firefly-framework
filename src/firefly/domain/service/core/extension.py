@@ -27,14 +27,18 @@ class Extension(LoggerAware, SystemBusAware):
     def __init__(self, name: str, logger: ffd.Logger, config: dict, bus: ffd.SystemBus,
                  container: di.Container = None):
         self.name = name
-        self._logger = logger
         self.config = config
-        self._system_bus = bus
-        self._service_instances = {}
         self.container = container
         self.entities = []
+        self.command_handlers = []
+        self.query_handlers = []
+        self.event_listeners = []
 
-        self.modules = [
+        self._logger = logger
+        self._system_bus = bus
+        self._service_instances = {}
+
+        self._modules = [
             (config.get('entity_module', '{}.domain.entity'), DomainEntitiesLoaded),
             (config.get('api_module', '{}.api'), ApiLoaded),
             (config.get('application_service_module', '{}.application.service'), ApplicationServicesLoaded),
@@ -92,7 +96,7 @@ class Extension(LoggerAware, SystemBusAware):
         self.container = container_class()
 
     def _load_modules(self):
-        for module_name, event in self.modules:
+        for module_name, event in self._modules:
             self._load_module(module_name, event)
 
     def _load_module(self, module_name: str, event: Type[EVENT]):
@@ -124,6 +128,7 @@ class Extension(LoggerAware, SystemBusAware):
         self.entities.append(entity)
 
         if hasattr(entity, '__ff_listener'):
+            context_name = self.name
             configs = getattr(entity, '__ff_listener')
             for config in configs:
                 if 'crud' in config:
@@ -137,6 +142,7 @@ class Extension(LoggerAware, SystemBusAware):
                                 )
                                 cmd.headers['entity_fqn'] = f'{entity.__module__}.{entity.__name__}'
                                 cmd.headers['operation'] = 'create'
+                                cmd.headers['source_context'] = context_name
                                 self.invoke(cmd)
                                 return message
 
@@ -151,33 +157,23 @@ class Extension(LoggerAware, SystemBusAware):
                     self._invoke_port_commands(v)
 
     def _add_middleware(self, cls, args: dict = None):
-        for key, method, port_key in (('__ff_command_handler', 'add_command_handler', 'command'),
-                                      ('__ff_listener', 'add_event_listener', 'event'),
-                                      ('__ff_query_handler', 'add_query_handler', 'query')):
+        for key, method, port_key, prop in \
+                (('__ff_command_handler', 'add_command_handler', 'command', 'command_handlers'),
+                 ('__ff_listener', 'add_event_listener', 'event', 'event_listeners'),
+                 ('__ff_query_handler', 'add_query_handler', 'query', 'query_handlers')):
             if hasattr(cls, key):
+                getattr(self, prop).append(cls)
                 for handler in getattr(cls, key):
                     getattr(self._system_bus, method)(
                         self._wrap_mw(self.service_instance(cls, args), handler[port_key])
                     )
 
     def add_service(self, cls: Type[SERVICE], args: dict = None):
-        registered = False
         for key in ('__ff_command_handler', '__ff_listener', '__ff_query_handler'):
             if hasattr(cls, key):
-                registered = True
                 mw = ffd.ServiceExecutingMiddleware(self.service_instance(cls, args))
                 setattr(mw, key, getattr(cls, key))
                 self._add_middleware(mw)
-
-        # Implicitly register this Service as a Command/Query handler
-        # if not registered:
-        #     message = cls.get_message()
-        #     mw = ffd.ServiceExecutingMiddleware(self.service_instance(cls))
-        #     if issubclass(message, ffd.Command):
-        #         setattr(mw, '__ff_command_handler', [{'command': message}])
-        #     else:
-        #         setattr(mw, '__ff_query_handler', [{'query': message}])
-        #     self._add_middleware(mw)
 
     @staticmethod
     def _wrap_mw(cls: ffd.Middleware, type_=None):

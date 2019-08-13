@@ -19,7 +19,10 @@ class CreateEntity(Generic[T], ffd.Service, ffd.GenericBase, CrudOperation, ffd.
         type_ = self._type()
         entity = type_(**ffd.build_argument_list(kwargs, type_))
         self._registry(type_).add(entity)
-        self.dispatch(self._build_event(kwargs['message'], type_, 'create', kwargs['message'].source_context))
+        source_context = kwargs['message'].source_context
+        if 'source_context' in kwargs['message'].headers:
+            source_context = kwargs['message'].headers['source_context']
+        self.dispatch(self._build_event(type_, 'create', asdict(entity), source_context))
 
         return entity
 

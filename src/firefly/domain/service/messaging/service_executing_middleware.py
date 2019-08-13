@@ -13,7 +13,9 @@ class ServiceExecutingMiddleware(Middleware):
         self._service = service
 
     def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
-        return next_(self._service(_message=message, **asdict(message)))
+        args = asdict(message)
+        args['_message'] = message
+        return next_(self._service(**ffd.build_argument_list(args, self._service)))
 
     def __repr__(self):
         return f'<ServiceExecutingMiddleware {repr(self._service)}>'

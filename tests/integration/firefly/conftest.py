@@ -10,6 +10,7 @@ def config():
             'todo': {
                 'entity_module': 'tests.src.todo.domain.entity',
                 'container_module': 'tests.src.todo.application',
+                'application_service_module': 'tests.src.todo.application.service',
             },
             'iam': {
                 'entity_module': 'tests.src.iam.domain.entity',

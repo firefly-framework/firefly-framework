@@ -3,6 +3,7 @@ from __future__ import annotations
 import inspect
 from abc import ABC, abstractmethod
 from dataclasses import make_dataclass
+from typing import List, Union, Tuple
 
 import firefly.domain as ffd
 
@@ -10,9 +11,21 @@ from ..messaging.system_bus import SystemBusAware
 
 
 class Service(ABC, SystemBusAware):
+    _event_buffer: ffd.EventBuffer = None
+
     @abstractmethod
     def __call__(self, **kwargs):
         pass
+
+    def _process_events(self, events):
+        if isinstance(events, list):
+            for event in events:
+                if isinstance(event, (ffd.Event, tuple)):
+                    self._event_buffer.append(event)
+        elif isinstance(events, tuple) and len(events) == 2:
+            self._event_buffer.append(events)
+
+        return events
 
     @classmethod
     def get_message(cls):

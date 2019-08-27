@@ -11,5 +11,5 @@ class AggregateRoot(Entity, ABC):
     pass
 
 
-def aggregate_root(_cls=None, **kwargs):
+def aggregate_root(_cls=None, **kwargs) -> AggregateRoot:
     return ffd.generate_dc(AggregateRoot, _cls, **kwargs)

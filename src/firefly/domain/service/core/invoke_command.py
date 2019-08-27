@@ -25,7 +25,9 @@ class InvokeCommand(Generic[T], GenericBase, Service):
             raise ffd.MissingArgument(self._aggregate_name_snake())
 
         method = getattr(aggregate, self._method)
-        return method(**ffd.build_argument_list(kwargs, method))
+        return self._process_events(
+            method(**ffd.build_argument_list(kwargs, method))
+        )
 
     def _aggregate_name_snake(self):
         return inflection.underscore(self._type().__name__)

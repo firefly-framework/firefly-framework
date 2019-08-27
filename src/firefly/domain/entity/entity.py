@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 from abc import ABC
-from dataclasses import is_dataclass, fields, field, MISSING, dataclass
+from dataclasses import is_dataclass, fields, field, MISSING, dataclass, asdict
 from datetime import datetime, date
 from typing import Union
 import inflection
@@ -12,14 +12,6 @@ import firefly.domain as ffd
 
 # noinspection PyDataclass
 class Entity(ABC):
-    event_buffer: ffd.EventBuffer = None
-
-    def dispatch(self, event: Union[ffd.Event, str], data: dict = None):
-        if isinstance(event, str):
-            self.event_buffer.append((event, data))
-        else:
-            self.event_buffer.append(event)
-
     def __post_init__(self):
         if is_dataclass(self):
             missing = []
@@ -42,6 +34,9 @@ class Entity(ABC):
         for field_ in fields(self):
             if 'id' in field_.metadata:
                 return getattr(self, field_.name)
+
+    def to_dict(self):
+        return asdict(self)
 
     @classmethod
     def id_name(cls):

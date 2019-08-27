@@ -124,7 +124,6 @@ class Extension(LoggerAware, SystemBusAware):
         self.dispatch(event(context=self.name))
 
     def _initialize_entity(self, entity: Type[ENTITY]):
-        entity.event_buffer = self.container.event_buffer
         self.entities.append(entity)
 
     def _invoke_port_commands(self, cls):

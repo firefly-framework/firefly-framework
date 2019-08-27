@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import asdict
 from typing import List
 
 import firefly as ff
@@ -24,7 +23,7 @@ class TodoList:
 
     def add_task(self, task: Task):
         self.tasks.append(task)
-        self.dispatch('TaskAdded', asdict(task))
+        return 'TaskAdded', task
 
     def remove_task(self, task: Task):
         self.tasks.remove(task)
@@ -33,5 +32,5 @@ class TodoList:
         for task in self.tasks:
             if task_id == task.id:
                 task.complete_task()
-                return self.dispatch('TaskCompleted', asdict(task))
+                return 'TaskCompleted', task
         raise Exception(f'Task {task_id} not found in TodoList {self}')

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import is_dataclass, asdict
 from typing import Callable
 
 import firefly.domain as ffd
@@ -16,8 +17,11 @@ class EventDispatchingMiddleware(Middleware, SystemBusAware):
         try:
             ret = next_(message)
             for event in self._event_buffer:
+                data = event[1]
+                if is_dataclass(data):
+                    data = asdict(data)
                 if isinstance(event, tuple):
-                    self.dispatch(self._message_factory.event(event[0], event[1]))
+                    self.dispatch(self._message_factory.event(event[0], data))
                 else:
                     self.dispatch(event)
         finally:

@@ -10,6 +10,6 @@ import tests.src.calendar.domain as cal
 
 @dataclass
 class Event(ff.Entity):
-    id: str = ff.id()
+    id: str = ff.id_()
     name: str = ff.required()
     reminders: List[cal.Reminder] = ff.list_()

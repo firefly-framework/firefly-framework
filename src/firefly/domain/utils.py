@@ -3,7 +3,7 @@ from __future__ import annotations
 import importlib
 import inspect
 import sys
-from dataclasses import is_dataclass, fields
+from dataclasses import is_dataclass, fields, dataclass
 from time import sleep
 
 import typing
@@ -84,6 +84,10 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type]):
         except NameError:
             types = obj.__annotations__
 
+    for param in sig.parameters.values():
+        if param.kind == inspect.Parameter.VAR_KEYWORD:
+            return params
+
     for name, param in sig.parameters.items():
         if name == 'self' or param.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
             continue
@@ -99,9 +103,10 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type]):
             entity_args = build_argument_list(params, type_)
             args[name] = type_(**entity_args)
             for key in entity_args.keys():
-                del params[key]
-                if key in args:
-                    del args[key]
+                if key != type_.id_name():
+                    del params[key]
+                    if key in args:
+                        del args[key]
         elif name in params:
             args[name] = params[name]
         elif name.endswith('_') and name.rstrip('_') in params:
@@ -110,3 +115,24 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type]):
             raise ffd.MissingArgument(f'Argument: {name} is required')
 
     return args
+
+
+def generate_dc(base: type, _cls, **kwargs):
+    if 'eq' not in kwargs:
+        kwargs['eq'] = False
+    if 'repr' not in kwargs:
+        kwargs['repr'] = False
+
+    def wrapper(cls):
+        dc = dataclass(cls, **kwargs)
+
+        class Wrapper(dc, base):
+            pass
+        Wrapper.__name__ = cls.__name__
+
+        return Wrapper
+
+    if _cls is None:
+        return wrapper
+
+    return wrapper(_cls)

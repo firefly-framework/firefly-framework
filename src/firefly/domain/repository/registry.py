@@ -12,7 +12,7 @@ AR = TypeVar('AR', bound=AggregateRoot)
 
 class Registry:
     def __init__(self):
-        self._cache= {}
+        self._cache = {}
         self._factories = {}
         self._default_factory = None
 
@@ -41,3 +41,6 @@ class Registry:
 
     def set_default_factory(self, factory: ffd.RepositoryFactory):
         self._default_factory = factory
+
+    def clear_cache(self):
+        self._cache = {}

@@ -9,10 +9,11 @@ from .task import Task
 from .user import User
 
 
+@ff.on('iam.UserDeleted', action='delete')
 @ff.on('iam.UserCreated', action='create')
-@dataclass
-class TodoList(ff.AggregateRoot):
-    id: str = ff.id()
+@ff.aggregate_root
+class TodoList:
+    id: str = ff.id_()
     user: User = ff.required()
     name: str = ff.optional()
     tasks: List[Task] = ff.list_()
@@ -32,6 +33,5 @@ class TodoList(ff.AggregateRoot):
         for task in self.tasks:
             if task_id == task.id:
                 task.complete_task()
-                self.dispatch('TaskCompleted', asdict(task))
-                return
+                return self.dispatch('TaskCompleted', asdict(task))
         raise Exception(f'Task {task_id} not found in TodoList {self}')

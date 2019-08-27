@@ -24,7 +24,7 @@ def test_default_values(sut):
 def sut():
     @dataclass()
     class ConcreteEntity(Entity):
-        id: str = ffd.id()
+        id: str = ffd.id_()
         strings: str = ffd.list_()
         now: datetime = ffd.now()
         today: date = ffd.today()

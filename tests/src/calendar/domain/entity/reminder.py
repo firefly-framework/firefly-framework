@@ -9,5 +9,5 @@ import tests.src.calendar.domain as cal
 
 @dataclass
 class Reminder(ff.Entity):
-    id: str = ff.id()
+    id: str = ff.id_()
     event: cal.Event = ff.required()

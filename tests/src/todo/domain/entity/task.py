@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import datetime
 
 import firefly as ff
 
 
-@dataclass
-class Task(ff.Entity):
-    id: str = ff.id()
+@ff.entity
+class Task:
+    id: str = ff.id_()
     name: str = ff.required()
     due_date: datetime = ff.required()
     complete: bool = ff.optional(default=False)

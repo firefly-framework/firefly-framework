@@ -16,6 +16,9 @@ def config():
                 'entity_module': 'tests.src.iam.domain.entity',
                 'container_module': 'tests.src.iam.application',
             },
+            'calendar': {
+                'entity_module': 'tests.src.calendar.domain.entity',
+            },
         },
     }
 
@@ -51,6 +54,8 @@ def message_factory(kernel) -> ff.MessageFactory:
     return kernel.container.message_factory
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def registry(kernel) -> ff.Registry:
-    return kernel.container.registry
+    registry = kernel.container.registry
+    registry.clear_cache()
+    return registry

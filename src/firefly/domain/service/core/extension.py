@@ -127,28 +127,6 @@ class Extension(LoggerAware, SystemBusAware):
         entity.event_buffer = self.container.event_buffer
         self.entities.append(entity)
 
-        if hasattr(entity, '__ff_listener'):
-            context_name = self.name
-            configs = getattr(entity, '__ff_listener')
-            for config in configs:
-                if 'crud' in config:
-                    if config['crud'] == 'create':
-                        class OnCreate(ffd.Middleware, SystemBusAware):
-                            _message_factory: ffd.MessageFactory = None
-
-                            def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
-                                cmd = self._message_factory.convert_type(
-                                    message, f'Create{entity.__class__.__name__}', ffd.CrudCommand
-                                )
-                                cmd.headers['entity_fqn'] = f'{entity.__module__}.{entity.__name__}'
-                                cmd.headers['operation'] = 'create'
-                                cmd.headers['source_context'] = context_name
-                                self.invoke(cmd)
-                                return message
-
-                        setattr(OnCreate, '__ff_listener', configs)
-                        self._add_middleware(OnCreate)
-
     def _invoke_port_commands(self, cls):
         for data in getattr(cls, '__ff_port'):
             self.invoke(data['command'])

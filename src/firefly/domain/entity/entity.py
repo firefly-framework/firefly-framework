@@ -1,15 +1,16 @@
 from __future__ import annotations
 
-import inspect
 import uuid
 from abc import ABC
-from dataclasses import is_dataclass, fields, field, MISSING
+from dataclasses import is_dataclass, fields, field, MISSING, dataclass
 from datetime import datetime, date
-from typing import get_type_hints, Union
+from typing import Union
+import inflection
 
 import firefly.domain as ffd
 
 
+# noinspection PyDataclass
 class Entity(ABC):
     event_buffer: ffd.EventBuffer = None
 
@@ -22,7 +23,6 @@ class Entity(ABC):
     def __post_init__(self):
         if is_dataclass(self):
             missing = []
-            # noinspection PyDataclass
             for field_ in fields(self):
                 if 'required' in field_.metadata and isinstance(getattr(self, field_.name), Empty):
                     missing.append(field_.name)
@@ -33,59 +33,42 @@ class Entity(ABC):
         if not isinstance(other, self.__class__):
             return False
 
-        return self.pk_value() == other.pk_value()
+        return self.id_value() == other.id_value()
 
-    def pk_value(self):
-        # noinspection PyDataclass
+    def id_value(self):
+        if not is_dataclass(self):
+            raise TypeError('Entity::id_value() called on a non-dataclass entity')
+
         for field_ in fields(self):
-            if 'pk' in field_.metadata:
+            if 'id' in field_.metadata:
                 return getattr(self, field_.name)
 
     @classmethod
-    def get_params(cls, op: str):
+    def id_name(cls):
         if not is_dataclass(cls):
-            raise TypeError('get_params called on a non-dataclass entity')
+            raise TypeError('Entity::id_name() called on a non-dataclass entity')
 
-        if op in ('create', 'update'):
-            return cls._get_create_update_params()
-        else:
-            types = get_type_hints(cls)
-            # noinspection PyDataclass
-            for field_ in fields(cls):
-                if 'pk' in field_.metadata:
-                    return {field_.name: {
-                        'default': inspect.Parameter.empty,
-                        'type': types[field_.name],
-                    }}
+        for field_ in fields(cls):
+            if 'id' in field_.metadata:
+                return field_.name
 
     @classmethod
-    def _get_create_update_params(cls):
-        ret = {}
-        # noinspection PyDataclass
-        for field_ in fields(cls):
-            types = get_type_hints(cls)
-            default = inspect.Parameter.empty
-            if field_.default != MISSING:
-                default = field_.default
-            elif field_.default_factory != MISSING:
-                default = field_.default_factory()
-            if 'required' in field_.metadata:
-                default = inspect.Parameter.empty
+    def match_id_from_argument_list(cls, args: dict):
+        snake = f'{inflection.underscore(cls.__name__)}_id'
+        if snake in args:
+            return {snake: args[snake]}
 
-            ret[field_.name] = {
-                'default': default,
-                'type': types[field_.name],
-            }
-
-        return ret
+        id_name = cls.id_name()
+        if id_name in args:
+            return {id_name: args[id_name]}
 
 
 class Empty:
     pass
 
 
-def id(**kwargs):
-    metadata = {'pk': True, 'length': 36}
+def id_(**kwargs):
+    metadata = {'id': True, 'length': 36}
     metadata.update(kwargs)
     return field(default_factory=lambda: str(uuid.uuid1()), metadata=metadata)
 
@@ -116,3 +99,7 @@ def optional(default=MISSING, **kwargs):
     if default != MISSING:
         return field(default_factory=lambda: default, metadata=kwargs)
     return field(default=None, metadata=kwargs)
+
+
+def entity(_cls=None, **kwargs):
+    return ffd.generate_dc(Entity, _cls, **kwargs)

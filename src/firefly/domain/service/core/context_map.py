@@ -52,6 +52,11 @@ class ContextMap(LoggerAware, SystemBusAware):
         for context in self._contexts.values():
             self.dispatch(ffd.InitializationComplete(context.name))
 
+    def find_entity_by_name(self, context_name: str, entity_name: str):
+        for entity in self.contexts[context_name].entities:
+            if entity.__name__ == entity_name:
+                return entity
+
     def _load_extensions(self):
         self._extensions['firefly'] = ffd.Extension('firefly', self._logger, self._config.all.get('firefly', {}),
                                                     self._system_bus, self._firefly_container)

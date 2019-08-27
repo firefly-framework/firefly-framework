@@ -4,6 +4,6 @@ from .framework_event import FrameworkEvent
 from ..entity.entity import required
 
 
-@dataclass
+@dataclass(eq=False, repr=False)
 class DomainEntitiesLoaded(FrameworkEvent):
     context: str = required()

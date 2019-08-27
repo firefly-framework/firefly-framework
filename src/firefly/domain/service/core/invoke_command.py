@@ -5,10 +5,14 @@ from typing import TypeVar, Generic
 import firefly.domain as ffd
 import inflection
 
-T = TypeVar('T', bound=ffd.AggregateRoot)
+from ..core.service import Service
+from ...entity.aggregate_root import AggregateRoot
+from ...value_object.generic_base import GenericBase
+
+T = TypeVar('T', bound=AggregateRoot)
 
 
-class InvokeCommand(Generic[T], ffd.GenericBase, ffd.Service):
+class InvokeCommand(Generic[T], GenericBase, Service):
     _registry: ffd.Registry = None
 
     def __init__(self, method: str):

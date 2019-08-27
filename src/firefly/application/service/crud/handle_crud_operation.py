@@ -18,7 +18,7 @@ class HandleCrudOperation(ffd.Middleware):
     _context_map: ffd.ContextMap = None
 
     def __init__(self):
-        self._crud_regex = re.compile('^(Create)|(Retrieve)|(Update)|(Delete)')
+        self._crud_regex = re.compile('^(Create)|(Read)|(Update)|(Delete)')
 
     def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
         if isinstance(message, (ffd.CrudCommand, ffd.CrudQuery)):
@@ -31,6 +31,7 @@ class HandleCrudOperation(ffd.Middleware):
             handle._message_factory = self._message_factory
             handle._system_bus = self._system_bus
 
+            # noinspection PyCallingNonCallable
             return next_(handle(message=message, **asdict(message)))
 
         return next_(message)

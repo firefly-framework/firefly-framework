@@ -10,7 +10,7 @@ import tests.src.calendar.domain as cal
 
 @dataclass
 class Calendar(ff.AggregateRoot):
-    id: str = ff.id()
+    id: str = ff.id_()
     events: List[cal.Event] = ff.list_()
 
     def add_event(self, event: cal.Event):

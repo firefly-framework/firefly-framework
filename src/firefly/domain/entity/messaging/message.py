@@ -6,7 +6,7 @@ import firefly.domain as ffd
 from ..entity import dict_, optional
 
 
-@dataclass
+@dataclass(eq=False, repr=False)
 class Message:
     headers: dict = dict_()
     source_context: str = optional()

@@ -4,9 +4,11 @@ from typing import Callable
 
 import firefly.domain as ffd
 
+from .middleware import Middleware
+from .system_bus import SystemBusAware
 
-@ffd.command_handler()
-class DispatchCommandEvents(ffd.Middleware, ffd.SystemBusAware):
+
+class EventDispatchingMiddleware(Middleware, SystemBusAware):
     _event_buffer: ffd.EventBuffer = None
     _message_factory: ffd.MessageFactory = None
 

@@ -7,6 +7,6 @@ import firefly as ff
 
 @dataclass
 class User(ff.AggregateRoot):
-    id: str = ff.id()
+    id: str = ff.id_()
     name: str = ff.required()
     email: str = ff.required()

@@ -130,7 +130,7 @@ def generate_dc(base: type, _cls, **kwargs):
             pass
         Wrapper.__name__ = cls.__name__
 
-        return Wrapper
+        return dataclass(Wrapper, **kwargs)
 
     if _cls is None:
         return wrapper

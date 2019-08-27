@@ -1,9 +1,6 @@
-from dataclasses import dataclass
-
-from .framework_event import FrameworkEvent
-from ..entity.entity import required
+from .framework_event import framework_event
 
 
-@dataclass
-class ExtensionsLoaded(FrameworkEvent):
+@framework_event
+class ExtensionsLoaded:
     pass

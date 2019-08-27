@@ -1,9 +1,7 @@
-from dataclasses import dataclass
-
-from .framework_event import FrameworkEvent
+from .framework_event import framework_event
 from ..entity.entity import required
 
 
-@dataclass
-class ApplicationServicesLoaded(FrameworkEvent):
+@framework_event
+class ApplicationServicesLoaded:
     context: str = required()

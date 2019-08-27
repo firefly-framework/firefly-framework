@@ -1,6 +1,6 @@
 from .message import Message
-from .command import Command
-from .event import Event
-from .query import Query
-from .response import Response
+from .command import Command, command
+from .event import Event, event
+from .query import Query, query
+from .response import Response, response
 from .http_message import HttpMessage

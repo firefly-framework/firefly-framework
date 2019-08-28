@@ -16,7 +16,7 @@ class Registry:
         self._factories = {}
         self._default_factory = None
 
-    def __call__(self, entity: Type[AR]) -> Repository:
+    def __call__(self, entity) -> Repository:
         if not issubclass(entity, ffd.AggregateRoot):
             raise ffd.LogicError('Repositories can only be generated for aggregate roots')
 

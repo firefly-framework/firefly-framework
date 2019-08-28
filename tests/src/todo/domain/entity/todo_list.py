@@ -8,9 +8,10 @@ from .task import Task
 from .user import User
 
 
-@ff.on('iam.UserDeleted', action='delete')
-@ff.on('iam.UserCreated', action='create')
-@ff.aggregate_root
+@ff.aggregate_root(
+    create_on='iam.UserCreated',
+    delete_on='iam.UserDeleted'
+)
 class TodoList:
     id: str = ff.id_()
     user: User = ff.required()
@@ -21,7 +22,7 @@ class TodoList:
         if self.name is None:
             self.name = f"{self.user.name}'s TODO List"
 
-    def add_task(self, task: Task):
+    def add_task(self, task: Task) -> ff.CommandResponse:
         self.tasks.append(task)
         return 'TaskAdded', task
 

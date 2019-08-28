@@ -125,6 +125,8 @@ def generate_dc(base: type, _cls, **kwargs):
 
     def wrapper(cls):
         dc = dataclass(cls, **kwargs)
+        if issubclass(dc, base):
+            return dc
 
         class Wrapper(dc, base):
             pass

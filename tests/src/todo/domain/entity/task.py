@@ -5,8 +5,7 @@ from datetime import datetime
 import firefly as ff
 
 
-@ff.entity
-class Task:
+class Task(ff.Entity):
     id: str = ff.id_()
     name: str = ff.required()
     due_date: datetime = ff.required()

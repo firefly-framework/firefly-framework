@@ -3,7 +3,9 @@ from __future__ import annotations
 import importlib
 import inspect
 import sys
+from abc import ABCMeta
 from dataclasses import is_dataclass, fields, dataclass
+from pprint import pprint
 from time import sleep
 
 import typing
@@ -138,3 +140,47 @@ def generate_dc(base: type, _cls, **kwargs):
         return wrapper
 
     return wrapper(_cls)
+
+
+class EntityMeta(ABCMeta):
+    def __new__(mcs, name, bases, dct, **kwargs):
+        ret = super().__new__(mcs, name, bases, dct)
+        ret = dataclass(ret, eq=False)
+
+        is_aggregate = False
+        for c in bases:
+            # We can't import AggregateRoot for a proper issubclass check without getting a circular reference.
+            if 'AggregateRoot' in str(c):
+                is_aggregate = True
+                break
+
+        if is_aggregate:
+            if 'create_on' in kwargs:
+                ret = ffd.on(kwargs['create_on'], action='create')(ret)
+            if 'delete_on' in kwargs:
+                ret = ffd.on(kwargs['delete_on'], action='delete')(ret)
+            if 'update_on' in kwargs:
+                ret = ffd.on(kwargs['update_on'], action='update')(ret)
+
+        return ret
+
+
+class ValueMeta(type):
+    def __new__(mcs, name, bases, dct, **kwargs):
+        ret = type.__new__(mcs, name, bases, dct)
+        return dataclass(ret, frozen=True)
+
+
+class MessageMeta(ABCMeta):
+    def __new__(mcs, name, bases, dct, **kwargs):
+        if 'fields_' in kwargs and 'annotations_' in kwargs:
+            for k, v in kwargs['fields_'].items():
+                dct[k] = ffd.optional(default=v)
+            if '__annotations__' in dct:
+                dct['__annotations__'].update(kwargs['annotations_'])
+            else:
+                dct['__annotations__'] = kwargs['annotations_']
+
+        ret = super().__new__(mcs, name, bases, dct)
+
+        return dataclass(ret, eq=False, repr=False)

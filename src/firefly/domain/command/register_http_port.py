@@ -13,7 +13,6 @@ M = TypeVar('M', bound=Message)
 S = TypeVar('S', bound=Service)
 
 
-@dataclass
 class RegisterHttpPort(FrameworkCommand):
     id_: str = ffd.required()
     device_id: str = ffd.optional()

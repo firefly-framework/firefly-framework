@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .extension import Extension
+from firefly.domain.entity.core.extension import Extension
 
 
 class Context(Extension):

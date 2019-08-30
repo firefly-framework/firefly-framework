@@ -1,17 +1,17 @@
 from __future__ import annotations
 
 import uuid
-from abc import ABC
-from dataclasses import is_dataclass, fields, field, MISSING, dataclass, asdict
+from dataclasses import is_dataclass, fields, field, MISSING, asdict
 from datetime import datetime, date
-from typing import Union
-import inflection
 
 import firefly.domain as ffd
+import inflection
+
+from ..utils import EntityMeta
 
 
 # noinspection PyDataclass
-class Entity(ABC):
+class Entity(metaclass=EntityMeta):
     def __post_init__(self):
         if is_dataclass(self):
             missing = []
@@ -94,7 +94,3 @@ def optional(default=MISSING, **kwargs):
     if default != MISSING:
         return field(default_factory=lambda: default, metadata=kwargs)
     return field(default=None, metadata=kwargs)
-
-
-def entity(_cls=None, **kwargs):
-    return ffd.generate_dc(Entity, _cls, **kwargs)

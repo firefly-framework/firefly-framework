@@ -1,4 +1,4 @@
-from .framework_event import FrameworkEvent, framework_event
+from .framework_event import FrameworkEvent
 from .container_registered import ContainerRegistered
 from .initialization_complete import InitializationComplete
 from .ports_registered import PortsRegistered

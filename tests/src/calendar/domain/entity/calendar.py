@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, asdict
+from dataclasses import asdict
 from typing import List
 
 import firefly as ff
@@ -8,7 +8,6 @@ import firefly as ff
 import tests.src.calendar.domain as cal
 
 
-@dataclass
 class Calendar(ff.AggregateRoot):
     id: str = ff.id_()
     events: List[cal.Event] = ff.list_()

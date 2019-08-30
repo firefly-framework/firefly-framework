@@ -1,17 +1,21 @@
 from __future__ import annotations
 
 import uuid
-from dataclasses import dataclass, field, asdict
+from abc import ABC
 
 import firefly.domain as ffd
+
 from ..entity import dict_, optional
+from ...utils import MessageMeta
 
 
-@dataclass(eq=False, repr=False)
-class Message:
+class Message(metaclass=MessageMeta):
     headers: dict = dict_()
     source_context: str = optional()
     _id: str = None
+
+    def __init__(self, **kwargs):
+        raise TypeError('Message is an abstract base class')
 
     def get_parameters(self):
         return ffd.get_arguments(self.__init__)

@@ -1,6 +1,5 @@
-from .framework_event import framework_event
+from .framework_event import FrameworkEvent
 
 
-@framework_event
-class ContextsLoaded:
+class ContextsLoaded(FrameworkEvent):
     pass

@@ -43,10 +43,10 @@ class MessageFactory:
         if '.' in name:
             context, name = name.split('.')
             data['source_context'] = context
+        annotations_ = {k: type(v) for k, v in data.items()}
 
-        message_fields = []
-        for k, v in data.items():
-            message_fields.append((k, type(v), ffd.optional(default=v)))
-        cls = make_dataclass(name, fields=message_fields, bases=bases, eq=False, repr=False)
+        class DynamicMessage(*bases, fields_=data, annotations_=annotations_):
+            pass
+        DynamicMessage.__name__ = name
 
-        return cls(**data)
+        return DynamicMessage(**data)

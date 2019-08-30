@@ -13,7 +13,6 @@ M = TypeVar('M', bound=Message)
 S = TypeVar('S', bound=Service)
 
 
-@dataclass
 class RegisterCliPort(FrameworkCommand):
     id_: str = ffd.required()
     name: str = ffd.required()

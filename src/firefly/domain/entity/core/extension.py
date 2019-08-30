@@ -8,15 +8,15 @@ import firefly.domain as ffd
 import firefly_di as di
 import inflection
 
-from .service import Service
-from ..logging.logger import LoggerAware
-from ..messaging.system_bus import SystemBusAware
-from ...entity import Entity
-from ...entity.messaging.event import Event
-from ...event.api_loaded import ApiLoaded
-from ...event.application_services_loaded import ApplicationServicesLoaded
-from ...event.domain_entities_loaded import DomainEntitiesLoaded
-from ...event.infrastructure_loaded import InfrastructureLoaded
+from firefly.domain.service.core.service import Service
+from firefly.domain.service.logging.logger import LoggerAware
+from firefly.domain.service.messaging.system_bus import SystemBusAware
+from firefly.domain.entity import Entity
+from firefly.domain.entity.messaging.event import Event
+from firefly.domain.event.api_loaded import ApiLoaded
+from firefly.domain.event.application_services_loaded import ApplicationServicesLoaded
+from firefly.domain.event.domain_entities_loaded import DomainEntitiesLoaded
+from firefly.domain.event.infrastructure_loaded import InfrastructureLoaded
 
 SERVICE = TypeVar('SERVICE', bound=Service)
 EVENT = TypeVar('EVENT', bound=Event)
@@ -99,7 +99,7 @@ class Extension(LoggerAware, SystemBusAware):
         for module_name, event in self._modules:
             self._load_module(module_name, event)
 
-    def _load_module(self, module_name: str, event: Type[EVENT]):
+    def _load_module(self, module_name: str, event: Type):
         try:
             self.debug('Attempting to load {}', module_name.format(self.name))
             module = importlib.import_module(module_name.format(self.name))

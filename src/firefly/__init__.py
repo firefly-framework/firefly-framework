@@ -1,5 +1,5 @@
-from typing import Tuple, List
+from typing import Tuple, List, Union
 
 from .domain import *
 
-CommandResponse = Union[Event, Tuple[str, Union[dict, object]], List[Union[Event, Tuple[str, Union[dict, object]]]]]
+EventList = Union[Event, Tuple[str, Union[dict, object]], List[Union[Event, Tuple[str, Union[dict, object]]]]]

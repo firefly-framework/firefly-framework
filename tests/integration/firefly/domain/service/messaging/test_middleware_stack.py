@@ -1,11 +1,11 @@
 from typing import Callable
 
 import pytest
-from firefly import MiddlewareStack, Middleware, Message
+from firefly import MiddlewareStack, Middleware, Message, Command
 
 
 def test_order(sut):
-    result = sut(Message())
+    result = sut(Command())
     assert result.headers['numbers'] == [1, 2, 3]
 
 

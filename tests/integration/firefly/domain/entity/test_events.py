@@ -31,3 +31,12 @@ def test_delete_on_event(system_bus, registry, message_factory):
     }))
 
     assert len(registry(todo.TodoList).all()) == 0
+
+
+def test_application_service_event(system_bus, registry, message_factory):
+    system_bus.invoke(message_factory.command('iam.CreateUser', {
+        'name': 'foo',
+        'email': 'foo@bar.com',
+    }))
+
+    assert len(registry(calendar.Calendar).all()) == 1

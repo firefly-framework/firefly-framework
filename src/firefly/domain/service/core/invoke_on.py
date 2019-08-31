@@ -4,10 +4,10 @@ from dataclasses import asdict
 
 import firefly.domain as ffd
 
-from ..core.service import Service
+from ..core.application_service import ApplicationService
 
 
-class InvokeOn(Service):
+class InvokeOn(ApplicationService):
     _message_factory: ffd.MessageFactory = None
 
     def __init__(self, command_name: str):

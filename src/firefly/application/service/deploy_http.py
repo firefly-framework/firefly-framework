@@ -4,7 +4,7 @@ import firefly.domain as ffd
 import firefly.infrastructure as ffi
 
 
-class DeployHttp(ffd.Service):
+class DeployHttp(ffd.ApplicationService):
     _kernel: ffd.Kernel = None
     _http_device: ffi.HttpDevice = None
 

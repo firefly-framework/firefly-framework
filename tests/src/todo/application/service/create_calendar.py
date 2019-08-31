@@ -4,6 +4,6 @@ import firefly as ff
 
 
 @ff.on('todo.TodoListCreated')
-class CreateCalendar(ff.Service):
+class CreateCalendar(ff.ApplicationService):
     def __call__(self, id_: str):
         self.invoke('calendar.CreateCalendar', {'id': id_})

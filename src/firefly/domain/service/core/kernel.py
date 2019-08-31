@@ -1,31 +1,10 @@
 from __future__ import annotations
 
-from typing import Union
-
 import firefly.domain as ffd
 
+from ..messaging.system_bus import SystemBusAware
 
-class Kernel:
-    def __init__(self, container=None):
-        if container is None:
-            from firefly.application import Container
-            container = Container()
 
-        c = container.__class__
-        # Inject our self into the container
-        c.kernel = lambda s: self
-        c.__annotations__['kernel'] = Kernel
-
-        self._bus = container.system_bus
-        self._config = container.configuration
-        self.context_map = container.context_map
-        self.container = container
-
-        self._ports = []
-
-        self.context_map.initialize()
-
-    def run(self, device: Union[str, ffd.Device]):
-        if isinstance(device, str):
-            device = getattr(self.container, device)
-        device.run()
+class Kernel(SystemBusAware):
+    def boot(self):
+        self.invoke(ffd.LoadContainers())

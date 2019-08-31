@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import firefly.domain as ffd
+from ..entity.messaging.command import Command
 
 
-class FrameworkCommand(ffd.Command):
+class FrameworkCommand(Command):
     pass

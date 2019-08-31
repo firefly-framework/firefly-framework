@@ -3,7 +3,7 @@ from __future__ import annotations
 import firefly.domain as ffd
 
 
-class GetRegisteredContainerServices(ffd.Service):
+class GetRegisteredContainerServices(ffd.ApplicationService):
     _context_map: ffd.ContextMap = None
 
     def __call__(self, flatten: bool = False, context: str = None, **kwargs) -> dict:

@@ -5,14 +5,14 @@ from typing import TypeVar, Generic
 import firefly.domain as ffd
 import inflection
 
-from ..core.service import Service
+from ..core.application_service import ApplicationService
 from ...entity.aggregate_root import AggregateRoot
 from ...value_object.generic_base import GenericBase
 
 T = TypeVar('T', bound=AggregateRoot)
 
 
-class InvokeCommand(Generic[T], GenericBase, Service):
+class InvokeCommand(Generic[T], GenericBase, ApplicationService):
     _registry: ffd.Registry = None
 
     def __init__(self, method: str):
@@ -25,7 +25,7 @@ class InvokeCommand(Generic[T], GenericBase, Service):
             raise ffd.MissingArgument(self._aggregate_name_snake())
 
         method = getattr(aggregate, self._method)
-        return self._process_events(
+        return self._buffer_events(
             method(**ffd.build_argument_list(kwargs, method))
         )
 

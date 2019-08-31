@@ -7,15 +7,13 @@ import firefly.domain as ffd
 import firefly_di as di
 import inflection
 
-from .invoke_command import InvokeCommand
-from ..core.service import Service
-from ..logging.logger import LoggerAware
-from ...entity.entity import Entity
-
-E = TypeVar('E', bound=Entity)
+from firefly.domain.service.core.invoke_command import InvokeCommand
+from firefly.domain.service.core.application_service import ApplicationService
+from firefly.domain.service.logging.logger import LoggerAware
+from firefly.domain.entity.entity import Entity
 
 
-class AutoGenerateAggregateApis(Service, LoggerAware):
+class AutoGenerateAggregateApis(ApplicationService, LoggerAware):
     _context_map: ffd.ContextMap = None
     _system_bus: ffd.SystemBus = None
     _container: di.Container = None
@@ -24,7 +22,7 @@ class AutoGenerateAggregateApis(Service, LoggerAware):
 
     def __call__(self, context: str, **kwargs):
         try:
-            context = self._context_map.contexts[context]
+            context = self._context_map.get_context(context)
         except KeyError:
             return
 
@@ -45,7 +43,7 @@ class AutoGenerateAggregateApis(Service, LoggerAware):
             if inspect.isfunction(v):
                 self._create_invoke_command_handler(entity, context, k)
 
-    def _create_invoke_command_handler(self, entity: Type[E], context: ffd.Context, method_name: str):
+    def _create_invoke_command_handler(self, entity: Type[Entity], context: ffd.Context, method_name: str):
         class Invoke(InvokeCommand[entity]):
             pass
 
@@ -56,7 +54,7 @@ class AutoGenerateAggregateApis(Service, LoggerAware):
             f'{context.name}.{inflection.camelize(method_name)}'
         )
 
-    def _create_crud_command_handlers(self, entity: Type[E], context: ffd.Context):
+    def _create_crud_command_handlers(self, entity: Type[Entity], context: ffd.Context):
         for action in ('Create', 'Delete', 'Update'):
             self._create_crud_command_handler(context, entity, action)
 
@@ -74,7 +72,7 @@ class AutoGenerateAggregateApis(Service, LoggerAware):
             f'{context.name}.{name}'
         )
 
-    def _register_entity_level_event_listeners(self, entity: Type[E], context: ffd.Context):
+    def _register_entity_level_event_listeners(self, entity: Type[Entity], context: ffd.Context):
         if hasattr(entity, '__ff_listener'):
             configs = getattr(entity, '__ff_listener')
             for config in configs:

@@ -26,36 +26,38 @@ def config():
 @pytest.fixture(scope="session")
 def container(config):
     from firefly.application import Container
-    Container.configuration = lambda self: ffi.MemoryConfiguration(config)
+    Container.configuration = lambda self: ffi.MemoryConfigurationFactory()(config)
 
     c = Container()
     c.registry.set_default_factory(ffi.MemoryRepositoryFactory())
+
+    c.kernel.boot()
 
     return c
 
 
 @pytest.fixture(scope="session")
 def kernel(container) -> ff.Kernel:
-    return ff.Kernel(container)
+    return container.kernel
 
 
 @pytest.fixture(scope="session")
-def context_map(kernel) -> ff.ContextMap:
-    return kernel.context_map
+def context_map(container) -> ff.ContextMap:
+    return container.context_map
 
 
 @pytest.fixture(scope="session")
-def system_bus(kernel) -> ff.SystemBus:
-    return kernel.container.system_bus
+def system_bus(container) -> ff.SystemBus:
+    return container.system_bus
 
 
 @pytest.fixture(scope="session")
-def message_factory(kernel) -> ff.MessageFactory:
-    return kernel.container.message_factory
+def message_factory(container) -> ff.MessageFactory:
+    return container.message_factory
 
 
 @pytest.fixture(scope="function")
-def registry(kernel) -> ff.Registry:
-    registry = kernel.container.registry
+def registry(container) -> ff.Registry:
+    registry = container.registry
     registry.clear_cache()
     return registry

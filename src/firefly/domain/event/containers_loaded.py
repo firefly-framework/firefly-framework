@@ -1,5 +1,5 @@
 from .framework_event import FrameworkEvent
 
 
-class ContextsLoaded(FrameworkEvent):
+class ContainersLoaded(FrameworkEvent):
     pass

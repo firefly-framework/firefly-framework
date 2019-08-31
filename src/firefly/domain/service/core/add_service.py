@@ -3,10 +3,10 @@ from __future__ import annotations
 import firefly.domain as ffd
 import firefly_di as di
 
-from .service import Service
+from .application_service import ApplicationService
 
 
-class AddService(Service):
+class AddApplicationService(ApplicationService):
     _container: di.Container = None
     _event_resolver: ffd.EventResolvingMiddleware = None
     _command_resolver = ffd.CommandResolvingMiddleware = None

@@ -12,6 +12,9 @@ from ..utils import EntityMeta
 
 # noinspection PyDataclass
 class Entity(metaclass=EntityMeta):
+    def __init__(self, **kwargs):
+        pass
+
     def __post_init__(self):
         if is_dataclass(self):
             missing = []
@@ -94,3 +97,7 @@ def optional(default=MISSING, **kwargs):
     if default != MISSING:
         return field(default_factory=lambda: default, metadata=kwargs)
     return field(default=None, metadata=kwargs)
+
+
+def hidden(**kwargs):
+    return field(default=None, init=False, repr=False, compare=False, metadata=kwargs)

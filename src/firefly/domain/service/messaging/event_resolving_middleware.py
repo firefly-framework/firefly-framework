@@ -19,10 +19,10 @@ class EventResolvingMiddleware(Middleware):
         self._event_listeners = event_listeners or {}
 
     def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
-        args = asdict(message)
+        args = message.to_dict()
         args['_message'] = message
-        for service, event in self._event_listeners.copy().items():
-            if message == event:
+        for service, event_type in self._event_listeners.copy().items():
+            if message.is_this(event_type):
                 service(**ffd.build_argument_list(args, service))
         return next_(message)
 

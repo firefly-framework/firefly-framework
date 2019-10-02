@@ -42,7 +42,7 @@ class MessageFactory:
     def _build(name: str, data: dict, bases: tuple):
         if '.' in name:
             context, name = name.split('.')
-            data['source_context'] = context
+            data['_context'] = context
         annotations_ = {k: type(v) for k, v in data.items()}
 
         class DynamicMessage(*bases, fields_=data, annotations_=annotations_):

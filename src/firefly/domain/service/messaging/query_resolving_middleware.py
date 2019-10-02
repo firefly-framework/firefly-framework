@@ -19,10 +19,10 @@ class QueryResolvingMiddleware(Middleware):
         self._query_handlers = query_handlers or {}
 
     def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
-        args = asdict(message)
+        args = message.to_dict()
         args['_message'] = message
-        for service, query in self._query_handlers.items():
-            if message == query:
+        for service, query_type in self._query_handlers.items():
+            if message.is_this(query_type):
                 return service(**ffd.build_argument_list(args, service))
         raise ffd.ConfigurationError(f'No query handler registered for {message}')
 

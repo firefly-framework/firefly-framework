@@ -3,9 +3,8 @@ from __future__ import annotations
 import importlib
 import inspect
 import sys
-from abc import ABCMeta
+from abc import ABCMeta, ABC
 from dataclasses import is_dataclass, fields, dataclass
-from pprint import pprint
 from time import sleep
 
 import typing
@@ -184,3 +183,25 @@ class MessageMeta(ABCMeta):
         ret = super().__new__(mcs, name, bases, dct)
 
         return dataclass(ret, eq=False, repr=False)
+
+
+class FireflyType(ABC):
+    _context = None
+
+    def __str__(self):
+        return f'{self._context}.{self.__class__.__name__}' \
+            if self._context is not None else self.__class__.__name__
+
+    def __repr__(self):
+        return str(self)
+
+    def is_this(self, this: typing.Any):
+        if isinstance(this, str) and this == str(self):
+            return True
+        try:
+            return isinstance(self, this) and self.__class__.__name__ == this.__name__
+        except TypeError:
+            return False
+
+    def get_context(self):
+        return self._context

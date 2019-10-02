@@ -1,1 +1,7 @@
-firefly:
+contexts:
+  firefly:
+    cli:
+      firefly:
+        description: Firefly CLI.
+        commands:
+          deploy: {target: firefly.Deploy}

@@ -4,7 +4,6 @@ import uuid
 from dataclasses import is_dataclass, fields, field, MISSING, asdict
 from datetime import datetime, date
 
-import firefly.domain as ffd
 import inflection
 
 from ..utils import EntityMeta

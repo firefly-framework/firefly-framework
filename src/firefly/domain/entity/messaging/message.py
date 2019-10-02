@@ -1,15 +1,16 @@
 from __future__ import annotations
 
 import uuid
-from abc import ABC
+from dataclasses import asdict
 
 import firefly.domain as ffd
 
 from ..entity import dict_, optional
 from ...utils import MessageMeta
+from ...utils import FireflyType
 
 
-class Message(metaclass=MessageMeta):
+class Message(FireflyType, metaclass=MessageMeta):
     headers: dict = dict_()
     source_context: str = optional()
     _id: str = None
@@ -26,17 +27,6 @@ class Message(metaclass=MessageMeta):
         if self.source_context is None:
             self.source_context = self.__module__.split('.')[0]
 
-    def __str__(self):
-        return f'{self.source_context}.{self.__class__.__name__}' \
-            if self.source_context is not None else self.__class__.__name__
-
-    def __repr__(self):
-        return str(self)
-
-    def __eq__(self, other):
-        if isinstance(other, str) and other == str(self):
-            return True
-        try:
-            return isinstance(self, other)
-        except TypeError:
-            return False
+    def to_dict(self) -> dict:
+        # noinspection PyDataclass
+        return asdict(self)

@@ -1,16 +1,15 @@
 from __future__ import annotations
 
 import inspect
-from typing import TypeVar, Type
+from typing import Type
 
 import firefly.domain as ffd
 import firefly_di as di
 import inflection
-
-from firefly.domain.service.core.invoke_command import InvokeCommand
-from firefly.domain.service.core.application_service import ApplicationService
-from firefly.domain.service.logging.logger import LoggerAware
 from firefly.domain.entity.entity import Entity
+from firefly.domain.service.core.application_service import ApplicationService
+from firefly.domain.service.core.invoke_command import InvokeCommand
+from firefly.domain.service.logging.logger import LoggerAware
 
 
 class AutoGenerateAggregateApis(ApplicationService, LoggerAware):
@@ -21,13 +20,14 @@ class AutoGenerateAggregateApis(ApplicationService, LoggerAware):
     _event_resolving_middleware: ffd.EventResolvingMiddleware = None
 
     def __call__(self, context: str, **kwargs):
-        try:
-            context = self._context_map.get_context(context)
-        except KeyError:
-            return
+        ctx = self._context_map.get_context(context)
+        if ctx is None:
+            ctx = self._context_map.get_extension(context)
+            if ctx is None:
+                return
 
-        for entity in context.entities:
-            self._process_entity(context, entity)
+        for entity in ctx.entities:
+            self._process_entity(ctx, entity)
 
     def _process_entity(self, context: ffd.Context, entity: type):
         if not issubclass(entity, ffd.AggregateRoot) or entity == ffd.AggregateRoot:
@@ -44,21 +44,22 @@ class AutoGenerateAggregateApis(ApplicationService, LoggerAware):
                 self._create_invoke_command_handler(entity, context, k)
 
     def _create_invoke_command_handler(self, entity: Type[Entity], context: ffd.Context, method_name: str):
+        command_name = inflection.camelize(method_name)
+
         class Invoke(InvokeCommand[entity]):
             pass
 
-        Invoke.__name__ = f'Invoke{inflection.camelize(method_name)}'
+        Invoke.__name__ = f'Invoke{command_name}'
+        fqn = f'{context.name}.{command_name}'
 
-        self._command_resolving_middleware.add_command_handler(
-            self._container.build(Invoke, method=method_name),
-            f'{context.name}.{inflection.camelize(method_name)}'
-        )
+        self._command_resolving_middleware.add_command_handler(self._container.build(Invoke, method=method_name), fqn)
+        context.command_handlers[Invoke] = fqn
 
     def _create_crud_command_handlers(self, entity: Type[Entity], context: ffd.Context):
         for action in ('Create', 'Delete', 'Update'):
             self._create_crud_command_handler(context, entity, action)
 
-    def _create_crud_command_handler(self, context, entity, name_prefix):
+    def _create_crud_command_handler(self, context: ffd.Extension, entity, name_prefix):
         name = f'{name_prefix}Entity'
         base = getattr(ffd, name)
 
@@ -66,11 +67,10 @@ class AutoGenerateAggregateApis(ApplicationService, LoggerAware):
             pass
 
         name = f'{name_prefix}{entity.__name__}'
+        fqn = f'{context.name}.{name}'
         Action.__name__ = name
-        self._command_resolving_middleware.add_command_handler(
-            self._container.build(Action),
-            f'{context.name}.{name}'
-        )
+        self._command_resolving_middleware.add_command_handler(self._container.build(Action), fqn)
+        context.command_handlers[Action] = fqn
 
     def _register_entity_level_event_listeners(self, entity: Type[Entity], context: ffd.Context):
         if hasattr(entity, '__ff_listener'):
@@ -93,3 +93,6 @@ class AutoGenerateAggregateApis(ApplicationService, LoggerAware):
                             self._container.build(DoInvokeOn, command_name=f'{context.name}.{action}{entity.__name__}'),
                             config['event']
                         )
+                        if DoInvokeOn not in context.event_listeners:
+                            context.event_listeners[DoInvokeOn] = []
+                        context.event_listeners[DoInvokeOn].append(config['event'])

@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-import firefly_di as di
-
+import firefly.application as ffa
 import firefly.domain as ffd
 import firefly.infrastructure as ffi
-import firefly.application as ffa
+import firefly_di as di
 
 
 class Container(di.Container):
@@ -24,6 +23,7 @@ class Container(di.Container):
             self.build(ffa.LoadApplicationServices): ffd.ContainersLoaded,
             self.build(ffa.LoadEntities): ffd.ApplicationServicesLoaded,
             self.build(ffa.AutoGenerateAggregateApis): ffd.DomainEntitiesLoaded,
+            self.build(ffa.LoadUi): ffd.ApplicationServicesLoaded,
         }
     )
     command_resolver: ffd.CommandResolvingMiddleware = lambda self: self.build(
@@ -46,3 +46,6 @@ class Container(di.Container):
         self.query_resolver,
     ])
     system_bus: ffd.SystemBus = ffd.SystemBus
+
+    # Web Server
+    web_server: ffi.WebServer = ffi.WebServer

@@ -3,3 +3,4 @@ from .container_initialized import ContainerInitialized
 from .containers_loaded import ContainersLoaded
 from .domain_entities_loaded import DomainEntitiesLoaded
 from .framework_event import FrameworkEvent
+from .ui_loaded import UiLoaded

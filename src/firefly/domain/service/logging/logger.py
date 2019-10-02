@@ -19,7 +19,7 @@ class Logger(ABC):
         pass
 
 
-class LoggerAware(ABC):
+class LoggerAware:
     _logger: Logger = None
 
     def debug(self, *args, **kwargs):

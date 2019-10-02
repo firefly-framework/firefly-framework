@@ -30,7 +30,7 @@ setuptools.setup(
     # long_description_content_type="text/markdown",
     url="https://github.com/firefly19/python-framework",
     entry_points={
-        'console_scripts': ['firefly=firefly.api.cli:main']
+        'console_scripts': ['firefly=firefly.ui.cli:main']
     },
     install_requires=[
         'aiohttp>=3.5.4',
@@ -38,9 +38,11 @@ setuptools.setup(
         'asyncio>=3.4.3',
         'dirsync>=2.2.3',
         'inflection>=0.3.1',
+        'kua>=0.2',
         'python-dotenv>=0.10.3',
         'pyyaml>=5.1.1',
         'terminaltables>=3.1.0',
+        'websockets>=8.0.2',
         'firefly-dependency-injection>=0.1',
     ],
     packages=setuptools.PEP420PackageFinder.find('src'),

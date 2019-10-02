@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import List, Union
+from typing import List, Union, Type
 
 import firefly.domain as ffd
 
 from ..messaging.system_bus import SystemBusAware
+from ..logging.logger import LoggerAware
 
 
-class ApplicationService(ABC, SystemBusAware):
+class ApplicationService(ABC, SystemBusAware, LoggerAware):
     _event_buffer: ffd.EventBuffer = None
 
     @abstractmethod
@@ -32,6 +33,21 @@ class ApplicationService(ABC, SystemBusAware):
     @classmethod
     def has_handlers(cls):
         return cls.has_listeners() or cls.has_command_handlers() or cls.has_query_handlers()
+
+    @classmethod
+    def locate_message(cls, message: Union[str, Type[ffd.Message]]):
+        if cls.has_listeners():
+            for event_listener in cls.get_listeners():
+                if message == event_listener['event']:
+                    return event_listener, 'event'
+        if cls.has_command_handlers():
+            for command_handler in cls.get_command_handlers():
+                if message == command_handler['command']:
+                    return command_handler, 'command'
+        if cls.has_query_handlers():
+            for query_handler in cls.get_query_handlers():
+                if message == query_handler['query']:
+                    return query_handler, 'query'
 
     @classmethod
     def has_listeners(cls):

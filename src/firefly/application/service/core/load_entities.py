@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import importlib
 import inspect
-from typing import List, Type
 
 import firefly.domain as ffd
 

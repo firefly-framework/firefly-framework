@@ -11,10 +11,6 @@ class LoadContainers(ffd.ApplicationService):
     _container: di.Container = None
 
     def __call__(self):
-        for extension in self._context_map.extensions:
-            extension.container = self._load_module(extension.name, extension.config)
-            self.dispatch(ffd.ContainerInitialized(context=extension.name))
-
         for context in self._context_map.contexts:
             context.container = self._load_module(context.name, context.config)
             for name, config in context.config.get('extensions', {}).items():

@@ -29,14 +29,14 @@ class MessageFactory:
 
         return cls(**asdict(message))
 
-    def event(self, name: str, data: dict):
-        return self._build(name, data, (ffd.Event,))
+    def event(self, name: str, data: dict = None):
+        return self._build(name, data or {}, (ffd.Event,))
 
-    def command(self, name: str, data: dict):
-        return self._build(name, data, (ffd.Command,))
+    def command(self, name: str, data: dict = None):
+        return self._build(name, data or {}, (ffd.Command,))
 
-    def query(self, name: str, data: dict):
-        return self._build(name, data, (ffd.Query,))
+    def query(self, name: str, data: dict = None):
+        return self._build(name, data or {}, (ffd.Query,))
 
     @staticmethod
     def _build(name: str, data: dict, bases: tuple):

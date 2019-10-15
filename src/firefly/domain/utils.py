@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import enum
 import importlib
 import inspect
 import sys
@@ -163,6 +164,18 @@ class EntityMeta(ABCMeta):
 
         return ret
 
+    def __init__(cls, name, bases, dct, **kwargs):
+        super().__init__(name, bases, dct)
+        cls._c = None
+
+    # noinspection PyDataclass
+    @property
+    def c(cls):
+        if cls._c is None:
+            from .repository.search_criteria import AttrFactory
+            cls._c = AttrFactory([x.name for x in fields(cls)])
+        return cls._c
+
 
 class ValueMeta(type):
     def __new__(mcs, name, bases, dct, **kwargs):
@@ -186,7 +199,7 @@ class MessageMeta(ABCMeta):
 
 
 class FireflyType(ABC):
-    _context = None
+    _context: str = None
 
     def __str__(self):
         return f'{self._context}.{self.__class__.__name__}' \
@@ -205,3 +218,7 @@ class FireflyType(ABC):
 
     def get_context(self):
         return self._context
+
+    @classmethod
+    def get_class_context(cls):
+        return cls.__module__.split('.')[0]

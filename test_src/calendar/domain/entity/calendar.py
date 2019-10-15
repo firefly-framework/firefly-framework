@@ -5,7 +5,7 @@ from typing import List
 
 import firefly as ff
 
-import tests.src.calendar.domain as cal
+import test_src.calendar.domain as cal
 
 
 class Calendar(ff.AggregateRoot):

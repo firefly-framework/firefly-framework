@@ -17,6 +17,6 @@ class CrudOperation(ABC):
     def _build_event(self, type_: type, operation: str, data: dict = None, source_context: str = None):
         event = self._message_factory.event(f'{type_.__name__}{self.MAPPINGS[operation]}', data or {})
         if source_context is not None:
-            event.source_context = source_context
+            event._context = source_context
 
         return event

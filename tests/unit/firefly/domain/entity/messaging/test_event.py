@@ -1,19 +1,16 @@
-from dataclasses import dataclass, MISSING
-
 import pytest
-from firefly import Event
+from firefly import Event, required
 
 
 def test_event(sut):
-    assert sut.context == 'test_event'
-    assert str(sut) == 'test_event.TestEvent'
+    assert sut._context == 'test_event'
+    assert str(sut) == 'test_event.ThisEvent'
 
 
-@dataclass
-class TestEvent(Event):
-    foo: str = MISSING
+class ThisEvent(Event):
+    foo: str = required()
 
 
 @pytest.fixture()
 def sut():
-    return TestEvent('bar')
+    return ThisEvent(foo='bar')

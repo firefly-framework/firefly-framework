@@ -1,4 +1,6 @@
+from .api_gateway import ApiGateway
 from .configuration import Configuration
 from .context import Context
 from .context_map import ContextMap
-from .extension import Extension
+from .deployment import Deployment
+from .endpoint import Endpoint

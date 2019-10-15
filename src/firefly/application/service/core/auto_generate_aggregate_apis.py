@@ -18,13 +18,12 @@ class AutoGenerateAggregateApis(ApplicationService, LoggerAware):
     _container: di.Container = None
     _command_resolving_middleware: ffd.CommandResolvingMiddleware = None
     _event_resolving_middleware: ffd.EventResolvingMiddleware = None
+    _query_resolving_middleware: ffd.QueryResolvingMiddleware = None
 
     def __call__(self, context: str, **kwargs):
         ctx = self._context_map.get_context(context)
         if ctx is None:
-            ctx = self._context_map.get_extension(context)
-            if ctx is None:
-                return
+            return
 
         for entity in ctx.entities:
             self._process_entity(ctx, entity)
@@ -34,6 +33,7 @@ class AutoGenerateAggregateApis(ApplicationService, LoggerAware):
             return
 
         self._create_crud_command_handlers(entity, context)
+        self._create_query_handler(entity, context)
         self._register_entity_level_event_listeners(entity, context)
         for k in dir(entity):
             if k.startswith('_'):
@@ -55,11 +55,23 @@ class AutoGenerateAggregateApis(ApplicationService, LoggerAware):
         self._command_resolving_middleware.add_command_handler(self._container.build(Invoke, method=method_name), fqn)
         context.command_handlers[Invoke] = fqn
 
+    def _create_query_handler(self, entity: Type[Entity], context: ffd.Context):
+        query_name = inflection.pluralize(entity.__name__)
+
+        class Query(ffd.QueryService[entity]):
+            pass
+
+        Query.__name__ = query_name
+        fqn = f'{context.name}.{query_name}'
+
+        self._query_resolving_middleware.add_query_handler(self._container.build(Query), fqn)
+        context.query_handlers[Query] = fqn
+
     def _create_crud_command_handlers(self, entity: Type[Entity], context: ffd.Context):
         for action in ('Create', 'Delete', 'Update'):
             self._create_crud_command_handler(context, entity, action)
 
-    def _create_crud_command_handler(self, context: ffd.Extension, entity, name_prefix):
+    def _create_crud_command_handler(self, context: ffd.Context, entity, name_prefix):
         name = f'{name_prefix}Entity'
         base = getattr(ffd, name)
 

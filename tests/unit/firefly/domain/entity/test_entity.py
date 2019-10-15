@@ -22,7 +22,6 @@ def test_default_values(sut):
 
 @pytest.fixture()
 def sut():
-    @dataclass()
     class ConcreteEntity(Entity):
         id: str = ffd.id_()
         strings: str = ffd.list_()

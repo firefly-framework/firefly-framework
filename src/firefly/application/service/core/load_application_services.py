@@ -14,16 +14,13 @@ class LoadApplicationServices(ffd.ApplicationService):
     _query_resolver: ffd.QueryResolvingMiddleware = None
 
     def __call__(self, **kwargs):
-        for extension in self._context_map.extensions:
-            for cls in self._load_module(extension):
-                self._register_service(cls, extension)
         for context in self._context_map.contexts:
             for cls in self._load_module(context):
                 self._register_service(cls, context)
 
         self.dispatch(ffd.ApplicationServicesLoaded())
 
-    def _register_service(self, cls: Type[ffd.ApplicationService], context: ffd.Extension):
+    def _register_service(self, cls: Type[ffd.ApplicationService], context: ffd.Context):
         if not cls.has_handlers():
             return
 
@@ -45,10 +42,10 @@ class LoadApplicationServices(ffd.ApplicationService):
                 context.query_handlers[cls] = config['query']
 
     @staticmethod
-    def _load_module(extension: ffd.Extension) -> List[Type[ffd.ApplicationService]]:
-        module_name = extension.config.get('application_service_module', '{}.application.service')
+    def _load_module(context: ffd.Context) -> List[Type[ffd.ApplicationService]]:
+        module_name = context.config.get('application_service_module', '{}.application.service')
         try:
-            module = importlib.import_module(module_name.format(extension.name))
+            module = importlib.import_module(module_name.format(context.name))
         except (ModuleNotFoundError, KeyError):
             return []
 

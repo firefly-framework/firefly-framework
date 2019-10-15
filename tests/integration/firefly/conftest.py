@@ -8,16 +8,16 @@ def config():
     return {
         'contexts': {
             'todo': {
-                'entity_module': 'tests.src.todo.domain.entity',
-                'container_module': 'tests.src.todo.application',
-                'application_service_module': 'tests.src.todo.application.service',
+                'entity_module': 'test_src.todo.domain.entity',
+                'container_module': 'test_src.todo.application',
+                'application_service_module': 'test_src.todo.application.service',
             },
             'iam': {
-                'entity_module': 'tests.src.iam.domain.entity',
-                'container_module': 'tests.src.iam.application',
+                'entity_module': 'test_src.iam.domain.entity',
+                'container_module': 'test_src.iam.application',
             },
             'calendar': {
-                'entity_module': 'tests.src.calendar.domain.entity',
+                'entity_module': 'test_src.calendar.domain.entity',
             },
         },
     }

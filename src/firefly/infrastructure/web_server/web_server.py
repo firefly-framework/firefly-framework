@@ -5,14 +5,19 @@ from _signal import SIGABRT, SIGILL, SIGINT, SIGSEGV, SIGTERM
 from signal import signal
 from typing import List, Callable
 
+import firefly.domain as ffd
+
 import websockets
 from aiohttp import web
 
 
-class WebServer:
-    def __init__(self, extensions: List[Callable], host: str = '0.0.0.0', port: int = 9000,
+class WebServer(ffd.SystemBusAware):
+    _serializer: ffd.Serializer = None
+
+    def __init__(self, host: str = '0.0.0.0', port: int = 9000,
                  websocket_host: str = '0.0.0.0', websocket_port: int = 9001):
-        self.extensions = extensions
+        self.routes = []
+        self.extensions = []
         self.host = host
         self.port = port
         self.websocket_host = websocket_host
@@ -42,8 +47,24 @@ class WebServer:
         for extension in self.extensions:
             extension(self)
 
+        self.app.add_routes(self.routes)
+
         for sig in (SIGABRT, SIGILL, SIGINT, SIGSEGV, SIGTERM):
-            signal(sig, self._shut_down)()
+            signal(sig, self._shut_down)
+
+    def add_endpoint(self, method: str, route: str):
+        self.routes.append(getattr(web, method.lower())(route, self._handle_request))
+
+    async def _handle_request(self, request: web.Request):
+        message = self._serializer.deserialize(await request.text())
+        if isinstance(message, ffd.Event):
+            response = self.dispatch(message)
+        elif isinstance(message, ffd.Command):
+            response = self.invoke(message)
+        else:
+            response = self.query(message)
+
+        return web.Response(body=self._serializer.serialize(response))
 
     async def _handle_websocket(self, websocket, path):
         consumer_task = asyncio.ensure_future(self._consumer(websocket, path))

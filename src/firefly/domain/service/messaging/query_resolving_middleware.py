@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import inspect
-from dataclasses import asdict
+from collections import OrderedDict
 from typing import Callable, Dict, Type, Union
 
 import firefly.domain as ffd
@@ -15,8 +15,8 @@ from ...entity.messaging.query import Query
 class QueryResolvingMiddleware(Middleware):
     _container: di.Container = None
 
-    def __init__(self, query_handlers: Dict[ffd.ApplicationService, Type[Q]] = None):
-        self._query_handlers = query_handlers or {}
+    def __init__(self, query_handlers: Dict[ffd.ApplicationService, Type[Query]] = None):
+        self._query_handlers = query_handlers or OrderedDict()
 
     def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
         args = message.to_dict()
@@ -26,7 +26,8 @@ class QueryResolvingMiddleware(Middleware):
                 return service(**ffd.build_argument_list(args, service))
         raise ffd.ConfigurationError(f'No query handler registered for {message}')
 
-    def add_query_handler(self, handler: Union[ApplicationService, Type[ApplicationService]], command: Type[Query]):
+    def add_query_handler(self, handler: Union[ApplicationService, Type[ApplicationService]],
+                          command: Union[Type[Query], str]):
         if inspect.isclass(handler):
             handler = self._container.build(handler)
         self._query_handlers[handler] = command

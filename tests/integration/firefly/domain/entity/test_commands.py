@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from tests.src.todo import TodoList, User
+from test_src.todo import TodoList, User
 
 
 def test_auto_generated_api(system_bus, message_factory, todo):

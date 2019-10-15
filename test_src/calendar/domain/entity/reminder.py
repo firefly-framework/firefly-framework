@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import firefly as ff
 
-import tests.src.calendar.domain as cal
+import test_src.calendar.domain as cal
 
 
 class Reminder(ff.Entity):

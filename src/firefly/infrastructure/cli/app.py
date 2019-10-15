@@ -66,7 +66,7 @@ class App:
         self._add_commands()
 
     def _gather_ports(self):
-        for context in (self._context_map.extensions + self._context_map.contexts):
+        for context in self._context_map.contexts:
             for port in context.ports:
                 if not hasattr(port, '__ff_cli'):
                     continue

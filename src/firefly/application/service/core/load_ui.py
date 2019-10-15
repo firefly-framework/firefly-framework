@@ -11,10 +11,6 @@ class LoadUi(ffd.ApplicationService):
     _context_map: ffd.ContextMap = None
 
     def __call__(self, **kwargs):
-        for extension in self._context_map.extensions:
-            for obj in self._load_module(extension):
-                extension.ports.append(obj)
-
         for context in self._context_map.contexts:
             for obj in self._load_module(context):
                 context.ports.append(obj)
@@ -22,7 +18,7 @@ class LoadUi(ffd.ApplicationService):
         self.dispatch(ffd.UiLoaded())
 
     @staticmethod
-    def _load_module(context: ffd.Extension) -> List[object]:
+    def _load_module(context: ffd.Context) -> List[object]:
         module_name = context.config.get('ui_module', '{}.ui')
         try:
             module = importlib.import_module(module_name.format(context.name))

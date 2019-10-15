@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import enum
 import uuid
 from dataclasses import is_dataclass, fields, field, MISSING, asdict
 from datetime import datetime, date
@@ -64,10 +65,13 @@ class Empty:
     pass
 
 
-def id_(**kwargs):
-    metadata = {'id': True, 'length': 36}
+def id_(is_uuid: bool = True, **kwargs):
+    metadata = {'id': True}
+    if is_uuid:
+        metadata['length'] = 36
     metadata.update(kwargs)
-    return field(default_factory=lambda: str(uuid.uuid1()), metadata=metadata)
+    return field(default_factory=lambda: str(uuid.uuid1()), metadata=metadata) if is_uuid else \
+        required(**metadata)
 
 
 def list_(**kwargs):

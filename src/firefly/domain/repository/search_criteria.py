@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from typing import Union, List
+
+import firefly.domain as ffd
+
 
 class AttributeString(str):
     pass
@@ -44,7 +48,17 @@ class Attr:
         return BinaryOp(self.attr, '<=', other)
 
     def __repr__(self):
-        return self.default
+        return self.attr
+
+
+class AttrFactory:
+    def __init__(self, fields: List[str]):
+        self._fields = fields
+
+    def __getattr__(self, item):
+        if item in self._fields:
+            return Attr(item)
+        return object.__getattribute__(self, item)
 
 
 class BinaryOp:
@@ -52,6 +66,96 @@ class BinaryOp:
         self.lhv = lhv
         self.op = op
         self.rhv = rhv
+
+    def to_dict(self):
+        return self._do_to_dict(self)
+
+    def _do_to_dict(self, bop: BinaryOp):
+        ret = {'l': None, 'o': bop.op, 'r': None}
+
+        if isinstance(bop.lhv, BinaryOp):
+            ret['l'] = self._do_to_dict(bop.lhv)
+        elif isinstance(bop.lhv, (Attr, AttributeString)):
+            ret['l'] = f'a:{str(bop.lhv)}'
+        else:
+            ret['l'] = bop.lhv
+
+        if isinstance(bop.rhv, BinaryOp):
+            ret['r'] = self._do_to_dict(bop.rhv)
+        elif isinstance(bop.rhv, (Attr, AttributeString)):
+            ret['r'] = f'a:{str(bop.rhv)}'
+        else:
+            ret['r'] = bop.rhv
+
+        return ret
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        if isinstance(data['l'], dict):
+            lhv = cls.from_dict(data['l'])
+        elif isinstance(data['l'], str) and data['l'].startswith('a:'):
+            lhv = Attr(data['l'].split(':')[1])
+        else:
+            lhv = data['l']
+
+        if isinstance(data['r'], dict):
+            rhv = cls.from_dict(data['r'])
+        elif isinstance(data['r'], str) and data['r'].startswith('a:'):
+            rhv = Attr(data['r'].split(':')[1])
+        else:
+            rhv = data['r']
+
+        return BinaryOp(lhv, data['o'], rhv)
+
+    def matches(self, data: Union[ffd.Entity, dict]) -> bool:
+        if isinstance(data, ffd.Entity):
+            data = data.to_dict()
+
+        return self._do_match(self, data)
+
+    def _do_match(self, bop: BinaryOp, data: dict) -> bool:
+        if isinstance(bop.lhv, BinaryOp):
+            lhv = self._do_match(bop.lhv, data)
+        elif isinstance(bop.lhv, AttributeString):
+            lhv = data[bop.lhv]
+        elif isinstance(bop.lhv, Attr):
+            lhv = data[bop.lhv.attr]
+        else:
+            lhv = bop.lhv
+
+        if isinstance(bop.rhv, BinaryOp):
+            rhv = self._do_match(bop.rhv, data)
+        elif isinstance(bop.rhv, AttributeString):
+            rhv = data[bop.rhv]
+        elif isinstance(bop.rhv, Attr):
+            rhv = data[bop.rhv.attr]
+        else:
+            rhv = bop.rhv
+
+        if bop.op == '==':
+            return lhv == rhv
+        if bop.op == '!=':
+            return lhv != rhv
+        if bop.op == '>':
+            return lhv > rhv
+        if bop.op == '<':
+            return lhv < rhv
+        if bop.op == '>=':
+            return lhv >= rhv
+        if bop.op == '<=':
+            return lhv <= rhv
+        if bop.op == 'is':
+            return lhv is rhv
+        if bop.op == 'in':
+            return lhv in rhv
+        if bop.op == 'contains':
+            return rhv in lhv
+        if bop.op == 'and':
+            return lhv and rhv
+        if bop.op == 'or':
+            return lhv or rhv
+
+        raise ffd.LogicError(f"Don't know how to handle op: {bop.op}")
 
     def __and__(self, other):
         return BinaryOp(self, 'and', other)

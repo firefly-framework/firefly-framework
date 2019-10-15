@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import inspect
-from dataclasses import asdict
-from typing import Callable, TypeVar, Dict, Type, Union
+from typing import Callable, Dict, Type, Union, OrderedDict
 
 import firefly.domain as ffd
 import firefly_di as di
@@ -16,10 +15,10 @@ class EventResolvingMiddleware(Middleware):
     _container: di.Container = None
 
     def __init__(self, event_listeners: Dict[ffd.ApplicationService, Union[Type[Event], str]] = None):
-        self._event_listeners = event_listeners or {}
+        self._event_listeners = event_listeners or OrderedDict()
 
     def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
-        args = message.to_dict()
+        args = message.to_dict(recursive=False)
         args['_message'] = message
         for service, event_type in self._event_listeners.copy().items():
             if message.is_this(event_type):

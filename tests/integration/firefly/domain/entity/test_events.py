@@ -1,5 +1,5 @@
-import tests.src.calendar.domain as calendar
-import tests.src.todo.domain as todo
+import test_src.calendar.domain as calendar
+import test_src.todo.domain as todo
 
 
 def test_create_on_event(system_bus, registry, message_factory):

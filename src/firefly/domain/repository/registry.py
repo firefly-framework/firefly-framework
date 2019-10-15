@@ -30,8 +30,8 @@ class Registry:
 
             if entity not in self._cache:
                 raise ffd.FrameworkError(
-                    'No registry found for entity {}. Have you installed a persistence extension, '
-                    'like firefly_sqlalchemy? If so, you may have a configuration issue.'.format(entity)
+                    'No registry found for entity {}. Have you configured a persistence mechanism or extension, '
+                    'like MemoryRepository or firefly_sqlalchemy?'.format(entity)
                 )
 
         return self._cache[entity]

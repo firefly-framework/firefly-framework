@@ -12,33 +12,29 @@ from ..entity import list_, hidden
 
 class ContextMap(AggregateRoot):
     contexts: List[ffd.Context] = list_()
-    extensions: List[ffd.Extension] = list_()
     _config: ffd.Configuration = hidden()
     _firefly_container: di.Container = hidden()
 
     def __post_init__(self):
-        for name, config in self._config.extensions.items():
-            self.extensions.append(ffd.Extension(name=name, config=config))
         for name, config in self._config.contexts.items():
-            self.contexts.append(ffd.Context(name=name, config=config))
+            self.contexts.append(ffd.Context(
+                name=name,
+                config=config,
+                is_extension=config.get('is_extension', False)
+            ))
 
         found = False
-        for context in (self.extensions + self.contexts):
+        for context in self.contexts:
             if context.name == 'firefly':
                 found = True
                 break
         if not found:
-            self.extensions.append(ffd.Extension(name='firefly', config={}))
+            self.contexts.append(ffd.Context(name='firefly', config={}))
 
     def get_context(self, name: str):
         for context in self.contexts:
             if context.name == name:
                 return context
-
-    def get_extension(self, name: str):
-        for extension in self.extensions:
-            if extension.name == name:
-                return extension
 
     def find_entity_by_name(self, context_name: str, entity_name: str):
         for entity in self.get_context(context_name).entities:
@@ -56,7 +52,7 @@ class ContextMap(AggregateRoot):
 
     def locate_command_handler(self, command: ff.TypeOfCommand):
         context_name = self._get_context_name_from_message(command)
-        context = self.get_context(context_name) or self.get_extension(context_name)
+        context = self.get_context(context_name)
 
         for command_handler, cmd in context.command_handlers.items():
             if cmd == command:
@@ -64,7 +60,7 @@ class ContextMap(AggregateRoot):
 
     def locate_event_listener(self, event: ff.TypeOfEvent):
         context_name = self._get_context_name_from_message(event)
-        context = self.get_context(context_name) or self.get_extension(context_name)
+        context = self.get_context(context_name)
 
         for event_listener, events in context.command_handlers.items():
             if event in events:
@@ -72,7 +68,7 @@ class ContextMap(AggregateRoot):
 
     def locate_query_handler(self, query: ff.TypeOfQuery):
         context_name = self._get_context_name_from_message(query)
-        context = self.get_context(context_name) or self.get_extension(context_name)
+        context = self.get_context(context_name)
 
         for query_handler, qry in context.command_handlers.items():
             if qry == query:

@@ -29,7 +29,16 @@ class MemoryRepository(ffd.Repository[T]):
                 return e
 
     def find_all_matching(self, criteria: ffd.BinaryOp) -> List[T]:
-        pass
+        ret = []
+        for entity in self.entities:
+            if criteria.matches(entity):
+                ret.append(entity)
+
+        return ret
 
     def find_one_matching(self, criteria: ffd.BinaryOp) -> T:
-        pass
+        for entity in self.entities:
+            if criteria.matches(entity):
+                return entity
+
+        return None

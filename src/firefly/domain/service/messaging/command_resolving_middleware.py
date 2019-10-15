@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+from collections import OrderedDict
 from typing import Callable, Dict, Type, Union
 
 import firefly.domain as ffd
@@ -15,7 +16,7 @@ class CommandResolvingMiddleware(Middleware):
     _container: di.Container = None
 
     def __init__(self, command_handlers: Dict[ffd.ApplicationService, Type[Command]] = None):
-        self._command_handlers = command_handlers or {}
+        self._command_handlers = command_handlers or OrderedDict()
 
     def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
         args = message.to_dict()

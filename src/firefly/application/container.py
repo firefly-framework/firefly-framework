@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections import OrderedDict
-from typing import List
 
 import firefly.application as ffa
 import firefly.domain as ffd
@@ -22,17 +21,19 @@ class Container(di.Container):
 
     # System Bus
     event_resolver: ffd.EventResolvingMiddleware = lambda self: self.build(
-        ffd.EventResolvingMiddleware, event_listeners=OrderedDict({
-            self.build(ffa.LoadApplicationServices): ffd.ContainersLoaded,
-            self.build(ffa.LoadEntities): ffd.ApplicationServicesLoaded,
-            self.build(ffa.AutoGenerateAggregateApis): ffd.DomainEntitiesLoaded,
-            self.build(ffa.LoadUi): ffd.ApplicationServicesLoaded,
-        })
+        ffd.EventResolvingMiddleware, event_listeners={
+            ffd.ContainersLoaded: [ffa.LoadApplicationServices],
+            ffd.ApplicationServicesLoaded: [
+                ffa.LoadEntities,
+                ffa.LoadUi
+            ],
+            ffd.DomainEntitiesLoaded: [ffa.AutoGenerateAggregateApis],
+        }
     )
     command_resolver: ffd.CommandResolvingMiddleware = lambda self: self.build(
-        ffd.CommandResolvingMiddleware, command_handlers=OrderedDict({
-            self.build(ffa.LoadContainers): ffd.LoadContainers,
-        })
+        ffd.CommandResolvingMiddleware, command_handlers={
+            ffd.LoadContainers: ffa.LoadContainers,
+        }
     )
     query_resolver: ffd.QueryResolvingMiddleware = ffd.QueryResolvingMiddleware
     command_bus: ffd.CommandBus = lambda self: self.build(ffd.CommandBus, middleware=[

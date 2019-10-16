@@ -16,9 +16,19 @@ class QueryResolvingMiddleware(Middleware):
     _container: di.Container = None
 
     def __init__(self, query_handlers: Dict[ffd.ApplicationService, Type[Query]] = None):
-        self._query_handlers = query_handlers or OrderedDict()
+        self._initialized = False
+        self._query_handlers = query_handlers or {}
+
+    def _initialize(self):
+        for query, handler in self._query_handlers.items():
+            if inspect.isclass(handler):
+                self._query_handlers[query] = self._container.build(handler)
+        self._initialized = True
 
     def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
+        if not self._initialized:
+            self._initialize()
+
         args = message.to_dict()
         args['_message'] = message
         for service, query_type in self._query_handlers.items():

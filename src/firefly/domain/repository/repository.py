@@ -5,10 +5,12 @@ from typing import List, TypeVar, Generic
 
 import firefly.domain as ffd
 
+from ..value_object import GenericBase
+
 T = TypeVar('T')
 
 
-class Repository(Generic[T], ABC):
+class Repository(Generic[T], GenericBase, ABC):
     @abstractmethod
     def all(self) -> List[T]:
         pass

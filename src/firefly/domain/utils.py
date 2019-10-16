@@ -222,3 +222,7 @@ class FireflyType(ABC):
     @classmethod
     def get_class_context(cls):
         return cls.__module__.split('.')[0]
+
+    @classmethod
+    def get_fqn(cls):
+        return f'{cls.get_class_context()}.{cls.__name__}'

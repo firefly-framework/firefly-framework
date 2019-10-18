@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 import inspect
-from collections import OrderedDict
 from typing import Callable, Dict, Type, Union
 
 import firefly.domain as ffd
-import firefly_di as di
 
 from .middleware import Middleware
 from ..core.application_service import ApplicationService
@@ -13,7 +11,7 @@ from ...entity.messaging.command import Command
 
 
 class CommandResolvingMiddleware(Middleware):
-    _container: di.Container = None
+    _context_map: ffd.ContextMap = None
 
     def __init__(self, command_handlers: Dict[Type[Command], ffd.ApplicationService] = None):
         self._command_handlers = {}
@@ -25,7 +23,8 @@ class CommandResolvingMiddleware(Middleware):
     def _initialize(self):
         for command, handler in self._command_handlers.items():
             if inspect.isclass(handler):
-                self._command_handlers[command] = self._container.build(handler)
+                self._command_handlers[command] = \
+                    self._context_map.get_context(handler.get_class_context()).container.build(handler)
         self._initialized = True
 
     def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
@@ -44,5 +43,5 @@ class CommandResolvingMiddleware(Middleware):
     def add_command_handler(self, handler: Union[ApplicationService, Type[ApplicationService]],
                             command: Union[Type[Command], str]):
         if inspect.isclass(handler):
-            handler = self._container.build(handler)
+            handler = self._context_map.get_context(handler.get_class_context()).container.build(handler)
         self._command_handlers[command.get_fqn() if not isinstance(command, str) else command] = handler

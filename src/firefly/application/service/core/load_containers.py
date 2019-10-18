@@ -12,9 +12,13 @@ class LoadContainers(ffd.ApplicationService):
 
     def __call__(self):
         for context in self._context_map.contexts:
-            context.container = self._load_module(context.name, context.config)
-            for name, config in context.config.get('extensions', {}).items():
-                context.container.register_container(self._context_map.get_extension(name).container)
+            if context.name == 'firefly':
+                context.container = self._container
+            else:
+                context.container = self._load_module(context.name, context.config)
+                for name, config in context.config.get('extensions', {}).items():
+                    context.container.register_container(self._context_map.get_context(name).container)
+
             self.dispatch(ffd.ContainerInitialized(context=context.name))
 
         self.dispatch(ffd.ContainersLoaded())

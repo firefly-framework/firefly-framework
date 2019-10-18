@@ -198,7 +198,19 @@ class MessageMeta(ABCMeta):
         return dataclass(ret, eq=False, repr=False)
 
 
-class FireflyType(ABC):
+class ContextAware(ABC):
+    @classmethod
+    def get_class_context(cls):
+        parts = cls.__module__.split('.')
+        # KLUDGE For integration / acceptance testing
+        return parts[0] if parts[0] != 'test_src' else parts[1]
+
+    @classmethod
+    def get_fqn(cls):
+        return f'{cls.get_class_context()}.{cls.__name__}'
+
+
+class FireflyType(ContextAware, ABC):
     _context: str = None
 
     def __str__(self):
@@ -218,11 +230,3 @@ class FireflyType(ABC):
 
     def get_context(self):
         return self._context
-
-    @classmethod
-    def get_class_context(cls):
-        return cls.__module__.split('.')[0]
-
-    @classmethod
-    def get_fqn(cls):
-        return f'{cls.get_class_context()}.{cls.__name__}'

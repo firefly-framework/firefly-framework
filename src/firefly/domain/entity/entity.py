@@ -1,17 +1,18 @@
 from __future__ import annotations
 
-import enum
+import typing
 import uuid
 from dataclasses import is_dataclass, fields, field, MISSING, asdict
 from datetime import datetime, date
+from typing import List
 
 import inflection
 
-from ..utils import EntityMeta
+from ..utils import EntityMeta, build_argument_list, ContextAware
 
 
 # noinspection PyDataclass
-class Entity(metaclass=EntityMeta):
+class Entity(ContextAware, metaclass=EntityMeta):
     def __init__(self, **kwargs):
         pass
 
@@ -40,6 +41,53 @@ class Entity(metaclass=EntityMeta):
 
     def to_dict(self):
         return asdict(self)
+
+    def load_dict(self, data: dict):
+        data = self._process_data(self.__class__, data)
+        t = typing.get_type_hints(self.__class__)
+        for name, type_ in t.items():
+            setattr(self, name, data[name])
+
+    @staticmethod
+    def _process_data(cls, data: dict):
+        t = typing.get_type_hints(cls)
+        for name, type_ in t.items():
+            if isinstance(type_, type(List)):
+                new_list = []
+                for item in data[name]:
+                    nested_data = Entity._process_data(type_.__args__[0], item)
+                    new_list.append(type_.__args__[0](**build_argument_list(nested_data, type_.__args__[0])))
+                data[name] = new_list
+            else:
+                try:
+                    if issubclass(type_, Entity):
+                        data[name] = type_(**build_argument_list(data[name], type_))
+                except TypeError:
+                    pass
+
+        return data
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        return cls._construct_entity(cls, data)
+
+    @staticmethod
+    def _construct_entity(cls: typing.Type[Entity], data: dict):
+        t = typing.get_type_hints(cls)
+        for name, type_ in t.items():
+            if isinstance(type_, type(List)):
+                new_list = []
+                for item in data[name]:
+                    new_list.append(Entity._construct_entity(type_.__args__[0], item))
+                data[name] = new_list
+            else:
+                try:
+                    if issubclass(type_, Entity):
+                        data[name] = type_(**build_argument_list(data[name], type_))
+                except TypeError:
+                    pass
+
+        return cls(**build_argument_list(data, cls))
 
     @classmethod
     def id_name(cls):

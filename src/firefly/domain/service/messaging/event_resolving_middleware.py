@@ -4,7 +4,6 @@ import inspect
 from typing import Callable, Dict, Type, Union, List
 
 import firefly.domain as ffd
-import firefly_di as di
 
 from .middleware import Middleware
 from ..core.application_service import ApplicationService
@@ -12,7 +11,7 @@ from ...entity.messaging.event import Event
 
 
 class EventResolvingMiddleware(Middleware):
-    _container: di.Container = None
+    _context_map: ffd.ContextMap = None
 
     def __init__(self, event_listeners: Dict[Union[Type[Event], str], List[ffd.ApplicationService]] = None):
         self._event_listeners = {}
@@ -28,7 +27,7 @@ class EventResolvingMiddleware(Middleware):
             built = []
             for listener in listeners:
                 if inspect.isclass(listener):
-                    built.append(self._container.build(listener))
+                    built.append(self._context_map.get_context(listener.get_class_context()).container.build(listener))
                 else:
                     built.append(listener)
             self._event_listeners[event] = built
@@ -53,7 +52,7 @@ class EventResolvingMiddleware(Middleware):
     def add_event_listener(self, handler: Union[ApplicationService, Type[ApplicationService]],
                            event: Union[Type[Event], str]):
         if inspect.isclass(handler):
-            handler = self._container.build(handler)
+            handler = self._context_map.get_context(handler.get_class_context()).container.build(handler)
         key = event.get_fqn() if not isinstance(event, str) else event
         if key not in self._event_listeners:
             self._event_listeners[key] = []

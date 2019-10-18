@@ -7,4 +7,5 @@ from .deployment_initialized import DeploymentInitialized
 from .deployment_starting import DeploymentStarting
 from .domain_entities_loaded import DomainEntitiesLoaded
 from .framework_event import FrameworkEvent
+from .storage_configured import StorageConfigured
 from .ui_loaded import UiLoaded

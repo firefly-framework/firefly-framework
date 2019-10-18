@@ -14,7 +14,7 @@ class Registry:
     def __init__(self):
         self._cache = {}
         self._factories = {}
-        self._default_factory = None
+        self._default_factory = {}
 
     def __call__(self, entity) -> Repository:
         if not issubclass(entity, ffd.AggregateRoot):
@@ -25,8 +25,9 @@ class Registry:
                 if issubclass(entity, k):
                     self._cache[entity] = v(entity)
 
-            if self._default_factory is not None:
-                self._cache[entity] = self._default_factory(entity)
+            context = entity.get_class_context()
+            if self._default_factory[context] is not None:
+                self._cache[entity] = self._default_factory[context](entity)
 
             if entity not in self._cache:
                 raise ffd.FrameworkError(
@@ -39,8 +40,8 @@ class Registry:
     def register_factory(self, types: Union[Type[AR], Tuple[Type[AR]]], factory: ffd.RepositoryFactory):
         self._factories[types] = factory
 
-    def set_default_factory(self, factory: ffd.RepositoryFactory):
-        self._default_factory = factory
+    def set_default_factory(self, context: str, factory: ffd.RepositoryFactory):
+        self._default_factory[context] = factory
 
     def clear_cache(self):
         self._cache = {}

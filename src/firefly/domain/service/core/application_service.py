@@ -7,9 +7,10 @@ import firefly.domain as ffd
 
 from ..messaging.system_bus import SystemBusAware
 from ..logging.logger import LoggerAware
+from ...utils import FireflyType
 
 
-class ApplicationService(ABC, SystemBusAware, LoggerAware):
+class ApplicationService(FireflyType, ABC, SystemBusAware, LoggerAware):
     _event_buffer: ffd.EventBuffer = None
 
     @abstractmethod

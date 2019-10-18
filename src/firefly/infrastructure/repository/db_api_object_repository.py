@@ -1,50 +1,36 @@
 from __future__ import annotations
 
-import json
 from typing import List
 
 import firefly.domain as ffd
+import firefly.infrastructure as ffi
 import inflection
 from firefly.domain.repository.repository import T
 
 
 class DbApiObjectRepository(ffd.Repository[T]):
-    def __init__(self, connection):
+    def __init__(self, interface: ffi.DbApiStorageInterface):
         self._entity_type = self._type()
-        self._table = inflection.tableize(self._entity_type)
-        self._connection = connection
+        self._table = inflection.tableize(self._entity_type.__name__)
+        self._interface = interface
 
     def all(self) -> List[T]:
-        cursor = self._connection.cursor()
-        cursor.execute(f"select obj from {self._table}")
-        ret = []
-        for data in cursor.fetchall():
-            ret.append(self._entity_type(**json.loads(data)))
-
-        return ret
+        return self._interface.all(self._entity_type)
 
     def add(self, entity: T):
-        cursor = self._connection.cursor()
-        try:
-            cursor.execute(
-                f"insert into {self._table} (id, obj) values ('%s', '%s')" %
-                (entity.id_value(), json.dumps(entity.to_dict()))
-            )
-            self._connection.commit()
-        except:
-            self._connection.rollback()
+        self._interface.add(entity)
 
     def remove(self, entity: T):
-        pass
+        self._interface.remove(entity)
 
     def update(self, entity: T):
-        pass
+        self._interface.update(entity)
 
     def find(self, uuid) -> T:
-        pass
+        return self._interface.find(uuid, self._entity_type)
 
     def find_all_matching(self, criteria: ffd.BinaryOp) -> List[T]:
-        pass
+        return self._interface.all(self._entity_type, criteria=criteria)
 
     def find_one_matching(self, criteria: ffd.BinaryOp) -> T:
-        pass
+        return self._interface.all(self._entity_type, criteria=criteria, limit=1)

@@ -31,10 +31,14 @@ def test_nested_api(system_bus, message_factory, todo):
 
 
 @pytest.fixture()
-def todo(registry):
+def todo(registry, request):
     r = registry(TodoList)
-    for l in r.all():
-        r.remove(l)
+
+    def teardown():
+        for l in r.all():
+            r.remove(l)
+
+    request.addfinalizer(teardown)
 
     ret = TodoList(user=User(name='foo'))
     r.add(ret)

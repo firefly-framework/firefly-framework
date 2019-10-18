@@ -20,9 +20,5 @@ class Configuration(Entity):
         return self._config.get('contexts', {})
 
     @property
-    def extensions(self):
-        return self._config.get('extensions', {})
-
-    @property
     def environments(self):
         return self._config.get('environments', {})

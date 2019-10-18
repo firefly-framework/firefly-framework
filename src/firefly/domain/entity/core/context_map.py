@@ -29,7 +29,9 @@ class ContextMap(AggregateRoot):
                 found = True
                 break
         if not found:
-            self.contexts.append(ffd.Context(name='firefly', config={}))
+            c = ffd.Context(name='firefly', config={})
+            c.container = self._firefly_container
+            self.contexts.append(c)
 
     def get_context(self, name: str):
         for context in self.contexts:

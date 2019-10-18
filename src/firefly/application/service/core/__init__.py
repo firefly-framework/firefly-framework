@@ -1,5 +1,6 @@
 from .auto_generate_aggregate_apis import AutoGenerateAggregateApis
 from .configure_deployment import ConfigureDeployment
+from .configure_storage import ConfigureStorage
 from .load_application_services import LoadApplicationServices
 from .load_containers import LoadContainers
 from .load_entities import LoadEntities

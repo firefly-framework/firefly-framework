@@ -11,13 +11,46 @@ def config():
                 'entity_module': 'test_src.todo.domain.entity',
                 'container_module': 'test_src.todo.application',
                 'application_service_module': 'test_src.todo.application.service',
+                'storage': {
+                    'connections': {
+                        'sqlite': {
+                            'type': 'db_api',
+                            'driver': 'sqlite',
+                            'host': ':memory:'
+                            # 'host': '/tmp/todo.db'
+                        },
+                    },
+                    'default': 'sqlite',
+                },
             },
             'iam': {
                 'entity_module': 'test_src.iam.domain.entity',
                 'container_module': 'test_src.iam.application',
+                'storage': {
+                    'connections': {
+                        'sqlite': {
+                            'type': 'db_api',
+                            'driver': 'sqlite',
+                            'host': ':memory:'
+                            # 'host': '/tmp/iam.db'
+                        },
+                    },
+                    'default': 'sqlite',
+                },
             },
             'calendar': {
                 'entity_module': 'test_src.calendar.domain.entity',
+                'storage': {
+                    'connections': {
+                        'sqlite': {
+                            'type': 'db_api',
+                            'driver': 'sqlite',
+                            'host': ':memory:'
+                            # 'host': '/tmp/calendar.db'
+                        },
+                    },
+                    'default': 'sqlite',
+                },
             },
         },
     }
@@ -29,7 +62,7 @@ def container(config):
     Container.configuration = lambda self: ffi.MemoryConfigurationFactory()(config)
 
     c = Container()
-    c.registry.set_default_factory(ffi.MemoryRepositoryFactory())
+    # c.registry.set_default_factory(ffi.MemoryRepositoryFactory())
 
     c.kernel.boot()
 
@@ -57,7 +90,15 @@ def message_factory(container) -> ff.MessageFactory:
 
 
 @pytest.fixture(scope="function")
-def registry(container) -> ff.Registry:
+def registry(container, request) -> ff.Registry:
     registry = container.registry
-    registry.clear_cache()
+
+    def teardown():
+        for context in container.context_map.contexts:
+            try:
+                context.container.db_api_interface_registry.disconnect_all()
+            except AttributeError:
+                pass
+    request.addfinalizer(teardown)
+    # registry.clear_cache()
     return registry

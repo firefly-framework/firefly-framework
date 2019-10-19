@@ -1,19 +1,9 @@
-import firefly.domain as ffd
+from firefly.application import Container
 
-n = ffd.NetworkTopology(forwarders=[
-    ffd.Forwarder(name='foo', subscribers=[
-        ffd.Queue(name='foo_queue')
-    ]),
-    ffd.Forwarder(name='bar', subscribers=[
-        ffd.Queue(name='bar_queue')
-    ])
-])
+container = Container()
 
-print(n)
-d = n.to_dict()
-# print(d)
-
-ne = ffd.NetworkTopology()
-ne.load_dict(d)
-
-print(ne)
+print(
+    container.serializer.serialize(
+        container.message_factory.query('firefly.ContextMaps')
+    )
+)

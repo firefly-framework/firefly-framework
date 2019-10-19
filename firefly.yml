@@ -1,0 +1,5 @@
+contexts:
+  firefly:
+    storage:
+      default: memory
+  

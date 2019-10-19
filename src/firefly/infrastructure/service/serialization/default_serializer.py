@@ -1,26 +1,37 @@
 from __future__ import annotations
 
 import json
+from json import JSONEncoder
 
 import firefly.domain as ffd
+import firefly_di as di
+
+
+class FireflyEncoder(JSONEncoder):
+    def default(self, o):
+        if isinstance(o, ffd.Entity):
+            return o.to_dict()
+        elif isinstance(o, di.Container):
+            return None
+        elif isinstance(o, ffd.Message):
+            dic = o.to_dict()
+            dic['_name'] = o.__class__.__name__
+            t = 'event'
+            if isinstance(o, ffd.Command):
+                t = 'command'
+            elif isinstance(o, ffd.Query):
+                t = 'query'
+            dic['_type'] = t
+            return dic
+
+        return JSONEncoder.default(self, o)
 
 
 class DefaultSerializer(ffd.Serializer):
     _message_factory: ffd.MessageFactory = None
 
     def serialize(self, data):
-        if isinstance(data, ffd.Message):
-            dic = data.to_dict()
-            dic['_name'] = data.__class__.__name__
-            t = 'event'
-            if isinstance(data, ffd.Command):
-                t = 'command'
-            elif isinstance(data, ffd.Query):
-                t = 'query'
-            dic['_type'] = t
-            return json.dumps(dic)
-
-        return json.dumps(data)
+        return json.dumps(data, cls=FireflyEncoder)
 
     def deserialize(self, data):
         try:

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from pprint import pprint
-
 import firefly.domain as ffd
 import firefly.infrastructure as ffi
 
@@ -21,6 +19,8 @@ class ConfigureStorage(ffd.ApplicationService):
 
         self._configure_connections(config.get('connections', {}), context)
         self._configure_repositories(config, context)
+
+        self._registry(ffd.ContextMap).add(self._context_map)
 
         self.dispatch(ffd.StorageConfigured(context=context.name))
 
@@ -63,8 +63,11 @@ class ConfigureStorage(ffd.ApplicationService):
             if k == 'connections':
                 continue
             if k == 'default':
-                factory.set_default_storage_interface(v)
-                self._registry.set_default_factory(context.name, factory)
+                if v == 'memory':
+                    self._registry.set_default_factory(context.name, ffi.MemoryRepositoryFactory())
+                else:
+                    factory.set_default_storage_interface(v)
+                    self._registry.set_default_factory(context.name, factory)
                 continue
             if v not in types:
                 types[v] = []
@@ -72,6 +75,8 @@ class ConfigureStorage(ffd.ApplicationService):
 
         for interface_name, entity_types in types.items():
             for entity_type in entity_types:
-                factory.register_storage_interface(entity_type, interface_name)
-                print(entity_type)
-                self._registry.register_factory(entity_type, factory)
+                if interface_name == 'memory':
+                    self._registry.register_factory(entity_type, ffi.MemoryRepositoryFactory())
+                else:
+                    factory.register_storage_interface(entity_type, interface_name)
+                    self._registry.register_factory(entity_type, factory)

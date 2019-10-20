@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import json
 from json import JSONEncoder
 
@@ -11,6 +12,8 @@ class FireflyEncoder(JSONEncoder):
     def default(self, o):
         if isinstance(o, ffd.Entity):
             return o.to_dict()
+        elif inspect.isclass(o) and issubclass(o, ffd.Entity):
+            return f'{o.get_class_context()}.{o.__name__}'
         elif isinstance(o, di.Container):
             return None
         elif isinstance(o, ffd.Message):
@@ -31,7 +34,7 @@ class DefaultSerializer(ffd.Serializer):
     _message_factory: ffd.MessageFactory = None
 
     def serialize(self, data):
-        return json.dumps(data, cls=FireflyEncoder)
+        return json.dumps(data, cls=FireflyEncoder, skipkeys=True)
 
     def deserialize(self, data):
         try:

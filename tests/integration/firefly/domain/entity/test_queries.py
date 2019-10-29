@@ -24,19 +24,19 @@ def test_query_todos(system_bus, message_factory):
 
 def test_search_criteria_equals(system_bus, message_factory):
     search_criteria = User.c.name == 'foo'
-    users = system_bus.query(message_factory.query('iam.Users', {'criteria': search_criteria.to_dict()}))
+    users = system_bus.query(message_factory.query('iam.Users', search_criteria))
     assert len(users) == 1
 
 
 def test_search_criteria_greater_than(system_bus, message_factory):
     search_criteria = User.c.name > 'car'
-    users = system_bus.query(message_factory.query('iam.Users', {'criteria': search_criteria.to_dict()}))
+    users = system_bus.query(message_factory.query('iam.Users', search_criteria))
     assert len(users) == 1
 
 
 def test_search_criteria_or(system_bus, message_factory):
     search_criteria = (User.c.name == 'foo') | (User.c.name == 'bar')
-    users = system_bus.query(message_factory.query('iam.Users', {'criteria': search_criteria.to_dict()}))
+    users = system_bus.query(message_factory.query('iam.Users', search_criteria))
     assert len(users) == 2
 
 

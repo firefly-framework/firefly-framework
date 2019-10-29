@@ -12,7 +12,7 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from .generic_base import GenericBase
 from .event_buffer import EventBuffer
+from .generic_base import GenericBase
 from .http_endpoint import HttpEndpoint
 from .parameter import Parameter

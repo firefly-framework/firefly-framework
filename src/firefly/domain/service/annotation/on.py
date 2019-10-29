@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from typing import Union
+from typing import Union, List
 
 from .framework_annotation import FrameworkAnnotation
 
@@ -25,7 +25,7 @@ class On(FrameworkAnnotation):
     def name(self) -> str:
         return '__ff_listener'
 
-    def __call__(self, event: Union[str, type], action: str = None):
+    def __call__(self, event: Union[str, type, List[Union[str, type]]], action: str = None):
         kwargs = {'event': event}
         if action in self.CRUD_ACTIONS:
             kwargs['crud'] = action

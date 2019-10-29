@@ -29,7 +29,11 @@ class FrameworkAnnotation(ABC):
             prop = []
             if hasattr(cls, self.name()):
                 prop = getattr(cls, self.name())
-            prop.append(self._callback(cls, kwargs))
+            args = self._callback(cls, kwargs)
+            if isinstance(args, list):
+                prop.extend(args)
+            else:
+                prop.append(args)
             setattr(cls, self.name(), prop)
 
             if child_callback is not None and inspect.isclass(cls):

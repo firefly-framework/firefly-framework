@@ -46,7 +46,12 @@ class App:
         if args.debug is True:
             logging.getLogger().setLevel(logging.DEBUG)
 
-        message = self._message_lookup[args.target]['target']
+        try:
+            message = self._message_lookup[args.target]['target']
+        except KeyError:
+            self._parser.print_usage()
+            return
+
         if isinstance(message, str):
             service = self._context_map.locate_service(message)
             param_target = service.__call__

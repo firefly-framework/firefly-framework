@@ -49,8 +49,11 @@ class MessageFactory:
     def command(self, name: str, data: dict = None):
         return self._build(name, data or {}, (ffd.Command,))
 
-    def query(self, name: str, data: dict = None):
-        return self._build(name, data or {}, (ffd.Query,))
+    def query(self, name: str, criteria: ffd.BinaryOp = None, data: dict = None):
+        data = data or {}
+        if criteria is not None:
+            data['criteria'] = criteria.to_dict()
+        return self._build(name, data, (ffd.Query,))
 
     @staticmethod
     def _build(name: str, data: dict, bases: tuple):

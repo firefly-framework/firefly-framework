@@ -15,23 +15,28 @@
 import asyncio
 import logging
 import sys
+import uuid
 from _signal import SIGABRT, SIGILL, SIGINT, SIGSEGV, SIGTERM
 from signal import signal
-from typing import List, Callable
+from typing import List, Callable, Dict
 
+import aiohttp_cors
 import firefly.domain as ffd
 
 import websockets
 from aiohttp import web
 
 
-class WebServer(ffd.SystemBusAware):
+class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
     _serializer: ffd.Serializer = None
 
     def __init__(self, host: str = '0.0.0.0', port: int = 9000,
                  websocket_host: str = '0.0.0.0', websocket_port: int = 9001):
         self.routes = []
         self.extensions = []
+        self.queues: Dict[str, asyncio.Queue] = {}
+        self.queue_map: Dict[str, str] = {}
+        self.cors = None
         self.host = host
         self.port = port
         self.websocket_host = websocket_host
@@ -63,35 +68,84 @@ class WebServer(ffd.SystemBusAware):
 
         self.app.add_routes(self.routes)
 
+        self.cors = aiohttp_cors.setup(self.app, defaults={
+            "*": aiohttp_cors.ResourceOptions(
+                allow_credentials=True,
+                expose_headers="*",
+                allow_headers="*",
+                allow_methods="*"
+            )
+        })
+
+        for route in list(self.app.router.routes()):
+            self.cors.add(route)
+
         for sig in (SIGABRT, SIGILL, SIGINT, SIGSEGV, SIGTERM):
             signal(sig, self._shut_down)
 
+        def event_listener(message: ffd.Message, next_: Callable):
+            self._broadcast(message)
+            return next_(message)
+        self._system_bus.add_event_listener(event_listener)
+
+    def _broadcast(self, message: ffd.Message):
+        print('broadcasting!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+        m = self._serializer.serialize(message)
+        for queue in self.queues.values():
+            queue.put_nowait(m)
+
     def add_endpoint(self, method: str, route: str):
+        print(f'Endpoint: {method} {route}')
         self.routes.append(getattr(web, method.lower())(route, self._handle_request))
 
     async def _handle_request(self, request: web.Request):
-        message = self._serializer.deserialize(await request.text())
+        self.debug('Got a request -----------------------')
+        self.debug(request.headers)
+        self.debug(await request.text())
+        self.debug('-------------------------------------')
+
+        if request.method.lower() == 'post':
+            message: ffd.Message = self._serializer.deserialize(await request.text())
+        else:
+            message: ffd.Message = self._serializer.deserialize(request.query['query'])
+
+        try:
+            message.headers['client_id'] = request.headers['Firefly-Client-ID']
+        except KeyError:
+            self.info('Request missing header Firefly-ClientID')
+
+        response = None
         if isinstance(message, ffd.Event):
             response = self.dispatch(message)
         elif isinstance(message, ffd.Command):
             response = self.invoke(message)
-        else:
+        elif isinstance(message, ffd.Query):
             response = self.query(message)
 
         return web.Response(body=self._serializer.serialize(response))
 
     async def _handle_websocket(self, websocket, path):
-        consumer_task = asyncio.ensure_future(self._consumer(websocket, path))
-        producer_task = asyncio.ensure_future(self._producer(websocket, path))
+        id_ = str(uuid.uuid1())
+        consumer_task = asyncio.ensure_future(self._consumer(websocket, path, id_))
+        producer_task = asyncio.ensure_future(self._producer(websocket, path, id_))
         done, pending = await asyncio.wait([consumer_task, producer_task], return_when=asyncio.FIRST_COMPLETED)
         for task in pending:
             task.cancel()
 
-    async def _consumer(self, websocket, path):
-        pass
+    async def _consumer(self, websocket, path, id_):
+        async for m in websocket:
+            message = self._serializer.deserialize(m)
+            if 'id' in message:
+                self.debug(f'Mapping {id_} to client id {message["id"]}')
+                self.queue_map[message['id']] = id_
 
-    async def _producer(self, websocket, path):
-        pass
+    async def _producer(self, websocket, path, id_):
+        self.queues[id_] = asyncio.Queue(loop=self.loop)
+
+        while True:
+            m = await self.queues[id_].get()
+            print(f'Sending {m}')
+            await websocket.send(m)
 
     @staticmethod
     def _init_logger():

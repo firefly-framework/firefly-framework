@@ -26,6 +26,9 @@ class FrameworkAnnotation(ABC):
 
     def _attach_annotation(self, child_callback: Callable = None, **kwargs):
         def wrapper(cls):
+            # if 'command' in kwargs and kwargs['command'] is None:
+            #     kwargs['command'] = f'{cls.__module__.split(".")[0]}.{cls.__name__}'
+            #     print(kwargs)
             prop = []
             if hasattr(cls, self.name()):
                 prop = getattr(cls, self.name())

@@ -159,7 +159,7 @@ class BinaryOp:
         if bop.op == '<=':
             return lhv <= rhv
         if bop.op == 'is':
-            return lhv is rhv
+            return lhv is rhv if rhv != 'None' else lhv is None
         if bop.op == 'in':
             return lhv in rhv
         if bop.op == 'contains':

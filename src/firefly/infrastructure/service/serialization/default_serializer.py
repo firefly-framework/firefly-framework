@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import inspect
 import json
+from datetime import datetime, date
 from json import JSONEncoder
 
 import firefly.domain as ffd
@@ -40,6 +41,8 @@ class FireflyEncoder(JSONEncoder):
                 t = 'query'
             dic['_type'] = t
             return dic
+        elif isinstance(o, (datetime, date)):
+            return o.isoformat()
 
         return JSONEncoder.default(self, o)
 
@@ -60,7 +63,11 @@ class DefaultSerializer(ffd.Serializer):
             fqn = f'{ret["_context"]}.{ret["_name"]}'
             t = ffd.load_class(fqn)
             if t is None:
-                return getattr(self._message_factory, ret['_type'])(fqn, ret)
+                args = [fqn]
+                if ret['_type'] == 'query':
+                    args.append(None)
+                args.append(ret)
+                return getattr(self._message_factory, ret['_type'])(*args)
             return t(**ffd.build_argument_list(ret, t))
 
         return ret

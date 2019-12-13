@@ -64,35 +64,6 @@ class FireflyCli:
         print('Deploy called...')
         return next_(message)
 
-    # @ffd.cli(description='View information about the internals of your application')
-    # class List:
-    #
-    #     @ffd.cli(
-    #         target=ffa.GetRegisteredContainerServices,
-    #         description='Print registered services',
-    #         alias={
-    #             'flatten': 'f',
-    #             'no_extensions': 'ne',
-    #             'provider': 'p'
-    #         },
-    #         help_={
-    #             'flatten': 'Include services in registered sub-containers',
-    #             'no_extensions': 'Do not print containers for extensions',
-    #             'provider': 'Only print the container for the given provider'
-    #         }
-    #     )
-    #     def containers(self):
-    #         pass
-
-    # @ffd.cli(description='Firefly HTTP server')
-    # class Http:
-    #
-    #     @ffd.cli(
-    #         target=ffa.DeployHttp,
-    #         description='Deploy services to the HTTP server',
-    #         alias={
-    #             'port': 'p',
-    #         }
-    #     )
-    #     def deploy(self):
-    #         pass
+    # @ffd.cli(target='')
+    # def generate_typescript(self):
+    #     pass

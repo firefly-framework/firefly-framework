@@ -35,6 +35,10 @@ class Message(FireflyType, metaclass=MessageMeta):
     def get_parameters(self):
         return ffd.get_arguments(self.__init__)
 
+    @property
+    def was_external(self):
+        return 'client_id' in self.headers
+
     def __post_init__(self):
         if self._id is None:
             self._id = str(uuid.uuid1())

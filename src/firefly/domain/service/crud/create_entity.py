@@ -31,10 +31,10 @@ class CreateEntity(Generic[T], ApplicationService, GenericBase, CrudOperation, S
     _registry: ffd.Registry = None
     _context_map: ffd.ContextMap = None
 
-    def __call__(self, **kwargs) -> Optional[Union[ffd.Message, object]]:
+    def __call__(self, **kwargs) -> bool:
         type_ = self._type()
         entity = type_(**ffd.build_argument_list(kwargs, type_))
         self._registry(type_).add(entity)
         self.dispatch(self._build_event(type_, 'create', asdict(entity), kwargs['_context']))
 
-        return entity
+        return True

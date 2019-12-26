@@ -12,20 +12,13 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-# __pragma__('skip')
-from typing import Tuple, List, Union, Type
+__all__ = ['FormData', '__new__']
 
-from .domain import *
 
-EventList = Union[Event, Tuple[str, Union[dict, object]], List[Union[Event, Tuple[str, Union[dict, object]]]]]
-TypeOfCommand = Union[str, Type[Command]]
-TypeOfEvent = Union[str, Type[Event]]
-TypeOfQuery = Union[str, Type[Query]]
-# __pragma__('noskip')
-# __pragma__ ('ecom')
-"""?
-from firefly.ui.web.polyfills import Entity, AggregateRoot, required, optional, id_, now, list_, dict_, today
-from firefly.domain.error import MissingArgument, FrameworkError
-from firefly.domain.service.messaging import SystemBus, Middleware, CommandBus, EventBus, QueryBus, MessageFactory
-?"""
-# __pragma__ ('noecom')
+class FormData:
+    def __init__(self, *args, **kwargs):
+        pass
+
+
+def __new__(*args, **kwargs):
+    pass

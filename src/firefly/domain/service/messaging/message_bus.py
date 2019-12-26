@@ -14,15 +14,25 @@
 
 from __future__ import annotations
 
-from abc import ABC
 from typing import List, Union, Callable
 
-from .middleware_stack import MiddlewareStack
+# __pragma__('skip')
+from abc import ABC
+# __pragma__('noskip')
+# __pragma__ ('ecom')
+"""?
+from firefly.ui.web.polyfills import ABC
+?"""
+# __pragma__ ('noecom')
+# __pragma__('opov')
+
+from firefly.domain.service.messaging.middleware_stack import MiddlewareStack
 import firefly.domain as ffd
 
 
 class MessageBus:
-    _middleware = []
+    _middleware: list = []
+    _handle: MiddlewareStack = None
 
     def __init__(self, middleware: List[Union[ffd.Middleware, Callable]]):
         self._middleware = middleware

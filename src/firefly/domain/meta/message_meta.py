@@ -12,20 +12,35 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
+from __future__ import annotations
+
 # __pragma__('skip')
-from typing import Tuple, List, Union, Type
+from abc import ABCMeta
 
-from .domain import *
+from dataclasses import dataclass
 
-EventList = Union[Event, Tuple[str, Union[dict, object]], List[Union[Event, Tuple[str, Union[dict, object]]]]]
-TypeOfCommand = Union[str, Type[Command]]
-TypeOfEvent = Union[str, Type[Event]]
-TypeOfQuery = Union[str, Type[Query]]
 # __pragma__('noskip')
-# __pragma__ ('ecom')
+# __pragma__('ecom')
 """?
-from firefly.ui.web.polyfills import Entity, AggregateRoot, required, optional, id_, now, list_, dict_, today
-from firefly.domain.error import MissingArgument, FrameworkError
-from firefly.domain.service.messaging import SystemBus, Middleware, CommandBus, EventBus, QueryBus, MessageFactory
+from firefly.ui.web.polyfills import ABCMeta, dataclass, optional
 ?"""
-# __pragma__ ('noecom')
+# __pragma__('noecom')
+
+import firefly.domain as ffd
+
+
+# __pragma__('kwargs')
+class MessageMeta(ABCMeta):
+    def __new__(mcs, name, bases, dct, **kwargs):
+        if 'fields_' in kwargs and 'annotations_' in kwargs:
+            for k, v in kwargs['fields_'].items():
+                dct[k] = ffd.optional(default=v)
+            if '__annotations__' in dct:
+                dct['__annotations__'].update(kwargs['annotations_'])
+            else:
+                dct['__annotations__'] = kwargs['annotations_']
+
+        ret = type.__new__(mcs, name, bases, dct)
+
+        return dataclass(ret, eq=False, repr=False)
+# __pragma__('nokwargs')

@@ -12,19 +12,40 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations
-
 from typing import Callable
 
-import firefly.domain as ffd
-from firefly.domain.service.logging.logger import LoggerAware
-from firefly.domain.service.messaging.middleware import Middleware
+from firefly.ui.web.polyfills import *  # __:skip
+
+from firefly import SystemBus, Middleware, EventBus, domain as ffd, CommandBus, QueryBus, MessageFactory
 
 
-class LoggingMiddleware(Middleware, LoggerAware):
-    def __init__(self, message: str = None):
-        self._message = message or 'Message added to bus: %s'
+# __pragma__('kwargs')
+class LoggingMiddleware(Middleware):
+    def __init__(self, prefix: str = ''):
+        self.prefix = prefix
 
     def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
-        self.info(self._message, message)
+        console.log(self.prefix, message)
         return next_(message)
+# __pragma__('nokwargs')
+
+
+message_factory = MessageFactory()
+bus = SystemBus()
+bus._event_bus = EventBus([
+    LoggingMiddleware('Event Bus'),
+])
+# noinspection PyProtectedMember
+bus._event_bus._message_factory = message_factory
+
+bus._command_bus = CommandBus([
+    LoggingMiddleware('Command Bus'),
+])
+# noinspection PyProtectedMember
+bus._command_bus._message_factory = message_factory
+
+bus._query_bus = QueryBus([
+    LoggingMiddleware('Query Bus'),
+])
+# noinspection PyProtectedMember
+bus._query_bus._message_factory = message_factory

@@ -19,9 +19,9 @@ from typing import Callable, Dict, Type, Union
 
 import firefly.domain as ffd
 
-from .middleware import Middleware
-from ..core.application_service import ApplicationService
-from ...entity.messaging.query import Query
+from firefly.domain.service.messaging.middleware import Middleware
+from firefly.domain.service.core.application_service import ApplicationService
+from firefly.domain.entity.messaging.query import Query
 
 
 class QueryResolvingMiddleware(Middleware):

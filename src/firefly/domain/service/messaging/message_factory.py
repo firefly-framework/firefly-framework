@@ -14,20 +14,26 @@
 
 from __future__ import annotations
 
+# __pragma__('skip')
 from dataclasses import make_dataclass, fields, is_dataclass, asdict
 from typing import Union, TypeVar, Type, Tuple, get_type_hints
+# __pragma__('noskip')
+# __pragma__ ('ecom')
+"""?
+from firefly.ui.web.polyfills import make_dataclass, fields, is_dataclass, asdict, Union, TypeVar, Type, Tuple, get_type_hints
+?"""
+# __pragma__ ('noecom')
 
 import firefly.domain as ffd
 
-from ...entity.messaging.message import Message
+from firefly.domain.entity.messaging.message import Message
 
-M = TypeVar('M', bound=Message)
-MessageBase = Type[M]
+# __pragma__('kwargs')
 
 
 class MessageFactory:
     @staticmethod
-    def convert_type(message: Message, new_name: str, new_base: Union[MessageBase, Tuple[MessageBase]]):
+    def convert_type(message: Message, new_name: str, new_base: Union[Message, Tuple[Message]]):
         if not is_dataclass(message):
             raise ffd.FrameworkError('message must be a dataclass')
 
@@ -62,8 +68,16 @@ class MessageFactory:
             data['_context'] = context
         annotations_ = {k: type(v) for k, v in data.items()}
 
+        # __pragma__ ('ecom')
+        """?
+        return make_dataclass(name, data, bases=bases)(**data)
+        ?"""
+        # __pragma__ ('noecom')
+
+        # __pragma__('skip')
         class DynamicMessage(*bases, fields_=data, annotations_=annotations_):
             pass
         DynamicMessage.__name__ = name
 
         return DynamicMessage(**data)
+        # __pragma__('noskip')

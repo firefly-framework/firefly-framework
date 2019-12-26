@@ -21,7 +21,7 @@ import firefly.domain as ffd
 
 from ..messaging.system_bus import SystemBusAware
 from ..logging.logger import LoggerAware
-from ...utils import FireflyType
+from firefly.domain.meta.firefly_type import FireflyType
 
 
 class ApplicationService(FireflyType, ABC, SystemBusAware, LoggerAware):

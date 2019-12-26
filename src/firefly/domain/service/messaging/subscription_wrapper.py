@@ -18,8 +18,8 @@ from typing import Callable, TypeVar, Type
 
 import firefly.domain as ffd
 
-from .middleware import Middleware
-from ...entity.messaging.message import Message
+from firefly.domain.service.messaging.middleware import Middleware
+from firefly.domain.entity.messaging.message import Message
 
 M = TypeVar('M', bound=Message)
 

@@ -14,8 +14,16 @@
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 from typing import Callable
+
+# __pragma__('skip')
+from abc import ABC, abstractmethod
+# __pragma__('noskip')
+# __pragma__ ('ecom')
+"""?
+from firefly.ui.web.polyfills import ABC, abstractmethod
+?"""
+# __pragma__ ('noecom')
 
 import firefly.domain as ffd
 

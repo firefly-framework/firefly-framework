@@ -14,25 +14,37 @@
 
 from __future__ import annotations
 
-from abc import ABC
 from typing import Union
+
+# __pragma__('skip')
+from abc import ABC
+# __pragma__('noskip')
+# __pragma__ ('ecom')
+"""?
+from firefly.ui.web.polyfills import ABC
+?"""
+# __pragma__ ('noecom')
 
 import firefly.domain as ffd
 
-from .message_bus import MessageBus
+from firefly.domain.service.messaging.message_bus import MessageBus
 
 
 class QueryBus(MessageBus):
     _message_factory: ffd.MessageFactory = None
 
-    def query(self, request: Union[ffd.Query, str], data: dict = None):
-        if isinstance(request, str) and data is not None:
-            request = self._message_factory.query(request, data)
+    # __pragma__ ('kwargs')
+    def query(self, request: Union[ffd.Query, str], criteria: ffd.BinaryOp = None, data: dict = None):
+        if isinstance(request, str):
+            request = self._message_factory.query(request, criteria, data or {})
         return self.dispatch(request)
+    # __pragma__ ('nokwargs')
 
 
 class QueryBusAware(ABC):
     _query_bus: QueryBus = None
 
-    def query(self, request: Union[ffd.Query, str], data: dict = None):
-        return self._query_bus.query(request, data)
+    # __pragma__ ('kwargs')
+    def query(self, request: Union[ffd.Query, str], criteria: ffd.BinaryOp = None, data: dict = None):
+        return self._query_bus.query(request, criteria, data)
+    # __pragma__ ('nokwargs')

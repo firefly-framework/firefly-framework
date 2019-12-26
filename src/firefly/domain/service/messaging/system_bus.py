@@ -18,9 +18,9 @@ from typing import Union
 
 import firefly.domain as ffd
 
-from .command_bus import CommandBusAware
-from .event_bus import EventBusAware
-from .query_bus import QueryBusAware
+from firefly.domain.service.messaging.command_bus import CommandBusAware
+from firefly.domain.service.messaging.event_bus import EventBusAware
+from firefly.domain.service.messaging.query_bus import QueryBusAware
 
 
 class SystemBus(EventBusAware, CommandBusAware, QueryBusAware):

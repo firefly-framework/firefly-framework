@@ -14,10 +14,13 @@
 
 from __future__ import annotations
 
-from typing import List
+from typing import List, Callable
 
-from .middleware import Middleware
+from firefly.domain.service.messaging.middleware import Middleware
 import firefly.domain as ffd
+
+# __pragma__('kwargs')
+# __pragma__('opov')
 
 
 class MiddlewareStack:
@@ -41,8 +44,15 @@ class MiddlewareStack:
     def __call__(self, msg: ffd.Message):
         def cb(message, *args, **kwargs):
             return message
+
         for m in reversed(self._middleware):
-            def cb(message, next_=cb, mw=m):
-                return mw(message, next_=next_)
+            cb = self._nest(cb, m)
 
         return cb(msg)
+
+    @staticmethod
+    def _nest(cb: Callable, middleware: Middleware):
+        def callback(message, next_=None):
+            return middleware(message, next_=cb)
+
+        return callback

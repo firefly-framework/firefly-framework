@@ -12,7 +12,9 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
+# __pragma__('skip')
 from .aggregate_root import *
 from .core import *
 from .entity import *
 from .messaging import *
+# __pragma__('noskip')

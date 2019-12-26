@@ -14,23 +14,29 @@
 
 from __future__ import annotations
 
+# __pragma__('skip')
 import uuid
+
 from dataclasses import asdict, fields
+
+from firefly.domain.entity.entity import dict_
+# __pragma__('noskip')
+# __pragma__('ecom')
+"""?
+from firefly.ui.web.polyfills import uuid, dict_, asdict, fields
+?"""
+# __pragma__('noecom')
 
 import firefly.domain as ffd
 
-from ..entity import dict_
-from ...utils import FireflyType
-from ...utils import MessageMeta
+from firefly.domain.meta.firefly_type import FireflyType
+from firefly.domain.meta.message_meta import MessageMeta
 
 
 class Message(FireflyType, metaclass=MessageMeta):
     headers: dict = dict_()
     _id: str = None
     _context: str = None
-
-    def __init__(self, **kwargs):
-        raise TypeError('Message is an abstract base class')
 
     def get_parameters(self):
         return ffd.get_arguments(self.__init__)

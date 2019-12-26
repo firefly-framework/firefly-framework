@@ -12,6 +12,7 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
+# __pragma__('skip')
 from .command import *
 from .entity import *
 from .error import *
@@ -21,3 +22,14 @@ from .repository import *
 from .service import *
 from .utils import *
 from .value_object import *
+# __pragma__('noskip')
+# __pragma__ ('ecom')
+"""?
+from firefly.domain.entity.entity import Entity, dict_, optional, Empty
+from firefly.domain.entity.messaging.command import Command
+from firefly.domain.entity.messaging.event import Event
+from firefly.domain.entity.messaging.query import Query
+from firefly.domain.error import MissingArgument, FrameworkError
+from firefly.domain.meta.get_arguments import get_arguments
+?"""
+# __pragma__ ('noecom')

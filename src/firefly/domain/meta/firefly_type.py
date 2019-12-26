@@ -12,20 +12,39 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
+from __future__ import annotations
+
+import typing
+
+from firefly.domain.meta.context_aware import ContextAware
+
 # __pragma__('skip')
-from typing import Tuple, List, Union, Type
-
-from .domain import *
-
-EventList = Union[Event, Tuple[str, Union[dict, object]], List[Union[Event, Tuple[str, Union[dict, object]]]]]
-TypeOfCommand = Union[str, Type[Command]]
-TypeOfEvent = Union[str, Type[Event]]
-TypeOfQuery = Union[str, Type[Query]]
+from abc import ABC
 # __pragma__('noskip')
 # __pragma__ ('ecom')
 """?
-from firefly.ui.web.polyfills import Entity, AggregateRoot, required, optional, id_, now, list_, dict_, today
-from firefly.domain.error import MissingArgument, FrameworkError
-from firefly.domain.service.messaging import SystemBus, Middleware, CommandBus, EventBus, QueryBus, MessageFactory
+from firefly.ui.web.polyfills import ABC
 ?"""
 # __pragma__ ('noecom')
+
+
+class FireflyType(ContextAware, ABC):
+    _context: str = None
+
+    def __str__(self):
+        return f'{self._context}.{self.__class__.__name__}' \
+            if self._context is not None else self.__class__.__name__
+
+    def __repr__(self):
+        return str(self)
+
+    def is_this(self, this_: typing.Any):
+        if isinstance(this_, str) and this_ == str(self):
+            return True
+        try:
+            return isinstance(self, this_) and self.__class__.__name__ == this_.__name__
+        except TypeError:
+            return False
+
+    def get_context(self):
+        return self._context

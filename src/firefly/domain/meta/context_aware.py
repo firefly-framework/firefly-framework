@@ -12,20 +12,25 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
+from __future__ import annotations
+
 # __pragma__('skip')
-from typing import Tuple, List, Union, Type
-
-from .domain import *
-
-EventList = Union[Event, Tuple[str, Union[dict, object]], List[Union[Event, Tuple[str, Union[dict, object]]]]]
-TypeOfCommand = Union[str, Type[Command]]
-TypeOfEvent = Union[str, Type[Event]]
-TypeOfQuery = Union[str, Type[Query]]
+from abc import ABC
 # __pragma__('noskip')
 # __pragma__ ('ecom')
 """?
-from firefly.ui.web.polyfills import Entity, AggregateRoot, required, optional, id_, now, list_, dict_, today
-from firefly.domain.error import MissingArgument, FrameworkError
-from firefly.domain.service.messaging import SystemBus, Middleware, CommandBus, EventBus, QueryBus, MessageFactory
+from firefly.ui.web.polyfills import ABC
 ?"""
 # __pragma__ ('noecom')
+
+
+class ContextAware(ABC):
+    @classmethod
+    def get_class_context(cls):
+        parts = cls.__module__.split('.')
+        # KLUDGE For integration / acceptance testing
+        return parts[0] if parts[0] != 'test_src' else parts[1]
+
+    @classmethod
+    def get_fqn(cls):
+        return f'{cls.get_class_context()}.{cls.__name__}'

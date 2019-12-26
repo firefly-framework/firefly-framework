@@ -14,9 +14,16 @@
 
 from __future__ import annotations
 
+# __pragma__('skip')
 from abc import ABC
+# __pragma__('noskip')
+# __pragma__ ('ecom')
+"""?
+from firefly.ui.web.polyfills import ABC
+?"""
+# __pragma__ ('noecom')
 
-from .entity import Entity
+from firefly.domain.entity.entity import Entity
 
 
 class AggregateRoot(Entity, ABC):

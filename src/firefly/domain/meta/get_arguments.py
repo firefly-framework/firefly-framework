@@ -12,20 +12,24 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-# __pragma__('skip')
-from typing import Tuple, List, Union, Type
+from __future__ import annotations
 
-from .domain import *
+import inspect
+import typing
 
-EventList = Union[Event, Tuple[str, Union[dict, object]], List[Union[Event, Tuple[str, Union[dict, object]]]]]
-TypeOfCommand = Union[str, Type[Command]]
-TypeOfEvent = Union[str, Type[Event]]
-TypeOfQuery = Union[str, Type[Query]]
-# __pragma__('noskip')
-# __pragma__ ('ecom')
-"""?
-from firefly.ui.web.polyfills import Entity, AggregateRoot, required, optional, id_, now, list_, dict_, today
-from firefly.domain.error import MissingArgument, FrameworkError
-from firefly.domain.service.messaging import SystemBus, Middleware, CommandBus, EventBus, QueryBus, MessageFactory
-?"""
-# __pragma__ ('noecom')
+
+def get_arguments(c: callable) -> dict:
+    ret = {}
+    sig = dict(inspect.signature(c).parameters)
+
+    for k, v in typing.get_type_hints(c).items():
+        if k == 'return':
+            continue
+
+        ret[k] = {
+            'type': v,
+            'default': sig[k].default,
+            'kind': sig[k].kind,
+        }
+
+    return ret

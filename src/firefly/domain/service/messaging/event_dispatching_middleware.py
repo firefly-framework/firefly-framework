@@ -19,8 +19,8 @@ from typing import Callable
 
 import firefly.domain as ffd
 
-from .middleware import Middleware
-from .system_bus import SystemBusAware
+from firefly.domain.service.messaging.middleware import Middleware
+from firefly.domain.service.messaging.system_bus import SystemBusAware
 
 
 class EventDispatchingMiddleware(Middleware, SystemBusAware):

@@ -14,17 +14,37 @@
 
 from __future__ import annotations
 
+import firefly as ff
+
 # __pragma__('skip')
 from abc import ABC
 # __pragma__('noskip')
 # __pragma__ ('ecom')
+
 """?
 from firefly.ui.web.polyfills import ABC
 ?"""
 # __pragma__ ('noecom')
 
 from firefly.domain.entity.entity import Entity
+from firefly.domain.meta.meta_aware import MetaAware
 
 
-class AggregateRoot(Entity, ABC):
-    pass
+class AggregateRoot(Entity, MetaAware, ABC):
+    # __pragma__('skip')
+    _create_on: ff.TypeOfEvent = None
+    _delete_on: ff.TypeOfEvent = None
+    _update_on: ff.TypeOfEvent = None
+
+    @classmethod
+    def get_create_on(cls):
+        return cls._create_on
+
+    @classmethod
+    def get_delete_on(cls):
+        return cls._delete_on
+
+    @classmethod
+    def get_update_on(cls):
+        return cls._update_on
+    # __pragma__('noskip')

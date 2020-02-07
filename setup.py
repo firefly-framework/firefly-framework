@@ -54,6 +54,7 @@ setuptools.setup(
         'inflection>=0.3.1',
         'kua>=0.2',
         'py-ts-interfaces>=0.1.0',
+        'python-dateutil>=2.8.1',
         'python-dotenv>=0.10.3',
         'pyyaml>=5.1.1',
         'terminaltables>=3.1.0',

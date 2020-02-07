@@ -75,9 +75,7 @@ class MessageFactory:
         # __pragma__ ('noecom')
 
         # __pragma__('skip')
-        class DynamicMessage(*bases, fields_=data, annotations_=annotations_):
-            pass
-        DynamicMessage.__name__ = name
+        t = ffd.MessageMeta.__new__(ffd.MessageMeta, name, bases, data, fields_=data, annotations_=annotations_)
 
-        return DynamicMessage(**data)
+        return t(**data)
         # __pragma__('noskip')

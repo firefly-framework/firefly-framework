@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict
-from typing import TypeVar, Generic, Optional, Union
+from typing import TypeVar, Generic, Type
 
 import firefly.domain as ffd
 
@@ -33,8 +33,19 @@ class CreateEntity(Generic[T], ApplicationService, GenericBase, CrudOperation, S
 
     def __call__(self, **kwargs) -> bool:
         type_ = self._type()
-        entity = type_(**ffd.build_argument_list(kwargs, type_))
+        method = self._find_factory_method(type_)
+        if method is not None:
+            entity = method(type_, **kwargs)
+        else:
+            entity = type_(**ffd.build_argument_list(kwargs, type_))
         self._registry(type_).add(entity)
         self.dispatch(self._build_event(type_, 'create', asdict(entity), kwargs['_context']))
 
         return True
+
+    @staticmethod
+    def _find_factory_method(type_: Type[ffd.Entity]):
+        for k, v in type_.__dict__.items():
+            if k == 'create' and isinstance(v, classmethod):
+                return v.__func__
+        return None

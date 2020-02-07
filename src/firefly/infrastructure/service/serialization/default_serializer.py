@@ -31,6 +31,8 @@ class FireflyEncoder(JSONEncoder):
             return f'{o.get_class_context()}.{o.__name__}'
         elif isinstance(o, di.Container):
             return None
+        elif isinstance(o, (datetime, date)):
+            return o.isoformat()
         elif isinstance(o, ffd.Message):
             dic = o.to_dict()
             dic['_name'] = o.__class__.__name__
@@ -41,8 +43,6 @@ class FireflyEncoder(JSONEncoder):
                 t = 'query'
             dic['_type'] = t
             return dic
-        elif isinstance(o, (datetime, date)):
-            return o.isoformat()
 
         return JSONEncoder.default(self, o)
 

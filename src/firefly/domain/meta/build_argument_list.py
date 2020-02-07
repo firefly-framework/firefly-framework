@@ -42,6 +42,9 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type]):
             field_dict[field_.name] = field_
         sig = inspect.signature(obj.__init__)
         types = typing.get_type_hints(obj)
+    elif isinstance(obj, ffd.MetaAware):
+        sig = inspect.signature(obj.__call__)
+        types = typing.get_type_hints(obj.__call__)
     elif isinstance(obj, type):
         sig = inspect.signature(obj.__init__)
         types = typing.get_type_hints(obj.__init__)
@@ -63,12 +66,23 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type]):
         required = False
         if is_dc:
             required = field_dict[name].metadata.get('required', False) is True
+            try:
+                d = field_dict[name].default_factory()
+                if not isinstance(d, ffd.Empty):
+                    required = False
+            except (AttributeError, TypeError):
+                pass
         elif param.default is not None:
             required = True
 
         type_ = types[name] if name in types else None
         if isinstance(type_, type) and issubclass(type_, ffd.Entity):
+            if name in params and isinstance(params[name], type_):
+                args[name] = params[name]
+                continue
+
             entity_args = build_argument_list(params, type_)
+            # TODO use factories where appropriate
             args[name] = type_(**entity_args)
             for key in entity_args.keys():
                 if key != type_.id_name():

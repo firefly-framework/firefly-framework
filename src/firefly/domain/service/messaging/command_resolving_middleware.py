@@ -20,7 +20,6 @@ from typing import Callable, Dict, Type, Union
 import firefly.domain as ffd
 
 from firefly.domain.service.messaging.middleware import Middleware
-from firefly.domain.service.core.application_service import ApplicationService
 from firefly.domain.entity.messaging.command import Command
 
 
@@ -54,7 +53,7 @@ class CommandResolvingMiddleware(Middleware):
         except KeyError:
             raise ffd.ConfigurationError(f'No command handler registered for {message}')
 
-    def add_command_handler(self, handler: Union[ApplicationService, Type[ApplicationService]],
+    def add_command_handler(self, handler: Union[ffd.ApplicationService, Type[ffd.ApplicationService]],
                             command: Union[Type[Command], str]):
         if inspect.isclass(handler):
             handler = self._context_map.get_context(handler.get_class_context()).container.build(handler)

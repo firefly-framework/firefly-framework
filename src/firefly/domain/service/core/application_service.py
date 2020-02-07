@@ -15,16 +15,17 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import List, Union, Type
+from typing import Union, Type
 
 import firefly.domain as ffd
-
-from ..messaging.system_bus import SystemBusAware
-from ..logging.logger import LoggerAware
 from firefly.domain.meta.firefly_type import FireflyType
+from firefly.domain.meta.meta_aware import MetaAware
+
+from ..logging.logger import LoggerAware
+from ..messaging.system_bus import SystemBusAware
 
 
-class ApplicationService(FireflyType, ABC, SystemBusAware, LoggerAware):
+class ApplicationService(FireflyType, MetaAware, ABC, SystemBusAware, LoggerAware):
     _event_buffer: ffd.EventBuffer = None
 
     @abstractmethod
@@ -46,75 +47,14 @@ class ApplicationService(FireflyType, ABC, SystemBusAware, LoggerAware):
         return ffd.get_arguments(cls.__call__)
 
     @classmethod
-    def has_handlers(cls):
-        return cls.has_listeners() or cls.has_command_handlers() or cls.has_query_handlers()
-
-    @classmethod
     def locate_message(cls, message: Union[str, Type[ffd.Message]]):
-        if cls.has_listeners():
-            for event_listener in cls.get_listeners():
-                if message == event_listener['event']:
-                    return event_listener, 'event'
-        if cls.has_command_handlers():
-            for command_handler in cls.get_command_handlers():
-                if message == command_handler['command']:
-                    return command_handler, 'command'
-        if cls.has_query_handlers():
-            for query_handler in cls.get_query_handlers():
-                if message == query_handler['query']:
-                    return query_handler, 'query'
-
-    @classmethod
-    def has_listeners(cls):
-        return cls.get_listeners() is not None
-
-    @classmethod
-    def has_command_handlers(cls):
-        return cls.get_command_handlers() is not None
-
-    @classmethod
-    def has_query_handlers(cls):
-        return cls.get_query_handlers() is not None
-
-    @classmethod
-    def get_listeners(cls):
-        try:
-            return getattr(cls, '__ff_listener')
-        except AttributeError:
-            pass
-
-    @classmethod
-    def get_command_handlers(cls):
-        try:
-            return getattr(cls, '__ff_command_handler')
-        except AttributeError:
-            pass
-
-    @classmethod
-    def get_query_handlers(cls):
-        try:
-            return getattr(cls, '__ff_query_handler')
-        except AttributeError:
-            pass
-
-    @classmethod
-    def add_listener(cls, events: Union[ffd.Event, List[ffd.Event]]):
-        cls._set_or_append('__ff_event_listener', events)
-
-    @classmethod
-    def add_command_handler(cls, commands: Union[ffd.Command, List[ffd.Command]]):
-        cls._set_or_append('__ff_command_handler', commands)
-
-    @classmethod
-    def add_query_handler(cls, query: Union[ffd.Query, List[ffd.Query]]):
-        cls._set_or_append('__ff_query_handler', query)
-
-    @classmethod
-    def _set_or_append(cls, key: str, items: Union[ffd.Message, List[ffd.Message]]):
-        if not isinstance(items, list):
-            items = [items]
-
-        if hasattr(cls, key):
-            setattr(cls, key, getattr(cls, key).extend(items))
-        else:
-            setattr(cls, key, items)
+        if cls.is_event_listener():
+            for event in cls.get_events():
+                if message == event:
+                    return event, 'event'
+        if cls.is_command_handler():
+            if message == cls.get_command():
+                return cls.get_command(), 'command'
+        if cls.is_query_handler():
+            if message == cls.get_query():
+                return cls.get_query(), 'query'

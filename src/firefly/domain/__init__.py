@@ -18,6 +18,7 @@ from .entity import *
 from .error import *
 from .event import *
 from .factory import *
+from .meta import *
 from .repository import *
 from .service import *
 from .utils import *
@@ -25,10 +26,9 @@ from .value_object import *
 # __pragma__('noskip')
 # __pragma__ ('ecom')
 """?
-from firefly.domain.entity.entity import Entity, dict_, optional, Empty
-from firefly.domain.entity.messaging.command import Command
-from firefly.domain.entity.messaging.event import Event
-from firefly.domain.entity.messaging.query import Query
+from firefly.ui.web.polyfills import Command, Event, Query, Entity
+from firefly.domain.entity.entity import dict_, optional, Empty
+from firefly.domain.entity.messaging.message import Message
 from firefly.domain.error import MissingArgument, FrameworkError
 from firefly.domain.meta.get_arguments import get_arguments
 ?"""

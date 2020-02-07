@@ -15,14 +15,11 @@
 from __future__ import annotations
 
 import importlib
-import inspect
 import sys
-import typing
-from abc import ABC
 from dataclasses import dataclass
 from time import sleep
 
-from firefly.domain.meta.context_aware import ContextAware
+import firefly as ff
 
 
 def retry(cb, valid_cb=None, wait: int = 1, backoff: bool = True, retries: int = 10, catch=Exception):
@@ -86,3 +83,72 @@ class ValueMeta(type):
     def __new__(mcs, name, bases, dct, **kwargs):
         ret = type.__new__(mcs, name, bases, dct)
         return dataclass(ret, frozen=True)
+
+
+def has_meta(cls):
+    return hasattr(cls, '__FIREFLY__')
+
+
+def check_for_meta(cls):
+    if not has_meta(cls):
+        cls.__FIREFLY__ = type.__new__(type, f'{cls.__name__}Meta', (ff.MetaAware,), {})
+
+
+def add_endpoint(cls, endpoint: ff.Endpoint):
+    check_for_meta(cls)
+    cls.__FIREFLY__.add_endpoint(endpoint)
+
+
+def add_event(cls, event: ff.TypeOfEvent):
+    check_for_meta(cls)
+    cls.__FIREFLY__.add_event(event)
+
+
+def set_command(cls, command: ff.TypeOfCommand):
+    check_for_meta(cls)
+    cls.__FIREFLY__.set_command(command)
+
+
+def set_query(cls, query: ff.TypeOfQuery):
+    check_for_meta(cls)
+    cls.__FIREFLY__.set_query(query)
+
+
+def get_endpoints(cls):
+    check_for_meta(cls)
+    return cls.__FIREFLY__.get_endpoints()
+
+
+def get_events(cls):
+    check_for_meta(cls)
+    return cls.__FIREFLY__.get_events()
+
+
+def get_command(cls):
+    check_for_meta(cls)
+    return cls.__FIREFLY__.get_command()
+
+
+def get_query(cls):
+    check_for_meta(cls)
+    return cls.__FIREFLY__.get_query()
+
+
+def has_endpoints(cls):
+    check_for_meta(cls)
+    return cls.__FIREFLY__.has_endpoints()
+
+
+def is_event_listener(cls):
+    check_for_meta(cls)
+    return cls.__FIREFLY__.is_event_listener()
+
+
+def is_command_handler(cls):
+    check_for_meta(cls)
+    return cls.__FIREFLY__.is_command_handler()
+
+
+def is_query_handler(cls):
+    check_for_meta(cls)
+    return cls.__FIREFLY__.is_query_handler()

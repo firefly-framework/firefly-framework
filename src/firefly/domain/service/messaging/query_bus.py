@@ -34,7 +34,7 @@ class QueryBus(MessageBus):
     _message_factory: ffd.MessageFactory = None
 
     # __pragma__ ('kwargs')
-    def query(self, request: Union[ffd.Query, str], criteria: ffd.BinaryOp = None, data: dict = None):
+    def request(self, request: Union[ffd.Query, str], criteria: ffd.BinaryOp = None, data: dict = None):
         if isinstance(request, str):
             request = self._message_factory.query(request, criteria, data or {})
         return self.dispatch(request)
@@ -45,6 +45,6 @@ class QueryBusAware(ABC):
     _query_bus: QueryBus = None
 
     # __pragma__ ('kwargs')
-    def query(self, request: Union[ffd.Query, str], criteria: ffd.BinaryOp = None, data: dict = None):
-        return self._query_bus.query(request, criteria, data)
+    def request(self, request: Union[ffd.Query, str], criteria: ffd.BinaryOp = None, data: dict = None):
+        return self._query_bus.request(request, criteria, data)
     # __pragma__ ('nokwargs')

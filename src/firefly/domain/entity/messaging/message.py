@@ -14,16 +14,16 @@
 
 from __future__ import annotations
 
+from firefly.domain.entity.entity import dict_
+
 # __pragma__('skip')
 import uuid
 
 from dataclasses import asdict, fields
-
-from firefly.domain.entity.entity import dict_
 # __pragma__('noskip')
 # __pragma__('ecom')
 """?
-from firefly.ui.web.polyfills import uuid, dict_, asdict, fields
+from firefly.ui.web.polyfills import uuid, asdict, fields
 ?"""
 # __pragma__('noecom')
 

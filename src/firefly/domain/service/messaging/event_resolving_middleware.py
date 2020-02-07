@@ -18,10 +18,8 @@ import inspect
 from typing import Callable, Dict, Type, Union, List
 
 import firefly.domain as ffd
-
-from firefly.domain.service.messaging.middleware import Middleware
-from firefly.domain.service.core.application_service import ApplicationService
 from firefly.domain.entity.messaging.event import Event
+from firefly.domain.service.messaging.middleware import Middleware
 
 
 class EventResolvingMiddleware(Middleware):
@@ -63,7 +61,7 @@ class EventResolvingMiddleware(Middleware):
 
         return next_(message)
 
-    def add_event_listener(self, handler: Union[ApplicationService, Type[ApplicationService]],
+    def add_event_listener(self, handler: Union[ffd.ApplicationService, Type[ffd.ApplicationService]],
                            event: Union[Type[Event], str]):
         if inspect.isclass(handler):
             handler = self._context_map.get_context(handler.get_class_context()).container.build(handler)

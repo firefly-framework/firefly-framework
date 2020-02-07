@@ -17,6 +17,7 @@ import logging
 import sys
 import uuid
 from _signal import SIGABRT, SIGILL, SIGINT, SIGSEGV, SIGTERM
+from pprint import pprint
 from signal import signal
 from typing import List, Callable, Dict
 
@@ -25,10 +26,12 @@ import firefly.domain as ffd
 
 import websockets
 from aiohttp import web
+from firefly import TypeOfMessage
 
 
 class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
     _serializer: ffd.Serializer = None
+    _message_factory: ffd.MessageFactory = None
 
     def __init__(self, host: str = '0.0.0.0', port: int = 9000,
                  websocket_host: str = '0.0.0.0', websocket_port: int = 9001):
@@ -94,35 +97,49 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
         for queue in self.queues.values():
             queue.put_nowait(m)
 
-    def add_endpoint(self, method: str, route: str):
-        print(f'Endpoint: {method} {route}')
-        self.routes.append(getattr(web, method.lower())(route, self._handle_request))
+    def add_endpoint(self, method: str, route: str, message: TypeOfMessage = None):
+        print(f'Endpoint: {method} {route} -> {message}')
+        self.routes.append(getattr(web, method.lower())(route, self._request_handler_generator(message)))
 
-    async def _handle_request(self, request: web.Request):
-        self.debug('Got a request -----------------------')
-        self.debug(request.headers)
-        self.debug(await request.text())
-        self.debug('-------------------------------------')
+    def _request_handler_generator(self, msg: TypeOfMessage = None):
+        async def _handle_request(request: web.Request):
+            self.debug('Got a request -----------------------')
+            self.debug(request.headers)
+            self.debug(await request.text())
+            self.debug('-------------------------------------')
 
-        if request.method.lower() == 'post':
-            message: ffd.Message = self._serializer.deserialize(await request.text())
-        else:
-            message: ffd.Message = self._serializer.deserialize(request.query['query'])
+            if msg is not None:
+                if request.method.lower() == 'get':
+                    message = self._message_factory.request(msg)
+                elif request.method.lower() == 'post':
+                    message = self._message_factory.command(msg, self._serializer.deserialize(await request.text()))
+            elif request.method.lower() == 'post':
+                message: ffd.Message = self._serializer.deserialize(await request.text())
+            else:
+                message: ffd.Message = self._serializer.deserialize(request.query['query'])
 
-        try:
-            message.headers['client_id'] = request.headers['Firefly-Client-ID']
-        except KeyError:
-            self.info('Request missing header Firefly-ClientID')
+            self.debug(f'Decoded message: {message.to_dict()}')
 
-        response = None
-        if isinstance(message, ffd.Event):
-            response = self.dispatch(message)
-        elif isinstance(message, ffd.Command):
-            response = self.invoke(message)
-        elif isinstance(message, ffd.Query):
-            response = self.query(message)
+            try:
+                message.headers['client_id'] = request.headers['Firefly-Client-ID']
+            except KeyError:
+                self.info('Request missing header Firefly-ClientID')
 
-        return web.Response(body=self._serializer.serialize(response))
+            response = None
+
+            if isinstance(message, ffd.Event):
+                response = self.dispatch(message)
+            elif isinstance(message, ffd.Command):
+                response = self.invoke(message)
+            elif isinstance(message, ffd.Query):
+                response = self.request(message)
+
+            serialized_response = self._serializer.serialize(response)
+            self.debug(f'Response: {serialized_response}')
+
+            return web.Response(body=serialized_response)
+
+        return _handle_request
 
     async def _handle_websocket(self, websocket, path):
         id_ = str(uuid.uuid1())

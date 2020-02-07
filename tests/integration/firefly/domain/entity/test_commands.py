@@ -30,6 +30,17 @@ def test_auto_generated_api(system_bus, message_factory, todo):
     assert todo.tasks[0].name == 'my task'
 
 
+async def test_http_endpoint(client, todo, serializer):
+    assert len(todo.tasks) == 0
+    await client.post(f'/todo-list/{todo.id}/task', data=serializer.serialize({
+        'todo_list': todo.id,
+        'name': 'my new task',
+        'due_date': datetime.now() + timedelta(days=1)
+    }))
+    assert len(todo.tasks) == 1
+    assert todo.tasks[0].name == 'my new task'
+
+
 def test_nested_api(system_bus, message_factory, todo):
     system_bus.invoke(message_factory.command('todo.AddTask', {
         'todo_list': todo.id,
@@ -46,6 +57,7 @@ def test_nested_api(system_bus, message_factory, todo):
 
 @pytest.fixture()
 def todo(registry, request):
+    print(TodoList)
     r = registry(TodoList)
 
     def teardown():

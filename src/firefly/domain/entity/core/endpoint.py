@@ -14,10 +14,13 @@
 
 from __future__ import annotations
 
-from ..entity import Entity, required, optional
+from typing import Type
+
+import firefly as ff
+
+from ..entity import Entity, optional, id_
 
 
 class Endpoint(Entity):
-    route: str = required()
-    method: str = optional(default='GET')
-    target: str = optional()
+    id: str = id_()
+    message: Type[ff.Message] = optional()

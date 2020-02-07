@@ -31,14 +31,17 @@ class ConfigureDeployment(ffd.ApplicationService):
 
         for context in self._context_map.contexts:
             name = inflection.dasherize(context.name)
-            gateway.endpoints.append(ffd.Endpoint(
+            gateway.endpoints.append(ffd.HttpEndpoint(
                 route=f'/{name}',
                 method='POST'
             ))
-            gateway.endpoints.append(ffd.Endpoint(
+            gateway.endpoints.append(ffd.HttpEndpoint(
                 route=f'/{name}',
                 method='GET'
             ))
+
+            for endpoint in context.endpoints:
+                gateway.endpoints.append(endpoint)
 
         deployment.api_gateways.append(gateway)
 

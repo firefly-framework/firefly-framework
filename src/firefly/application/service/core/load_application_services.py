@@ -19,6 +19,7 @@ import inspect
 from typing import List, Type
 
 import firefly.domain as ffd
+import inflection
 
 
 class LoadApplicationServices(ffd.ApplicationService):
@@ -31,29 +32,51 @@ class LoadApplicationServices(ffd.ApplicationService):
         for context in self._context_map.contexts:
             for cls in self._load_module(context):
                 self._register_service(cls, context)
+                self._add_endpoints(cls, context)
 
         self.dispatch(ffd.ApplicationServicesLoaded())
 
     def _register_service(self, cls: Type[ffd.ApplicationService], context: ffd.Context):
-        if not cls.has_handlers():
+        if not cls.is_handler():
             return
 
-        if cls.has_listeners():
-            for config in cls.get_listeners():
-                self._event_resolver.add_event_listener(cls, config['event'])
+        if cls.is_event_listener():
+            for event in cls.get_events():
+                self._event_resolver.add_event_listener(cls, event)
                 if cls not in context.event_listeners:
                     context.event_listeners[cls] = []
-                context.event_listeners[cls].append(config['event'])
+                context.event_listeners[cls].append(event)
 
-        if cls.has_command_handlers():
-            for config in cls.get_command_handlers():
-                self._command_resolver.add_command_handler(cls, config['command'])
-                context.command_handlers[cls] = config['command']
+        if cls.is_command_handler():
+            if cls.get_command() is None:
+                cls.set_command(self._generate_message_name(cls))
+            self._command_resolver.add_command_handler(cls, cls.get_command())
+            context.command_handlers[cls] = cls.get_command()
 
-        if cls.has_query_handlers():
-            for config in cls.get_query_handlers():
-                self._query_resolver.add_query_handler(cls, config['query'])
-                context.query_handlers[cls] = config['query']
+        if cls.is_query_handler():
+            if cls.get_query() is None:
+                cls.set_query(self._generate_message_name(cls))
+            self._query_resolver.add_query_handler(cls, cls.get_query())
+            context.query_handlers[cls] = cls.get_query()
+
+    def _add_endpoints(self, cls: Type[ffd.ApplicationService], context: ffd.Context):
+        if not cls.has_endpoints():
+            return
+
+        for endpoint in cls.get_endpoints():
+            if endpoint.message is None:
+                if cls in context.command_handlers:
+                    endpoint.message = context.command_handlers[cls]
+                elif cls in context.query_handlers:
+                    endpoint.message = context.query_handlers[cls]
+                else:
+                    if endpoint.method.lower() == 'get':
+                        cls.set_query(self._generate_message_name(cls))
+                    else:
+                        cls.set_command(self._generate_message_name(cls))
+                    self._register_service(cls, context)
+
+            context.endpoints.append(endpoint)
 
     @staticmethod
     def _load_module(context: ffd.Context) -> List[Type[ffd.ApplicationService]]:
@@ -71,3 +94,7 @@ class LoadApplicationServices(ffd.ApplicationService):
                 ret.append(v)
 
         return ret
+
+    @staticmethod
+    def _generate_message_name(cls):
+        return f'{cls.get_class_context()}.{inflection.camelize(cls.__name__)}'

@@ -12,7 +12,8 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
+from .cli import cli
 from .command_handler import command_handler
 from .on import on
 from .query_handler import query_handler
-from .cli import cli
+from .rest import rest

@@ -23,13 +23,33 @@
 #
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
+
 from datetime import datetime, date
 
 # __pragma__('kwargs')
 # __pragma__('opov')
+# __pragma__('js', '{}', "const uuidv1 = require('uuid/v1');")
+
 
 document = {}
 window = {}
+process = {}
+JSON = {}
+moment = {}
+
+
+# __pragma__('skip')
+def uuidv1():
+    pass
+# __pragma__('noskip')
+
+
+class Uuid:
+    def __init__(self):
+        self.uuid1 = uuidv1
+
+
+uuid = Uuid()
 
 
 class Console:
@@ -57,9 +77,6 @@ class ABCMeta:
 
 class MessageMeta:
     pass
-
-
-MISSING = 'missing'
 
 
 def dataclass(_cls=None, *, init=True, repr=True, eq=True, order=False,
@@ -93,11 +110,28 @@ def fields(*args, **kwargs):
     console.log('fields() called')
 
 
+class MissingType:
+    pass
+
+
+MISSING = MissingType()
+
+
 def field(*, default=MISSING, default_factory=MISSING, init=True, repr=True,
           hash=None, compare=True, metadata=None):
-    if callable(default_factory):
-        return default_factory()
-    return default
+    return {
+        'default': default,
+        'default_factory': default_factory,
+        'init': init,
+        'repr': repr,
+        'hash': hash,
+        'compare': compare,
+        'metadata': metadata,
+    }
+
+
+class Field:
+    pass
 
 
 def asdict():
@@ -114,117 +148,81 @@ def make_dataclass(cls_name, fields, *, bases=(), namespace=None, init=True,
     return type.__new__(type, cls_name, bases, fields)
 
 
-class Entity:
+class DataClassBase:
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
-            if hasattr(self, k):
-                setattr(self, k, v)
+            if hasattr(self, k) and not callable(getattr(self, k)):
+                # TODO Figure out why setattr doesn't work with "name." Could be a bug in transcrypt.
+                if k == 'name':
+                    self.name = v
+                else:
+                    setattr(self, k, v)
 
     def to_dict(self):
         ret = {}
         for k in dir(self):
-            if not k.startswith('__'):
+            if not k.startswith('__') and not callable(getattr(self, k)):
                 ret[k] = getattr(self, k)
 
         return ret
+
+
+class Entity(DataClassBase):
+    def __init__(self, **kwargs):
+        for k in dir(self):
+            if k.startswith('__') or not isinstance(getattr(self, k), str):
+                continue
+            if getattr(self, k) == '__gen_uuid__':
+                kwargs[k] = uuidv1()
+        super().__init__(**kwargs)
 
 
 class AggregateRoot(Entity):
     pass
 
 
-class Empty:
+class ValueObject(DataClassBase):
     pass
 
 
-def id_(is_uuid: bool = True):
-    return 'TODO: Generate uuid in JS' if is_uuid else None
+class Message(DataClassBase):
+    headers: dict = {}
+    _id: str = None
+    _context: str = None
+    _name: str = None
+    _type: str = None
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._id = uuidv1()
+
+    def get_context(self):
+        return self._context
+
+    def to_dict(self):
+        ret = super().to_dict()
+        if isinstance(self, Command):
+            ret['_type'] = 'command'
+        elif isinstance(self, Event):
+            ret['_type'] = 'event'
+        else:
+            ret['_type'] = 'query'
+
+        ret['_name'] = self.__class__.__name__
+
+        return ret
 
 
-def list_():
-    return []
+class Command(Message):
+    pass
 
 
-def dict_():
-    return {}
+class Query(Message):
+    pass
 
 
-def now():
-    return datetime.now()
-
-
-def today():
-    return date.today()
-
-
-def required():
-    return Empty()
-
-
-def optional(default=MISSING):
-    return default
-
-
-def hidden():
-    return None
-
-
-# Mithril
-
-class Route:
-    prefix = None
-
-    def __call__(self, root, default_route, routes):
-        pass
-
-    def set(self, path):
-        pass
-
-    def get(self):
-        pass
-
-
-class M:
-    def __init__(self):
-        self.route = Route()
-
-    def __call__(self, selector, attrs, children=None):
-        pass
-
-    def render(self):
-        pass
-
-    def mount(self, element, component):
-        pass
-
-    def request(self, options):
-        pass
-
-    def jsonp(self, options):
-        pass
-
-    def parseQueryString(self, querystring):
-        pass
-
-    def buildQueryString(self, obj):
-        pass
-
-    def trust(self, html):
-        pass
-
-    def redraw(self):
-        pass
-
-
-m = M()
-
-
-class Stream:
-    def __init__(self, *args, **kwargs):
-        pass
-
-    def __call__(self, *args, **kwargs):
-        pass
+class Event(Message):
+    pass
 
 
 def uuid1():
@@ -245,6 +243,7 @@ Union = {}
 Type = {}
 Tuple = {}
 List = {}
+Any = {}
 
 
 def get_type_hints():

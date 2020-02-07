@@ -33,6 +33,7 @@ class Context(Entity):
     command_handlers: Dict[Type[ffd.ApplicationService], ff.TypeOfCommand] = dict_()
     query_handlers: Dict[Type[ffd.ApplicationService], ff.TypeOfQuery] = dict_()
     event_listeners: Dict[Type[ffd.ApplicationService], List[ff.TypeOfEvent]] = dict_()
+    endpoints: List[ff.Endpoint] = list_()
 
     def __post_init__(self):
         self.ports = []

@@ -14,17 +14,26 @@
 
 from __future__ import annotations
 
+import inspect
 from typing import Union
 
-from .framework_annotation import FrameworkAnnotation
+import firefly as ff
+import firefly.domain.error as error
 
 
-class CommandHandler(FrameworkAnnotation):
-    def name(self) -> str:
-        return '__ff_command_handler'
-
+class CommandHandler:
     def __call__(self, command: Union[str, type, None] = None):
-        return super()._attach_annotation(command=command)
+        def command_wrapper(cls):
+            try:
+                cls.set_command(command)
+            except AttributeError:
+                if inspect.isfunction(cls):
+                    ff.set_command(cls, command)
+                else:
+                    raise error.FrameworkError('@command_handler used on invalid target')
+            return cls
+
+        return command_wrapper
 
 
 command_handler = CommandHandler()

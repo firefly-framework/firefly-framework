@@ -14,17 +14,26 @@
 
 from __future__ import annotations
 
+import inspect
 from typing import Union
 
-from .framework_annotation import FrameworkAnnotation
+import firefly as ff
+import firefly.domain.error as error
 
 
-class QueryHandler(FrameworkAnnotation):
-    def name(self) -> str:
-        return '__ff_query_handler'
-
+class QueryHandler:
     def __call__(self, query: Union[str, type, None] = None):
-        return super()._attach_annotation(query=query)
+        def query_wrapper(cls):
+            try:
+                cls.set_query(query)
+            except AttributeError:
+                if inspect.isfunction(cls):
+                    ff.set_query(cls, query)
+                else:
+                    raise error.FrameworkError('@command_handler used on invalid target')
+            return cls
+
+        return query_wrapper
 
 
 query_handler = QueryHandler()

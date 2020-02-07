@@ -12,7 +12,14 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
+# __pragma__('skip')
 from .event_buffer import EventBuffer
 from .generic_base import GenericBase
-from .http_endpoint import HttpEndpoint
 from .parameter import Parameter
+
+from firefly.domain.meta.value_object_meta import ValueObjectMeta
+
+
+class ValueObject(metaclass=ValueObjectMeta):
+    pass
+# __pragma__('noskip')

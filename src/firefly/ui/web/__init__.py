@@ -12,5 +12,7 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
+from firefly.ui.web.components import *
 from firefly.ui.web.polyfills import *
 from firefly.ui.web.bus import *
+from firefly.ui.web.js_libs import *

@@ -14,22 +14,26 @@
 
 from __future__ import annotations
 
+import inspect
 from typing import Union, List
 
-from .framework_annotation import FrameworkAnnotation
+import firefly as ff
+import firefly.domain.error as error
 
 
-class On(FrameworkAnnotation):
-    CRUD_ACTIONS = ['create', 'retrieve', 'update', 'delete']
+class On:
+    def __call__(self, event: Union[str, type, List[Union[str, type]]]):
+        def on_wrapper(cls):
+            try:
+                cls.add_event(event)
+            except AttributeError:
+                if inspect.isfunction(cls):
+                    ff.add_event(cls, event)
+                else:
+                    raise error.FrameworkError('@on used on invalid target')
+            return cls
 
-    def name(self) -> str:
-        return '__ff_listener'
-
-    def __call__(self, event: Union[str, type, List[Union[str, type]]], action: str = None):
-        kwargs = {'event': event}
-        if action in self.CRUD_ACTIONS:
-            kwargs['crud'] = action
-        return super()._attach_annotation(**kwargs)
+        return on_wrapper
 
 
 on = On()

@@ -22,7 +22,7 @@ from dataclasses import dataclass
 # __pragma__('noskip')
 # __pragma__('ecom')
 """?
-from firefly.ui.web.polyfills import ABCMeta, dataclass, optional
+from firefly.ui.web.polyfills import ABCMeta, dataclass
 ?"""
 # __pragma__('noecom')
 
@@ -32,15 +32,29 @@ import firefly.domain as ffd
 # __pragma__('kwargs')
 class MessageMeta(ABCMeta):
     def __new__(mcs, name, bases, dct, **kwargs):
+        # __pragma__('skip')
+        my_dict = dct.copy()
+        # __pragma__('noskip')
+        # __pragma__('ecom')
+        """?
+        my_dict = dct
+        ?"""
+        # __pragma__('noecom')
+
         if 'fields_' in kwargs and 'annotations_' in kwargs:
             for k, v in kwargs['fields_'].items():
-                dct[k] = ffd.optional(default=v)
-            if '__annotations__' in dct:
-                dct['__annotations__'].update(kwargs['annotations_'])
+                my_dict[k] = ffd.optional(default=v)
+            if '__annotations__' in my_dict:
+                my_dict['__annotations__'].update(kwargs['annotations_'])
             else:
-                dct['__annotations__'] = kwargs['annotations_']
+                my_dict['__annotations__'] = kwargs['annotations_']
 
-        ret = type.__new__(mcs, name, bases, dct)
+        ret = type.__new__(mcs, name, bases, my_dict)
 
         return dataclass(ret, eq=False, repr=False)
+
+    def __instancecheck__(self, instance):
+        if self is ffd.Message:
+            return True
+        return self in instance.__class__.__bases__
 # __pragma__('nokwargs')

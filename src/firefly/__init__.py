@@ -18,14 +18,18 @@ from typing import Tuple, List, Union, Type
 from .domain import *
 
 EventList = Union[Event, Tuple[str, Union[dict, object]], List[Union[Event, Tuple[str, Union[dict, object]]]]]
+TypeOfMessage = Union[str, Type[Message]]
 TypeOfCommand = Union[str, Type[Command]]
 TypeOfEvent = Union[str, Type[Event]]
 TypeOfQuery = Union[str, Type[Query]]
 # __pragma__('noskip')
 # __pragma__ ('ecom')
 """?
-from firefly.ui.web.polyfills import Entity, AggregateRoot, required, optional, id_, now, list_, dict_, today
+from firefly.ui.web.polyfills import Entity, AggregateRoot, Message, Command, Query, Event, ValueObject
+from firefly.domain.entity.entity import required, optional, id_, now, list_, dict_, today
+from firefly.domain.entity.validation.validators import IsType, HasLength, Matches, IsValidEmail, IsOneOf, IsDatetime, IsNumeric, IsFloat, IsInt, IsValidUrl
 from firefly.domain.error import MissingArgument, FrameworkError
+from firefly.domain.service.entity.validator import Validator
 from firefly.domain.service.messaging import SystemBus, Middleware, CommandBus, EventBus, QueryBus, MessageFactory
 ?"""
 # __pragma__ ('noecom')

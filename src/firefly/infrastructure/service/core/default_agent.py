@@ -26,12 +26,13 @@ class DefaultAgent(ffd.Agent):
     def __init__(self):
         self._deployment: Optional[ffd.Deployment] = None
 
-    def handle(self, deployment: ffd.Deployment, **kwargs):
+    def handle(self, deployment: ffd.Deployment, start_server: bool = True, **kwargs):
         self._deployment = deployment
         self._web_server.add_extension(self._register_gateways)
-        self._web_server.run()
+        if start_server:
+            self._web_server.run()
 
     def _register_gateways(self, web_server: ffi.WebServer):
         for api_gateway in self._deployment.api_gateways:
             for endpoint in api_gateway.endpoints:
-                web_server.add_endpoint(endpoint.method, endpoint.route)
+                web_server.add_endpoint(endpoint.method, endpoint.route, endpoint.message)

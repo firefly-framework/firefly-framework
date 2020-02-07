@@ -12,12 +12,6 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations
-
-from dataclasses import dataclass, MISSING
-
-
-@dataclass
-class HttpEndpoint:
-    method: str = MISSING
-    path: str = MISSING
+from firefly.ui.web.js_libs.inflection import inflection
+from firefly.ui.web.js_libs.mithril import m, Stream
+from firefly.ui.web.js_libs.moment import moment

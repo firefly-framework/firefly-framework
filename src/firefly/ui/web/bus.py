@@ -15,6 +15,7 @@
 from typing import Callable
 
 from firefly.ui.web.polyfills import *  # __:skip
+from firefly.ui.web.js_libs.mithril import m
 
 from firefly import SystemBus, Middleware, EventBus, domain as ffd, CommandBus, QueryBus, MessageFactory
 
@@ -27,6 +28,26 @@ class LoggingMiddleware(Middleware):
     def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
         console.log(self.prefix, message)
         return next_(message)
+
+
+class CommandHandlingMiddleware(Middleware):
+    def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
+        return m.request({
+            'method': 'POST',
+            'url': f'{process.env.HOST}/{message.get_context()}',
+            'body': message.to_dict(),
+        })
+
+
+class QueryHandlingMiddleware(Middleware):
+    def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
+        return m.request({
+            'method': 'GET',
+            'url': f'{process.env.HOST}/{message.get_context()}',
+            'params': {
+                'query': JSON.stringify(message.to_dict()),
+            },
+        })
 # __pragma__('nokwargs')
 
 
@@ -40,12 +61,14 @@ bus._event_bus._message_factory = message_factory
 
 bus._command_bus = CommandBus([
     LoggingMiddleware('Command Bus'),
+    CommandHandlingMiddleware(),
 ])
 # noinspection PyProtectedMember
 bus._command_bus._message_factory = message_factory
 
 bus._query_bus = QueryBus([
     LoggingMiddleware('Query Bus'),
+    QueryHandlingMiddleware(),
 ])
 # noinspection PyProtectedMember
 bus._query_bus._message_factory = message_factory

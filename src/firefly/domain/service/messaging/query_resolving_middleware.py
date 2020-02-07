@@ -20,7 +20,6 @@ from typing import Callable, Dict, Type, Union
 import firefly.domain as ffd
 
 from firefly.domain.service.messaging.middleware import Middleware
-from firefly.domain.service.core.application_service import ApplicationService
 from firefly.domain.entity.messaging.query import Query
 
 
@@ -49,7 +48,7 @@ class QueryResolvingMiddleware(Middleware):
                 return service(**ffd.build_argument_list(args, service))
         raise ffd.ConfigurationError(f'No query handler registered for {message}')
 
-    def add_query_handler(self, handler: Union[ApplicationService, Type[ApplicationService]],
+    def add_query_handler(self, handler: Union[ffd.ApplicationService, Type[ffd.ApplicationService]],
                           command: Union[Type[Query], str]):
         if inspect.isclass(handler):
             handler = self._context_map.get_context(handler.get_class_context()).container.build(handler)

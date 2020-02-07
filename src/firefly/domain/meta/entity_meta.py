@@ -17,6 +17,8 @@ from __future__ import annotations
 # __pragma__('skip')
 from abc import ABCMeta
 from dataclasses import dataclass, fields
+
+import firefly as ff
 # __pragma__('noskip')
 # __pragma__ ('ecom')
 """?
@@ -49,11 +51,11 @@ class EntityMeta(ABCMeta):
 
         if is_aggregate:
             if 'create_on' in kwargs:
-                ret = ffd.on(kwargs['create_on'], action='create')(ret)
+                ret._create_on = kwargs['create_on']
             if 'delete_on' in kwargs:
-                ret = ffd.on(kwargs['delete_on'], action='delete')(ret)
+                ret._delete_on = kwargs['delete_on']
             if 'update_on' in kwargs:
-                ret = ffd.on(kwargs['update_on'], action='update')(ret)
+                ret._update_on = kwargs['update_on']
         # __pragma__('noskip')
 
         return ret

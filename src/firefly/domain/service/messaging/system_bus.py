@@ -30,6 +30,9 @@ class SystemBus(EventBusAware, CommandBusAware, QueryBusAware):
     def add_command_handler(self, handler: ffd.Middleware):
         self._command_bus.add(handler)
 
+    def insert_command_handler(self, index: int, handle: ffd.Middleware):
+        self._command_bus.insert(index, handle)
+
     def add_query_handler(self, handler: ffd.Middleware):
         self._query_bus.add(handler)
 
@@ -43,5 +46,5 @@ class SystemBusAware:
     def invoke(self, command: Union[ffd.Command, str], data: dict = None):
         return self._system_bus.invoke(command, data)
 
-    def query(self, request: Union[ffd.Query, str], data: dict = None):
-        return self._system_bus.query(request, data)
+    def request(self, request: Union[ffd.Query, str], data: dict = None):
+        return self._system_bus.request(request, data)

@@ -22,6 +22,8 @@ from .task import Task
 from .user import User
 
 
+@ff.rest('/todo-list')
+@ff.rest('/todo-list/{todo_list_id}')
 class TodoList(ff.AggregateRoot, create_on='iam.UserCreated', delete_on='iam.UserDeleted'):
     id: str = ff.id_()
     user: User = ff.required()
@@ -32,6 +34,7 @@ class TodoList(ff.AggregateRoot, create_on='iam.UserCreated', delete_on='iam.Use
         if self.name is None:
             self.name = f"{self.user.name}'s TODO List"
 
+    @ff.rest('/todo-list/{todo_list_id}/task', method='POST')
     def add_task(self, task: Task) -> ff.EventList:
         self.tasks.append(task)
         return 'TaskAdded', task

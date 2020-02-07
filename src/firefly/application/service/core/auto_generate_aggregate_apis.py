@@ -17,7 +17,8 @@ from __future__ import annotations
 import inspect
 from typing import Type
 
-import firefly.domain as ffd
+import firefly as ff
+import firefly.infrastructure as ffi
 import firefly_di as di
 import inflection
 from firefly.domain.entity.entity import Entity
@@ -27,12 +28,12 @@ from firefly.domain.service.logging.logger import LoggerAware
 
 
 class AutoGenerateAggregateApis(ApplicationService, LoggerAware):
-    _context_map: ffd.ContextMap = None
-    _system_bus: ffd.SystemBus = None
+    _context_map: ff.ContextMap = None
+    _system_bus: ff.SystemBus = None
     _container: di.Container = None
-    _command_resolving_middleware: ffd.CommandResolvingMiddleware = None
-    _event_resolving_middleware: ffd.EventResolvingMiddleware = None
-    _query_resolving_middleware: ffd.QueryResolvingMiddleware = None
+    _command_resolving_middleware: ff.CommandResolvingMiddleware = None
+    _event_resolving_middleware: ff.EventResolvingMiddleware = None
+    _query_resolving_middleware: ff.QueryResolvingMiddleware = None
 
     def __call__(self, context: str, **kwargs):
         ctx = self._context_map.get_context(context)
@@ -42,8 +43,8 @@ class AutoGenerateAggregateApis(ApplicationService, LoggerAware):
         for entity in ctx.entities:
             self._process_entity(ctx, entity)
 
-    def _process_entity(self, context: ffd.Context, entity: type):
-        if not issubclass(entity, ffd.AggregateRoot) or entity == ffd.AggregateRoot:
+    def _process_entity(self, context: ff.Context, entity: type):
+        if not issubclass(entity, ff.AggregateRoot) or entity == ff.AggregateRoot:
             return
 
         self._create_crud_command_handlers(entity, context)
@@ -55,10 +56,14 @@ class AutoGenerateAggregateApis(ApplicationService, LoggerAware):
 
             v = getattr(entity, k)
             if inspect.isfunction(v):
-                self._create_invoke_command_handler(entity, context, k)
+                fqn = self._create_invoke_command_handler(entity, context, k)
+                if ff.has_meta(v) and ff.has_endpoints(v):
+                    for endpoint in ff.get_endpoints(v):
+                        endpoint.message = fqn
+                        context.endpoints.append(endpoint)
 
-    def _create_invoke_command_handler(self, entity: Type[Entity], context: ffd.Context, method_name: str):
-        command_name = inflection.camelize(method_name)
+    def _create_invoke_command_handler(self, entity: Type[Entity], context: ff.Context, method_name: str):
+        command_name = f'{entity.__name__}::{inflection.camelize(method_name)}'
 
         class Invoke(InvokeCommand[entity]):
             pass
@@ -69,10 +74,12 @@ class AutoGenerateAggregateApis(ApplicationService, LoggerAware):
         self._command_resolving_middleware.add_command_handler(self._container.build(Invoke, method=method_name), fqn)
         context.command_handlers[Invoke] = fqn
 
-    def _create_query_handler(self, entity: Type[Entity], context: ffd.Context):
+        return fqn
+
+    def _create_query_handler(self, entity: Type[Entity], context: ff.Context):
         query_name = inflection.pluralize(entity.__name__)
 
-        class Query(ffd.QueryService[entity]):
+        class Query(ff.QueryService[entity]):
             pass
 
         Query.__name__ = query_name
@@ -81,13 +88,13 @@ class AutoGenerateAggregateApis(ApplicationService, LoggerAware):
         self._query_resolving_middleware.add_query_handler(self._container.build(Query), fqn)
         context.query_handlers[Query] = fqn
 
-    def _create_crud_command_handlers(self, entity: Type[Entity], context: ffd.Context):
+    def _create_crud_command_handlers(self, entity: Type[Entity], context: ff.Context):
         for action in ('Create', 'Delete', 'Update'):
             self._create_crud_command_handler(context, entity, action)
 
-    def _create_crud_command_handler(self, context: ffd.Context, entity, name_prefix):
+    def _create_crud_command_handler(self, context: ff.Context, entity, name_prefix):
         name = f'{name_prefix}Entity'
-        base = getattr(ffd, name)
+        base = getattr(ff, name)
 
         class Action(base[entity]):
             pass
@@ -98,27 +105,27 @@ class AutoGenerateAggregateApis(ApplicationService, LoggerAware):
         self._command_resolving_middleware.add_command_handler(self._container.build(Action), fqn)
         context.command_handlers[Action] = fqn
 
-    def _register_entity_level_event_listeners(self, entity: Type[Entity], context: ffd.Context):
-        if hasattr(entity, '__ff_listener'):
-            configs = getattr(entity, '__ff_listener')
-            for config in configs:
-                if 'crud' in config:
-                    class DoInvokeOn(ffd.InvokeOn):
-                        pass
+    def _register_entity_level_event_listeners(self, entity: Type[ff.AggregateRoot], context: ff.Context):
+        if entity.get_create_on() is not None:
+            self._register_crud_event_listener(
+                entity.get_create_on(), f'{context.name}.Create{entity.__name__}', context
+            )
+        if entity.get_delete_on() is not None:
+            self._register_crud_event_listener(
+                entity.get_delete_on(), f'{context.name}.Delete{entity.__name__}', context
+            )
+        if entity.get_update_on() is not None:
+            self._register_crud_event_listener(
+                entity.get_update_on(), f'{context.name}.Update{entity.__name__}', context
+            )
 
-                    action = None
-                    if config['crud'] == 'create':
-                        action = 'Create'
-                    elif config['crud'] == 'delete':
-                        action = 'Delete'
-                    elif config['crud'] == 'update':
-                        action = 'Update'
+    def _register_crud_event_listener(self, event: ff.TypeOfEvent, command: str, context: ff.Context):
+        class DoInvokeOn(ff.InvokeOn):
+            pass
 
-                    if action is not None:
-                        self._event_resolving_middleware.add_event_listener(
-                            self._container.build(DoInvokeOn, command_name=f'{context.name}.{action}{entity.__name__}'),
-                            config['event']
-                        )
-                        if DoInvokeOn not in context.event_listeners:
-                            context.event_listeners[DoInvokeOn] = []
-                        context.event_listeners[DoInvokeOn].append(config['event'])
+        self._event_resolving_middleware.add_event_listener(
+            self._container.build(DoInvokeOn, command_name=command), event
+        )
+        if DoInvokeOn not in context.event_listeners:
+            context.event_listeners[DoInvokeOn] = []
+        context.event_listeners[DoInvokeOn].append(event)

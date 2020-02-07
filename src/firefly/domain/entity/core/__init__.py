@@ -18,3 +18,4 @@ from .context import Context
 from .context_map import ContextMap
 from .deployment import Deployment
 from .endpoint import Endpoint
+from .http_endpoint import HttpEndpoint

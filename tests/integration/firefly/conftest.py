@@ -103,6 +103,11 @@ def message_factory(container) -> ff.MessageFactory:
     return container.message_factory
 
 
+@pytest.fixture(scope="session")
+def serializer(container):
+    return container.serializer
+
+
 @pytest.fixture(scope="function")
 def registry(container, request) -> ff.Registry:
     registry = container.registry
@@ -116,3 +121,13 @@ def registry(container, request) -> ff.Registry:
     request.addfinalizer(teardown)
     # registry.clear_cache()
     return registry
+
+
+@pytest.fixture(scope="function")
+async def client(container, system_bus, aiohttp_client):
+    deployment = ff.Deployment(environment='testing', provider='default')
+    system_bus.dispatch('firefly.DeploymentCreated', {'deployment': deployment})
+    agent = container.agent_factory('default')
+    agent.handle(deployment, start_server=False)
+    container.web_server.initialize()
+    return await aiohttp_client(container.web_server.app)

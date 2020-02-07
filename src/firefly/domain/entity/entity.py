@@ -27,12 +27,12 @@ from firefly.domain.meta.build_argument_list import build_argument_list
 import uuid
 
 from dataclasses import is_dataclass, fields, field, MISSING, asdict
-from typing import List
+from typing import List, Callable
 from abc import ABC
 # __pragma__('noskip')
 # __pragma__ ('ecom')
 """?
-from firefly.ui.web.polyfills import is_dataclass, fields, field, MISSING, asdict, List
+from firefly.ui.web.polyfills import is_dataclass, fields, field, MISSING, asdict, List, Callable, uuid
 ?"""
 # __pragma__ ('noecom')
 # __pragma__('kwargs')
@@ -79,6 +79,9 @@ class Entity(ContextAware, metaclass=EntityMeta):
     def _process_data(cls, data: dict):
         t = typing.get_type_hints(cls)
         for name, type_ in t.items():
+            if name.startswith('_'):
+                continue
+
             if isinstance(type_, type(List)):
                 new_list = []
                 for item in data[name]:
@@ -102,6 +105,9 @@ class Entity(ContextAware, metaclass=EntityMeta):
     def _construct_entity(cls: typing.Type[Entity], data: dict):
         t = typing.get_type_hints(cls)
         for name, type_ in t.items():
+            if name.startswith('_'):
+                continue
+
             if isinstance(type_, type(List)):
                 new_list = []
                 for item in data[name]:
@@ -141,7 +147,7 @@ class Empty:
 
 
 def id_(is_uuid: bool = True, **kwargs):
-    metadata = {'id': True}
+    metadata = {'id': True, 'required': True, 'type': str}
     if is_uuid:
         metadata['length'] = 36
     metadata.update(kwargs)
@@ -150,32 +156,41 @@ def id_(is_uuid: bool = True, **kwargs):
 
 
 def list_(**kwargs):
+    kwargs['type'] = list
     return field(default_factory=lambda: [], metadata=kwargs)
 
 
 def dict_(**kwargs):
+    kwargs['type'] = dict
     return field(default_factory=lambda: {}, metadata=kwargs)
 
 
 def now(**kwargs):
+    kwargs['type'] = datetime
     return field(default_factory=lambda: datetime.now(), metadata=kwargs)
 
 
 def today(**kwargs):
+    kwargs['type'] = date
     return field(default_factory=lambda: date.today(), metadata=kwargs)
 
 
-def required(**kwargs):
-    metadata = {'required': True}
-    metadata.update(kwargs)
-    return field(default_factory=lambda: Empty(), metadata=metadata)
+def required(type_: type = None, **kwargs):
+    if type_ is not None:
+        kwargs['type'] = type_
+    kwargs['required'] = True
+    return field(default_factory=lambda: Empty(), metadata=kwargs)
 
 
-def optional(default=MISSING, **kwargs):
-    if default != MISSING:
+def optional(type_: type = None, default=MISSING, **kwargs):
+    if type_ is not None:
+        kwargs['type'] = type_
+    kwargs['required'] = False
+    if not isinstance(default, MISSING.__class__):
         return field(default_factory=lambda: default, metadata=kwargs)
     return field(default=None, metadata=kwargs)
 
 
 def hidden(**kwargs):
+    kwargs['hidden'] = True
     return field(default=None, init=False, repr=False, compare=False, metadata=kwargs)

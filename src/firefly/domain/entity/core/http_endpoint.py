@@ -34,3 +34,4 @@ class HttpEndpoint(Endpoint):
     gateway: str = optional(str)
     route: str = required(str)
     method: str = optional(str, default='GET')
+    query_params: dict = optional(dict)

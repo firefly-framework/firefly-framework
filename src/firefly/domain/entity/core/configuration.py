@@ -14,11 +14,11 @@
 
 from __future__ import annotations
 
-from ..entity import Entity
+from ..aggregate_root import AggregateRoot
 from ..entity import dict_
 
 
-class Configuration(Entity):
+class Configuration(AggregateRoot):
     _config: dict = dict_()
 
     def __post_init__(self):

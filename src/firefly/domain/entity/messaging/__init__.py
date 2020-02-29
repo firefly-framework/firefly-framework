@@ -15,6 +15,7 @@
 from .command import Command
 from .event import Event
 from .forwarder import Forwarder
+from .http_response import HttpResponse
 from .message import Message
 from .network_topology import NetworkTopology
 from .query import Query

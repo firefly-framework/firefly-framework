@@ -18,6 +18,7 @@ import firefly.application as ffa
 import firefly.domain as ffd
 import firefly.infrastructure as ffi
 import firefly_di as di
+from jinja2 import Environment, PackageLoader
 
 
 class Container(di.Container):
@@ -49,8 +50,12 @@ class Container(di.Container):
         }
     )
     query_resolver: ffd.QueryResolvingMiddleware = ffd.QueryResolvingMiddleware
+    content_negotiator: ffd.ContentNegotiator = lambda self: ffd.ContentNegotiator({
+        'text/html': self.build(ffi.HtmlConverter),
+    })
     command_bus: ffd.CommandBus = lambda self: self.build(ffd.CommandBus, middleware=[
         self.build(ffd.LoggingMiddleware),
+        self.content_negotiator,
         self.build(ffd.EventDispatchingMiddleware),
         self.command_resolver,
     ])
@@ -60,6 +65,7 @@ class Container(di.Container):
     ])
     query_bus: ffd.QueryBus = lambda self: self.build(ffd.QueryBus, middleware=[
         self.build(ffd.LoggingMiddleware),
+        self.content_negotiator,
         self.query_resolver,
     ])
     system_bus: ffd.SystemBus = ffd.SystemBus

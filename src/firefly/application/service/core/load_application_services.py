@@ -72,8 +72,10 @@ class LoadApplicationServices(ffd.ApplicationService):
                 else:
                     if endpoint.method.lower() == 'get':
                         cls.set_query(self._generate_message_name(cls))
+                        endpoint.message = cls.get_query()
                     else:
                         cls.set_command(self._generate_message_name(cls))
+                        endpoint.message = cls.get_command()
                     self._register_service(cls, context)
 
             context.endpoints.append(endpoint)

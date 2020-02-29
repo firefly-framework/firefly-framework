@@ -34,7 +34,8 @@ class ConfigureStorage(ffd.ApplicationService):
         self._configure_connections(config.get('connections', {}), context)
         self._configure_repositories(config, context)
 
-        self._registry(ffd.ContextMap).add(self._context_map)
+        # TODO Get persistence working in these core services.
+        # self._registry(ffd.ContextMap).add(self._context_map)
 
         self.dispatch(ffd.StorageConfigured(context=context.name))
 

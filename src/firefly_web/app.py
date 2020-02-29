@@ -12,18 +12,39 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations
+from firefly.ui.web.components.layouts.default import AppContainer, MenuItem
+from firefly.ui.web.js_libs.mithril import m
+from firefly.ui.web.plugins import add_route, add_menu_item
+from firefly.ui.web.polyfills import *  # __:skip
 
-from pprint import pprint
+# __pragma__('opov')
 
-import firefly as ff
+m.route.prefix = '/admin'
 
 
-@ff.rest('/auth/token')
-class RequestToken(ff.ApplicationService):
-    def __call__(self, **kwargs):
-        print('')
-        print('=====================================================')
-        pprint(kwargs)
-        print('=====================================================')
-        return 'abc123'
+def app(component):
+    return AppContainer(
+        component
+    )
+
+
+def home():
+    return window.ff_menu
+
+
+add_menu_item(m('div.ff-title', 'Kernel'), 0)
+add_menu_item(m(MenuItem('Configuration', icon='solid/cog')), 1)
+add_menu_item(m(MenuItem('System Health', icon='solid/heart')), 2)
+add_menu_item(m(MenuItem('Services', icon='solid/wifi')), 3)
+
+add_route('/', app(home()))
+
+m.route(document.body, '/', window.ff_routes)
+
+"""
+__pragma__('js', '{}', '''
+if (module.hot) {
+  module.hot.accept();
+}
+''')
+"""

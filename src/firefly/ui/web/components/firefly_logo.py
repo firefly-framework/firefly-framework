@@ -12,4 +12,32 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from firefly.ui.web.components.form import Form
+from firefly.ui.web.js_libs.mithril import m
+from firefly.ui.web.polyfills import *  # __:skip
+
+
+class FireflyIcon:
+    def view(self):
+        return m('div.logo-image.rounded-full', [
+            m('div.firefly.one'),
+            m('div.firefly.two'),
+            m('div.firefly.three'),
+        ])
+
+
+class FireflyLogoText:
+    @staticmethod
+    def view():
+        return [
+            m('span.fire.inline-block.ml-2', 'Fire'),
+            m('span.fly.inline-block', 'fly')
+        ]
+
+
+class FireflyLogo:
+    @staticmethod
+    def view():
+        return m('div.logo.font-sans.font-bold.text-shadow.rambla.flex.flex-row.justify-start', [
+            m(FireflyIcon()),
+            m(FireflyLogoText()),
+        ])

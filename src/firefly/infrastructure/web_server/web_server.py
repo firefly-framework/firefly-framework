@@ -17,16 +17,16 @@ import logging
 import sys
 import uuid
 from _signal import SIGABRT, SIGILL, SIGINT, SIGSEGV, SIGTERM
-from pprint import pprint
 from signal import signal
-from typing import List, Callable, Dict
+from typing import Callable, Dict
+from urllib.parse import parse_qsl
 
 import aiohttp_cors
 import firefly.domain as ffd
-
 import websockets
 from aiohttp import web
 from firefly import TypeOfMessage
+from firefly.domain.entity.messaging.http_response import HttpResponse
 
 
 class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
@@ -42,6 +42,10 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
         self.cors = None
         self.host = host
         self.port = port
+        if host.count(':') > 1:
+            parts = host.split(':')
+            self.port = parts.pop()
+            self.host = ':'.join(parts)
         self.websocket_host = websocket_host
         self.websocket_port = websocket_port
         self.app = web.Application()
@@ -58,7 +62,7 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
             websockets.serve(self._handle_websocket, host=self.websocket_host, port=self.websocket_port)
         )
 
-        print("Server is running", flush=True)
+        print(f"Server is running on {self.host}:{self.port}", flush=True)
         web.run_app(self.app, host=self.host, port=self.port)
 
         self._shut_down()
@@ -110,9 +114,15 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
 
             if msg is not None:
                 if request.method.lower() == 'get':
-                    message = self._message_factory.request(msg)
+                    message = self._message_factory.query(msg, None, dict(request.query))
                 elif request.method.lower() == 'post':
-                    message = self._message_factory.command(msg, self._serializer.deserialize(await request.text()))
+                    data = await request.text()
+                    try:
+                        data = dict(self._serializer.deserialize(data))
+                    except ffd.InvalidArgument:
+                        data = dict(parse_qsl(data))
+                    data.update(dict(request.query))
+                    message = self._message_factory.command(msg, data)
             elif request.method.lower() == 'post':
                 message: ffd.Message = self._serializer.deserialize(await request.text())
             else:
@@ -127,6 +137,8 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
 
             response = None
 
+            await self._marshal_request(message, request)
+
             if isinstance(message, ffd.Event):
                 response = self.dispatch(message)
             elif isinstance(message, ffd.Command):
@@ -134,12 +146,32 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
             elif isinstance(message, ffd.Query):
                 response = self.request(message)
 
-            serialized_response = self._serializer.serialize(response)
-            self.debug(f'Response: {serialized_response}')
+            self.debug(f'Response: {response}')
 
-            return web.Response(body=serialized_response)
+            if isinstance(response, HttpResponse):
+                body = response.body
+                headers = response.headers
+            else:
+                body = self._serializer.serialize(response)
+                headers = {}
+
+            return web.Response(body=body, headers=headers)
 
         return _handle_request
+
+    @staticmethod
+    async def _marshal_request(message: ffd.Message, request: web.Request):
+        #TODO make a class
+        message.headers['http_request'] = {
+            'headers': dict(request.headers),
+            'method': request.method,
+            'path': request.path,
+            'content_type': request.content_type,
+            'content_length': request.content_length,
+            'query': dict(request.query),
+            'post': dict(await request.post()),
+            'url': request._message.url,
+        }
 
     async def _handle_websocket(self, websocket, path):
         id_ = str(uuid.uuid1())

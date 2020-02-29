@@ -12,18 +12,4 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations
-
-from pprint import pprint
-
-import firefly as ff
-
-
-@ff.rest('/auth/token')
-class RequestToken(ff.ApplicationService):
-    def __call__(self, **kwargs):
-        print('')
-        print('=====================================================')
-        pprint(kwargs)
-        print('=====================================================')
-        return 'abc123'
+from .html_converter import HtmlConverter

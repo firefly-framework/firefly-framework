@@ -36,10 +36,15 @@ window = {}
 process = {}
 JSON = {}
 moment = {}
+navigator = {}
 
 
 # __pragma__('skip')
 def uuidv1():
+    pass
+
+
+def require(*args, **kwargs):
     pass
 # __pragma__('noskip')
 

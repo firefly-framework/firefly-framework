@@ -92,7 +92,7 @@ class Form:
         return self._wrap(
             'form',
             m(
-                'div.form-container.flex.flex-col.mx-5',
+                'div.form-container.flex.flex-col',
                 m(
                     f'form#{self._config["id"]}',
                     config,
@@ -211,7 +211,7 @@ class Form:
     def _text_input(self, field_: str, classes: str, config: dict, children, input_type: str = 'text'):
         return m(
             f'input[type="{input_type}"][id="{field_}"][name="{field_}"][value="{self._dto[field_]}"]'
-            f'.form-text-input.border.border-gray-500.px-2.py-1.rounded-sm{classes}',
+            f'.form-text-input.px-2.py-1.rounded-sm{classes}',
             config,
             children
         )
@@ -233,7 +233,7 @@ class Form:
         return m(
             f'input[type="date"][id="{field_}"][name="{field_}"]'
             f'[value="{moment(self._dto[field_]).format("YYYY-MM-DD")}"]'
-            f'.form-date-input.border.border-gray-500.px-2.py-1.rounded-sm{classes}',
+            f'.form-date-input.px-2.py-1.rounded-sm{classes}',
             config,
         )
 
@@ -242,13 +242,13 @@ class Form:
             m(
                 f'input[type="date"][id="{field_}_date"][name="{field_}_date"]'
                 f'[value="{moment(self._dto[field_]).format("YYYY-MM-DD")}"]'
-                f'.form-date-input.border.border-gray-500.px-2.py-1.rounded-sm{classes}',
+                f'.form-date-input.px-2.py-1.rounded-sm{classes}',
                 config,
             ),
             m(
                 f'input[type="time"][id="{field_}_date"][name="{field_}_date"]'
                 f'[value="{moment(self._dto[field_]).format("HH:mm")}"]'
-                f'.form-time-input.border.border-gray-500.px-2.py-1.rounded-sm{classes}',
+                f'.form-time-input.px-2.py-1.rounded-sm{classes}',
                 config,
             ),
         ]

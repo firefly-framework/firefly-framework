@@ -11,6 +11,7 @@
 #
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
+import json
 
 import pytest
 
@@ -20,6 +21,12 @@ from test_src.iam.domain.entity import User
 def test_query_todos(system_bus, message_factory):
     users = system_bus.request(message_factory.query('iam.Users'))
     assert len(users) == 2
+
+
+async def test_rest_api(client):
+    response = await client.get('/auth/token')
+    assert response.status == 200
+    assert json.loads(await response.text()) == 'abc123'
 
 
 def test_search_criteria_equals(system_bus, message_factory):

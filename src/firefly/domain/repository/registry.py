@@ -40,7 +40,7 @@ class Registry:
                     self._cache[entity] = v(entity)
 
             context = entity.get_class_context()
-            if self._default_factory[context] is not None:
+            if context in self._default_factory and self._default_factory[context] is not None:
                 self._cache[entity] = self._default_factory[context](entity)
 
             if entity not in self._cache:

@@ -20,7 +20,7 @@ from test_src.todo import TodoList, User
 
 
 def test_auto_generated_api(system_bus, message_factory, todo):
-    system_bus.invoke(message_factory.command('todo.AddTask', {
+    system_bus.invoke(message_factory.command('todo.TodoList::AddTask', {
         'todo_list': todo.id,
         'name': 'my task',
         'due_date': datetime.now() + timedelta(days=1)
@@ -42,12 +42,12 @@ async def test_http_endpoint(client, todo, serializer):
 
 
 def test_nested_api(system_bus, message_factory, todo):
-    system_bus.invoke(message_factory.command('todo.AddTask', {
+    system_bus.invoke(message_factory.command('todo.TodoList::AddTask', {
         'todo_list': todo.id,
         'name': 'my task',
         'due_date': datetime.now() + timedelta(days=1)
     }))
-    system_bus.invoke(message_factory.command('todo.CompleteTask', {
+    system_bus.invoke(message_factory.command('todo.TodoList::CompleteTask', {
         'todo_list': todo.id,
         'task_id': todo.tasks[0].id,
     }))
@@ -57,7 +57,6 @@ def test_nested_api(system_bus, message_factory, todo):
 
 @pytest.fixture()
 def todo(registry, request):
-    print(TodoList)
     r = registry(TodoList)
 
     def teardown():

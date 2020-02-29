@@ -22,13 +22,15 @@ from firefly.domain.entity.core.http_endpoint import HttpEndpoint
 
 
 class Rest:
-    def __call__(self, route: str, method: str = 'GET', generates: ff.TypeOfMessage = None, gateway: str = None):
+    def __call__(self, route: str, method: str = 'GET', generates: ff.TypeOfMessage = None, gateway: str = None,
+                 query_params: dict = None):
         def on_wrapper(cls):
             endpoint = HttpEndpoint(
                 route=route,
                 method=method,
                 message=generates,
-                gateway=gateway
+                gateway=gateway,
+                query_params=query_params
             )
 
             try:

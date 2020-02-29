@@ -14,16 +14,17 @@
 
 from __future__ import annotations
 
-from pprint import pprint
+from abc import ABC, abstractmethod
+from typing import Any
 
-import firefly as ff
+from firefly.domain.entity.messaging.message import Message
 
 
-@ff.rest('/auth/token')
-class RequestToken(ff.ApplicationService):
-    def __call__(self, **kwargs):
-        print('')
-        print('=====================================================')
-        pprint(kwargs)
-        print('=====================================================')
-        return 'abc123'
+class ContentConverter(ABC):
+    @abstractmethod
+    def can_convert(self, request: Message, response: Any):
+        pass
+
+    @abstractmethod
+    def convert(self, request: Message, response: Any):
+        pass

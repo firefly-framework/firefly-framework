@@ -14,16 +14,9 @@
 
 from __future__ import annotations
 
-from pprint import pprint
+from firefly.domain.entity.entity import optional
+from firefly.domain.entity.messaging.response import Response
 
-import firefly as ff
 
-
-@ff.rest('/auth/token')
-class RequestToken(ff.ApplicationService):
-    def __call__(self, **kwargs):
-        print('')
-        print('=====================================================')
-        pprint(kwargs)
-        print('=====================================================')
-        return 'abc123'
+class HttpResponse(Response):
+    body: str = optional(str)

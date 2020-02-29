@@ -12,18 +12,32 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations
+from firefly.ui.web.js_libs.mithril import m
+from firefly.ui.web.polyfills import *  # __:skip
 
-from pprint import pprint
+# __pragma__('kwargs')
 
-import firefly as ff
+os = None
+agent = navigator.userAgent or navigator.vendor or window.opera
+if 'windows phone' in agent:
+    os = 'windows'
+elif 'android' in agent:
+    os = 'android'
+elif 'iPad' in agent or 'iPhone' in agent or 'iPod' in agent:
+    os = 'ios'
 
 
-@ff.rest('/auth/token')
-class RequestToken(ff.ApplicationService):
-    def __call__(self, **kwargs):
-        print('')
-        print('=====================================================')
-        pprint(kwargs)
-        print('=====================================================')
-        return 'abc123'
+class Icon:
+    def __init__(self, name: str, onclick=None):
+        self._name = name
+        self._onclick = onclick
+
+    def view(self):
+        icon = None
+        name = self._name
+        # __pragma__('js', '{}', "icon = require(`@fortawesome/fontawesome-free/svgs/${py_name}.svg`);")
+
+        if self._onclick is not None:
+            return m('span.cursor-pointer', {'onclick': self._onclick}, m.trust(icon))
+
+        return m.trust(icon)

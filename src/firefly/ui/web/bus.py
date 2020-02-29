@@ -34,7 +34,7 @@ class CommandHandlingMiddleware(Middleware):
     def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
         return m.request({
             'method': 'POST',
-            'url': f'{process.env.HOST}/{message.get_context()}',
+            'url': f'{process.env.FF_HOST}/{message.get_context()}',
             'body': message.to_dict(),
         })
 
@@ -43,7 +43,7 @@ class QueryHandlingMiddleware(Middleware):
     def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
         return m.request({
             'method': 'GET',
-            'url': f'{process.env.HOST}/{message.get_context()}',
+            'url': f'{process.env.FF_HOST}/{message.get_context()}',
             'params': {
                 'query': JSON.stringify(message.to_dict()),
             },

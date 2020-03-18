@@ -16,28 +16,26 @@ from firefly.ui.web.js_libs.mithril import m
 from firefly.ui.web.polyfills import *  # __:skip
 
 
-class FireflyIcon:
-    def view(self):
-        return m('div.logo-image.rounded-full', [
-            m('div.firefly.one'),
-            m('div.firefly.two'),
-            m('div.firefly.three'),
-        ])
+firefly_icon = {
+    'view': lambda: m('div.logo-image.rounded-full', [
+        m('div.firefly.one'),
+        m('div.firefly.two'),
+        m('div.firefly.three'),
+    ])
+}
 
 
-class FireflyLogoText:
-    @staticmethod
-    def view():
-        return [
-            m('span.fire.inline-block.ml-2', 'Fire'),
-            m('span.fly.inline-block', 'fly')
-        ]
+firefly_logo_text = {
+    'view': lambda: [
+        m('span.fire.inline-block.ml-2', 'Fire'),
+        m('span.fly.inline-block', 'fly')
+    ]
+}
 
 
-class FireflyLogo:
-    @staticmethod
-    def view():
-        return m('div.logo.font-sans.font-bold.text-shadow.rambla.flex.flex-row.justify-start', [
-            m(FireflyIcon()),
-            m(FireflyLogoText()),
-        ])
+firefly_logo = {
+    'view': lambda: m('div.logo.font-sans.font-bold.text-shadow.rambla.flex.flex-row.justify-start', [
+        m(firefly_icon),
+        m(firefly_logo_text),
+    ])
+}

@@ -150,4 +150,7 @@ class IsOneOf(Validation):
         self.values = values
 
     def __call__(self, value: Any, dto: dict) -> bool:
-        return value in self.values
+        values = self.values
+        if callable(values):
+            values = values(dto)
+        return value in values

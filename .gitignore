@@ -126,3 +126,5 @@ node_modules/
 
 # pytest
 .pytest_cache/
+
+__target__/

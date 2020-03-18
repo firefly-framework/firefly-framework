@@ -37,6 +37,7 @@ process = {}
 JSON = {}
 moment = {}
 navigator = {}
+this = {}  # __:skip
 
 
 # __pragma__('skip')

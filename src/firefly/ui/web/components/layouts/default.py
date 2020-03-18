@@ -13,7 +13,7 @@
 #  <http://www.gnu.org/licenses/>.
 
 from firefly.ui.web.bus import bus
-from firefly.ui.web.components.firefly_logo import FireflyLogo
+from firefly.ui.web.components.firefly_logo import firefly_logo
 from firefly.ui.web.components.form import Form
 from firefly.ui.web.components.icon import Icon
 from firefly.ui.web.js_libs.mithril import m
@@ -26,168 +26,117 @@ import firefly as ff
 # __pragma__('opov')
 
 
-class AppContainer:
-    def __init__(self, content, drawer_content=None, menu_content=None, footer_content=None, header_content=None):
-        default_header_content = [
-            m('div.my-auto', m(FireflyLogo())),
-        ]
-        if drawer_content is not None:
-            default_header_content.append(
-                m('div.w-10.h-10.my-auto.mr-3.invert-stroke', m(Icon('solid/bars', onclick=self._open_drawer)))
-            )
+# def compose(layout, main, header=None, menu=None, drawer=None, footer=None):
+#     return lambda: {'view': layout(main, header, menu, drawer, footer)}
+def compose(layout, main, menu=None, header=None, drawer=None, footer=None):
+    return lambda: {
+        'view': layout(
+            main(),
+            menu() if menu is not None else None,
+            header() if header is not None else None,
+            drawer() if drawer is not None else None,
+            footer() if footer is not None else None
+        )
+    }
 
-        self._header = Header(header_content or default_header_content)
-        self._drawer = Drawer(drawer_content or [])
-        self._menu = MainMenu(menu_content or [
-            m('div', '')
-        ])
-        self._main_content = MainContent(content)
-        self._footer = Footer(footer_content)
 
-    def _open_drawer(self):
-        self._drawer.is_open = True
+def default_layout(main, menu, header, drawer, footer):
+    drawer_is_open = False
 
-    def view(self):
-        return [
-            m('div.app.flex.flex-col', [
-                m(self._header),
-                m('div.flex.flex-row', [
-                    m(self._menu),
-                    m(self._main_content),
-                ]),
-                m(self._footer),
+    def close_drawer():
+        nonlocal drawer_is_open
+        drawer_is_open = False
+
+    def open_drawer():
+        nonlocal drawer_is_open
+        drawer_is_open = True
+
+    return lambda: [
+        m('div.app.flex.flex-col', [
+            m(
+                'div.ff-header.fixed.flex.flex-row.justify-between.h-20.w-full.z-30.px-5.md:ml-20', [
+                    m('div.my-auto', m(firefly_logo)) if header is None else m(header),
+                ]
+            ),
+            m('div.flex.flex-row', [
+                m(
+                    'div.ff-menu.fixed.z-30.w-full.h-20.bottom-0.flex.flex-row.justify-between'
+                    '.md:left-0.md:bottom-auto.md:flex-col.md:justify-start.md:w-20.md:h-full',
+                    menu or ''
+                ),
+                m('div.ff-content.z-0.w-full.mb-20.mt-20.flex.flex-col.justify-between'
+                  '.md:ml-20.md:mb-0.md:flex-row.md:flex-wrap.md:justify-start',
+                    m(main) if callable(main) or hasattr(main, 'view') else main
+                )
             ]),
-            m(self._drawer),
-        ]
-
-
-class Drawer:
-    def __init__(self, content):
-        self._content = content
-        self.is_open = False
-
-    def _close(self):
-        self.is_open = False
-
-    def view(self):
-        cls = '.open' if self.is_open is True else ''
-        return m(
-            f'div.ff-drawer-bg.z-40{cls}',
-            {'onclick': self._close},
+            m('div.ff-footer', footer) if footer is not None else '',
+        ]),
+        m(
+            f'div.ff-drawer-bg.z-40{".open" if drawer_is_open is True else ""}',
+            {'onclick': close_drawer},
             m(
                 'div.ff-drawer',
                 {'onclick': lambda e: e.stopPropagation()},
                 m('div.flex.flex-row.h-full', [
-                    m('div.w-10/12', self._content),
+                    m('div.w-10/12', drawer or ''),
                     m(
                         'div.w-2/12.h-full.px-1.flex.flex-col.justify-center',
-                        m('div.invert-stroke.w-full.h-10', {'onclick': self._close}, m(Icon('solid/chevron-left')))
+                        m('div.invert-stroke.w-full.h-10', {'onclick': close_drawer}, m(Icon('solid/chevron-left')))
                     )
                 ])
             )
         )
+    ]
 
 
-class Header:
-    def __init__(self, content):
-        self._content = content
-
-    def view(self):
-        return m(
-            'div.ff-header.fixed.flex.flex-row.justify-between.h-20.w-full.z-30.px-5'
-            '.md:ml-20',
-            self._content
-        )
-
-
-class MainMenu:
-    def __init__(self, content=None):
-        self._content = content or []
-
-    def view(self):
-        return m(
-            'div.ff-menu.fixed.z-30.w-full.h-20.bottom-0.flex.flex-row.justify-between'
-            '.md:left-0.md:bottom-auto.md:flex-col.md:justify-start.md:w-20.md:h-full',
-            self._content
-        )
-
-
-class MainContent:
-    def __init__(self, content):
-        self._content = content
-
-    def view(self):
-        return m(
-            'div.ff-content.z-0.w-full.mb-20.mt-20.flex.flex-col.justify-between'
-            '.md:ml-20.md:mb-0.md:flex-row.md:flex-wrap.md:justify-start',
-            self._content
-        )
-
-
-class Footer:
-    def __init__(self, content):
-        self._content = content
-
-    def view(self):
-        return m('div.ff-footer', self._content) if self._content is not None else None
-
-
-class MenuItem:
-    def __init__(self, text: str, onclick=None, route=None, icon=None):
-        self._text = text
-        self._onclick = onclick
-        self._route = route
-        self._icon = icon
-
-    def view(self):
+def menu_item(text, icon=None, onclick=None, route=None):
+    def view():
         options = {}
-        if self._onclick is not None:
-            options['onclick'] = self._onclick
+        if onclick is not None:
+            options['onclick'] = onclick
 
         item = m('div.ff-card.flex.flex-row.justify-start.h-16.md:justify-center.md:flex-col.md:w-56.md:ml-3.md:h-32', options, [
-            m('div.w-8.h-full.invert-stroke.ml-2.py-3.md:ml-0.md:h-20.md:w-full.md:flex.md:flex-row.md:justify-center', m(Icon(self._icon))),
-            m('div.w-10/12.ml-3.flex.flex-col.justify-center.md:w-full.md:ml-0.md:flex-row.md:justify-center', self._text),
+            m('div.w-8.h-full.invert-stroke.ml-2.py-3.md:ml-0.md:h-20.md:w-full.md:flex.md:flex-row.md:justify-center', m(Icon(icon))),
+            m('div.w-10/12.ml-3.flex.flex-col.justify-center.md:w-full.md:ml-0.md:flex-row.md:justify-center', text),
         ])
 
-        if self._route is not None:
-            item = m(m.route.Link, {'href': self._route}, item)
+        if route is not None:
+            item = m(m.route.Link, {'href': route}, item)
 
         return item
 
+    return {'view': view}
 
-class Button:
-    def __init__(self, content, left_icon=None, right_icon=None, onclick=None, route=None, style='horizontal'):
-        self._content = content
-        self._left_icon = left_icon
-        self._right_icon = right_icon
-        self._onclick = onclick
-        self._route = route
-        self._style = style
 
-    def view(self):
+def button(data):
+    style = data['style'] or 'horizontal'
+
+    def view():
         config = {}
-        if self._onclick is not None:
-            config['onclick'] = self._onclick
-        elif self._route is not None:
+        if 'onclick' in data:
+            config['onclick'] = data['onclick']
+        elif 'route' in data:
             def redirect():
-                m.route.set(self._route)
+                m.route.set(data['route'])
             config['onclick'] = redirect
 
-        content = [m('span.flex.flex-col.justify-center.font-bold', self._content)]
-        if self._left_icon is not None:
-            content.insert(0, m('div.invert-stroke.my-auto.w-5.mr-2', m(Icon(self._left_icon))))
-        if self._right_icon is not None:
-            content.append(m('div.invert-stroke.my-auto.w-5.ml-2', m(Icon(self._right_icon))))
+        content = [m('span.flex.flex-col.justify-center.font-bold', data['content'])]
+        if 'left_icon' in data:
+            content.insert(0, m('div.invert-stroke.my-auto.w-5.mr-2', m(Icon(data['left_icon']))))
+        if 'right_icon' in data:
+            content.append(m('div.invert-stroke.my-auto.w-5.ml-2', m(Icon(data['right_icon']))))
 
         classes = ''
-        if self._style == 'horizontal':
+        if style == 'horizontal':
             classes += '.flex.flex-row.justify-between'
 
         return m(f'button[type="button"]{classes}.h-10.border.rounded.px-2.my-auto', config, content)
 
+    return {'view': view}
+
 
 class Crud:
-    def __init__(self, entity: str, cls, route_prefix: str):
+    def __init__(self, entity: str, cls, route_prefix: str, form_config: dict = None):
         if '.' not in entity:
             raise ff.LogicError('entity must be formatted as "<context>.<entity>"')
         parts = entity.split('.')
@@ -195,25 +144,26 @@ class Crud:
         self._entity = parts[1]
         self._class = cls
         self._route_prefix = route_prefix
+        self._form_config = form_config or {}
 
     def routes(self):
         return {
-            f'{self._route_prefix}': AppContainer(
-                self._list(),
-                header_content=self._header(
+            f'{self._route_prefix}': m(app_container, {
+                'content': self._list(),
+                'header_content': self._header(
                     '/',
-                    m(Button('New', left_icon='solid/plus', route=f'{self._route_prefix}/new'))
-                )
-            ),
+                    m(button, {'content': 'New', 'left_icon': 'solid/plus', 'route': f'{self._route_prefix}/new'})
+                ),
+            }),
             f'{self._route_prefix}/:id/view': self._detail(),
-            f'{self._route_prefix}/new': AppContainer(
-                self._create(),
-                header_content=self._header(
+            f'{self._route_prefix}/new': m(app_container, {
+                'content': self._create(),
+                'header_content': self._header(
                     self._route_prefix,
                     # TODO onclick save the form
-                    m(Button('Save', left_icon='solid/save'))
+                    m(button, {'content': 'Save', 'left_icon': 'solid/save'})
                 )
-            ),
+            }),
         }
 
     def _header(self, return_route, right_button):
@@ -232,7 +182,7 @@ class Crud:
         pass
 
     def _create(self):
-        return m(Form(self._class()))
+        return m(Form(self._class(), self._form_config))
 
     def _list(self):
         context = self._context

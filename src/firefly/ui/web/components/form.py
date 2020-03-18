@@ -37,8 +37,8 @@ class Form:
         self._errors = {}
         self._config = {
             'placeholders': True,
-            'labels': True,
-            'id': 'form'
+            'labels': False,
+            'id': 'form',
         }
         self._config.update(config or {})
         self._fields = {}
@@ -111,16 +111,15 @@ class Form:
 
     def _field_group(self, field_: str):
         t = self._get_type(field_)
-
-        nested_form = False
-        if issubclass(t, (ValueObject, Entity)):
-            children = [m(Form(t(), {'nested': True, 'required': self._is_required(field_)}))]
-            nested_form = True
-        else:
-            children = [self._field(field_)]
-
-        if self._config['labels'] and nested_form is False:
+        nested_form = issubclass(t, (ValueObject, Entity))
+        children = []
+        if self._config['labels']:
             children.append(self._label(field_))
+
+        if nested_form:
+            children.append = [m(Form(t(), {'nested': True, 'required': self._is_required(field_)}))]
+        else:
+            children.append(self._field(field_))
 
         if nested_form is False:
             children.append(self._error_container(field_))
@@ -165,7 +164,10 @@ class Form:
 
         for validator in validators:
             if isinstance(validator, IsOneOf):
-                return validator.values
+                values = validator.values
+                if callable(values):
+                    values = values(self._dto)
+                return values
 
         return None
 
@@ -210,8 +212,8 @@ class Form:
 
     def _text_input(self, field_: str, classes: str, config: dict, children, input_type: str = 'text'):
         return m(
-            f'input[type="{input_type}"][id="{field_}"][name="{field_}"][value="{self._dto[field_]}"]'
-            f'.form-text-input.px-2.py-1.rounded-sm{classes}',
+            f'input[type="{input_type}"][id="{field_}"][name="{field_}"][value="{self._dto[field_]}"][placeholder="{self._humanize(field_)}"]'
+            f'.form-text-input.px-2.py-1.rounded-sm{classes}.h-12',
             config,
             children
         )
@@ -219,7 +221,7 @@ class Form:
     def _select(self, field_: str, options, classes: str, config: dict):
         value = self._dto[field_]
         options = list(options)
-        options.insert(0, 'Choose')
+        options.insert(0, self._humanize(field_))
 
         def option(f):
             selected = ''
@@ -227,13 +229,13 @@ class Form:
                 selected = '[selected="selected"]'
             return m(f'option[value="{f}"]{selected}', f)
 
-        return m(f'select.form-select{classes}', config, list(map(option, options)))
+        return m(f'select.form-select{classes}.h-12', config, list(map(option, options)))
 
     def _date_input(self, field_: str, classes: str, config: dict):
         return m(
             f'input[type="date"][id="{field_}"][name="{field_}"]'
             f'[value="{moment(self._dto[field_]).format("YYYY-MM-DD")}"]'
-            f'.form-date-input.px-2.py-1.rounded-sm{classes}',
+            f'.form-date-input.px-2.py-1.rounded-sm.h-12{classes}',
             config,
         )
 
@@ -242,13 +244,13 @@ class Form:
             m(
                 f'input[type="date"][id="{field_}_date"][name="{field_}_date"]'
                 f'[value="{moment(self._dto[field_]).format("YYYY-MM-DD")}"]'
-                f'.form-date-input.px-2.py-1.rounded-sm{classes}',
+                f'.form-date-input.px-2.py-1.rounded-sm.h-12{classes}',
                 config,
             ),
             m(
                 f'input[type="time"][id="{field_}_date"][name="{field_}_date"]'
                 f'[value="{moment(self._dto[field_]).format("HH:mm")}"]'
-                f'.form-time-input.px-2.py-1.rounded-sm{classes}',
+                f'.form-time-input.px-2.py-1.rounded-sm.h-12{classes}',
                 config,
             ),
         ]
@@ -268,6 +270,9 @@ class Form:
         else:
             keys = self._dto.keys()
 
+        if 'exclude_fields' in self._config:
+            keys = [x for x in keys if x not in self._config['exclude_fields']]
+
         if 'fieldsets' in self._config:
             form_fields = []
             for fieldset in self._config['fieldsets']:
@@ -282,6 +287,6 @@ class Form:
             form_fields = list(map(self._field_group, keys))
 
         if 'nested' not in self._config or not self._config['nested']:
-            form_fields.append(m('input[type="submit"][value="Submit"]'))
+            form_fields.append(m('input[type="submit"][value="Submit"].hidden.md:block'))
 
         return self._form(config, form_fields)

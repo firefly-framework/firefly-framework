@@ -12,7 +12,7 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from firefly.ui.web.components.layouts.default import AppContainer, MenuItem
+from firefly.ui.web.components.layouts.default import menu_item, compose, default_layout
 from firefly.ui.web.js_libs.mithril import m
 from firefly.ui.web.plugins import add_route, add_menu_item
 from firefly.ui.web.polyfills import *  # __:skip
@@ -22,22 +22,12 @@ from firefly.ui.web.polyfills import *  # __:skip
 m.route.prefix = '/admin'
 
 
-def app(component):
-    return AppContainer(
-        component
-    )
-
-
-def home():
-    return window.ff_menu
-
-
 add_menu_item(m('div.ff-title', 'Kernel'), 0)
-add_menu_item(m(MenuItem('Configuration', icon='solid/cog')), 1)
-add_menu_item(m(MenuItem('System Health', icon='solid/heart')), 2)
-add_menu_item(m(MenuItem('Services', icon='solid/wifi')), 3)
+add_menu_item(m(menu_item('Configuration', icon='solid/cog')), 1)
+add_menu_item(m(menu_item('System Health', icon='solid/heart')), 2)
+add_menu_item(m(menu_item('Services', icon='solid/wifi')), 3)
 
-add_route('/', app(home()))
+add_route('/', compose(default_layout, lambda: window.ff_menu))
 
 m.route(document.body, '/', window.ff_routes)
 

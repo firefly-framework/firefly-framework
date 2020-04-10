@@ -14,10 +14,11 @@
 
 from firefly.ui.web.bus import bus
 from firefly.ui.web.components.firefly_logo import firefly_logo
-from firefly.ui.web.components.form import Form
+from firefly.ui.web.components.form import Form, form
 from firefly.ui.web.components.icon import Icon
 from firefly.ui.web.js_libs.mithril import m
 from firefly.ui.web.js_libs.inflection import inflection
+from firefly.ui.web.plugins import add_route
 from firefly.ui.web.polyfills import *  # __:skip
 
 import firefly as ff
@@ -26,8 +27,6 @@ import firefly as ff
 # __pragma__('opov')
 
 
-# def compose(layout, main, header=None, menu=None, drawer=None, footer=None):
-#     return lambda: {'view': layout(main, header, menu, drawer, footer)}
 def compose(layout, main, menu=None, header=None, drawer=None, footer=None):
     return lambda: {
         'view': layout(
@@ -54,7 +53,7 @@ def default_layout(main, menu, header, drawer, footer):
     return lambda: [
         m('div.app.flex.flex-col', [
             m(
-                'div.ff-header.fixed.flex.flex-row.justify-between.h-20.w-full.z-30.px-5.md:ml-20', [
+                'div.ff-header.fixed.flex.flex-row.justify-between.h-20.w-full.z-30.px-5.md:ml-20.md:pr-20', [
                     m('div.my-auto', m(firefly_logo)) if header is None else m(header),
                 ]
             ),
@@ -133,6 +132,48 @@ def button(data):
         return m(f'button[type="button"]{classes}.h-10.border.rounded.px-2.my-auto', config, content)
 
     return {'view': view}
+
+
+def crud(entity: str, cls, route_prefix: str, form_config: dict = None):
+    if '.' not in entity:
+        raise ff.LogicError('entity must be formatted as "<context>.<entity>"')
+    parts = entity.split('.')
+    context = parts[0]
+    entity = parts[1]
+
+    def crud_list():
+        entities = []
+
+        def set_entities(e):
+            nonlocal entities
+            entities = e
+        bus.request(f'{context}.{inflection.pluralize(entity)}').then(set_entities)
+
+        return {
+            'view': lambda: m('div', list(map(lambda e: e.to_dict(), entities)))
+        }
+
+    def crud_new():
+        return {
+            'view': lambda: m(form(cls(), form_config))
+        }
+
+    def redirect(return_route):
+        def _redirect():
+            m.route.set(return_route or '/')
+        return _redirect
+
+    add_route(route_prefix, compose(default_layout, crud_list, header=lambda: {
+        'view': lambda: [
+            m(
+                'div.w-8.invert-stroke.flex.flex-col.justify-center',
+                m(Icon('solid/arrow-left', onclick=redirect('/')))
+            ),
+            m(button({'content': 'New', 'left_icon': 'solid/plus', 'route': f'{route_prefix}/new'}))
+        ]
+    }))
+    
+    add_route(f'{route_prefix}/new', compose(default_layout, crud_new))
 
 
 class Crud:

@@ -12,9 +12,19 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from .framework_event import FrameworkEvent
-from ..entity.entity import required
+from firefly.domain import error
 
 
-class ApplicationServicesLoaded(FrameworkEvent):
-    context: str = required()
+class Agent:
+    def __call__(self, name: str):
+        def agent_wrapper(cls):
+            try:
+                cls.add_agent(name)
+            except AttributeError:
+                raise error.FrameworkError('@agent used on invalid target')
+            return cls
+
+        return agent_wrapper
+
+
+agent = Agent()

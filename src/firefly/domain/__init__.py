@@ -26,7 +26,7 @@ from .value_object import *
 # __pragma__('noskip')
 # __pragma__ ('ecom')
 """?
-from firefly.ui.web.polyfills import Command, Event, Query, Entity
+from firefly.presentation.web.polyfills import Command, Event, Query, Entity
 from firefly.domain.entity.entity import dict_, optional, Empty
 from firefly.domain.entity.messaging.message import Message
 from firefly.domain.error import MissingArgument, FrameworkError

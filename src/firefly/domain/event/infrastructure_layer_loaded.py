@@ -12,15 +12,8 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from .application_layer_loaded import ApplicationLayerLoaded
-from .container_initialized import ContainerInitialized
-from .containers_loaded import ContainersLoaded
-from .deployment_complete import DeploymentComplete
-from .deployment_created import DeploymentCreated
-from .deployment_initialized import DeploymentInitialized
-from .deployment_starting import DeploymentStarting
-from .domain_entities_loaded import DomainEntitiesLoaded
 from .framework_event import FrameworkEvent
-from .infrastructure_layer_loaded import InfrastructureLayerLoaded
-from .presentation_layer_loaded import PresentationLayerLoaded
-from .storage_configured import StorageConfigured
+
+
+class InfrastructureLayerLoaded(FrameworkEvent):
+    pass

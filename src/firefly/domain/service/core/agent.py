@@ -18,7 +18,7 @@ from abc import ABC, abstractmethod
 import firefly.domain as ffd
 
 
-class Agent(ABC):
+class Agent(ffd.MetaAware, ABC):
     @abstractmethod
     def handle(self, deployment: ffd.Deployment, **kwargs):
         pass

@@ -35,7 +35,7 @@ from typing import Any
 # __pragma__('noskip')
 # __pragma__ ('ecom')
 """?
-from firefly.ui.web.polyfills import ABC, abstractmethod, Any
+from firefly.presentation.web.polyfills import ABC, abstractmethod, Any
 ?"""
 # __pragma__ ('noecom')
 

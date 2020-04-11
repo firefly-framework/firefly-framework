@@ -24,7 +24,7 @@ from abc import ABC
 # __pragma__('noskip')
 # __pragma__ ('ecom')
 """?
-from firefly.ui.web.polyfills import is_dataclass, fields
+from firefly.presentation.web.polyfills import is_dataclass, fields
 ?"""
 # __pragma__ ('noecom')
 

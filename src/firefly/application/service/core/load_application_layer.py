@@ -22,11 +22,12 @@ import firefly.domain as ffd
 import inflection
 
 
-class LoadApplicationServices(ffd.ApplicationService):
+class LoadApplicationLayer(ffd.ApplicationService):
     _context_map: ffd.ContextMap = None
     _event_resolver: ffd.EventResolvingMiddleware = None
     _command_resolver: ffd.CommandResolvingMiddleware = None
     _query_resolver: ffd.QueryResolvingMiddleware = None
+    _agent_factory: ffd.AgentFactory = None
 
     def __call__(self, **kwargs):
         for context in self._context_map.contexts:
@@ -34,7 +35,7 @@ class LoadApplicationServices(ffd.ApplicationService):
                 self._register_service(cls, context)
                 self._add_endpoints(cls, context)
 
-        self.dispatch(ffd.ApplicationServicesLoaded())
+        self.dispatch(ffd.ApplicationLayerLoaded())
 
     def _register_service(self, cls: Type[ffd.ApplicationService], context: ffd.Context):
         if not cls.is_handler():
@@ -58,6 +59,9 @@ class LoadApplicationServices(ffd.ApplicationService):
                 cls.set_query(self._generate_message_name(cls))
             self._query_resolver.add_query_handler(cls, cls.get_query())
             context.query_handlers[cls] = cls.get_query()
+
+        if cls.is_agent():
+            self._agent_factory.register(cls.get_agent(), cls)
 
     def _add_endpoints(self, cls: Type[ffd.ApplicationService], context: ffd.Context):
         if not cls.has_endpoints():

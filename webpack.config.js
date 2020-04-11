@@ -110,7 +110,7 @@ module.exports = (env) => {
                   const fireflyPath = /Location:\s([^\n]+)/.exec(output)[1];
 
                   return {
-                    includePaths: [`${fireflyPath}/firefly/ui/web/styles`],
+                    includePaths: [`${fireflyPath}/firefly/presentation/web/styles`],
                   };
                 },
               },

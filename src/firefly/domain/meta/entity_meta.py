@@ -22,7 +22,7 @@ import firefly as ff
 # __pragma__('noskip')
 # __pragma__ ('ecom')
 """?
-from firefly.ui.web.polyfills import ABCMeta, ABC, dataclass, fields
+from firefly.presentation.web.polyfills import ABCMeta, ABC, dataclass, fields
 ?"""
 # __pragma__ ('noecom')
 

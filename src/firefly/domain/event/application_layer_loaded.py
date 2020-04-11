@@ -16,5 +16,5 @@ from .framework_event import FrameworkEvent
 from ..entity.entity import required
 
 
-class UiLoaded(FrameworkEvent):
-    pass
+class ApplicationLayerLoaded(FrameworkEvent):
+    context: str = required()

@@ -25,7 +25,7 @@ TypeOfQuery = Union[str, Type[Query]]
 # __pragma__('noskip')
 # __pragma__ ('ecom')
 """?
-from firefly.ui.web.polyfills import Entity, AggregateRoot, Message, Command, Query, Event, ValueObject
+from firefly.presentation.web.polyfills import Entity, AggregateRoot, Message, Command, Query, Event, ValueObject
 from firefly.domain.entity.entity import required, optional, id_, now, list_, dict_, today, hidden
 from firefly.domain.entity.validation.validators import IsType, HasLength, Matches, IsValidEmail, IsOneOf, IsDatetime, IsNumeric, IsFloat, IsInt, IsValidUrl
 from firefly.domain.error import MissingArgument, FrameworkError

@@ -23,7 +23,7 @@ from dataclasses import asdict, fields
 # __pragma__('noskip')
 # __pragma__('ecom')
 """?
-from firefly.ui.web.polyfills import uuid, asdict, fields
+from firefly.presentation.web.polyfills import uuid, asdict, fields
 ?"""
 # __pragma__('noecom')
 

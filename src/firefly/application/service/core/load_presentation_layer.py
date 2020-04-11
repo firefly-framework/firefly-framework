@@ -21,7 +21,7 @@ from typing import List
 import firefly.domain as ffd
 
 
-class LoadUi(ffd.ApplicationService):
+class LoadPresentationLayer(ffd.ApplicationService):
     _context_map: ffd.ContextMap = None
 
     def __call__(self, **kwargs):
@@ -29,7 +29,7 @@ class LoadUi(ffd.ApplicationService):
             for obj in self._load_module(context):
                 context.ports.append(obj)
 
-        self.dispatch(ffd.UiLoaded())
+        self.dispatch(ffd.PresentationLayerLoaded())
 
     @staticmethod
     def _load_module(context: ffd.Context) -> List[object]:

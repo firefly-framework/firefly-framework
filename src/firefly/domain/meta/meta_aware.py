@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 from abc import ABC
-from typing import List, Dict, Type
+from typing import List, Dict, Type, Optional
 
 import firefly as ff
 
@@ -25,6 +25,7 @@ class MetaAware(ABC):
     _command: Dict[Type[MetaAware], ff.TypeOfCommand] = {}
     _query: Dict[Type[MetaAware], ff.TypeOfQuery] = {}
     _endpoints: Dict[Type[MetaAware], List[ff.Endpoint]] = {}
+    _agent: Optional[str] = None
 
     @classmethod
     def is_handler(cls):
@@ -81,3 +82,15 @@ class MetaAware(ABC):
     @classmethod
     def get_endpoints(cls):
         return cls._endpoints[cls]
+
+    @classmethod
+    def is_agent(cls):
+        return cls._agent is not None
+
+    @classmethod
+    def set_agent(cls, agent: str):
+        cls._agent = agent
+
+    @classmethod
+    def get_agent(cls):
+        return cls._agent

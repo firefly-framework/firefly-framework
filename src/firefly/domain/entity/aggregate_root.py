@@ -22,7 +22,7 @@ from abc import ABC
 # __pragma__ ('ecom')
 
 """?
-from firefly.ui.web.polyfills import ABC
+from firefly.presentation.web.polyfills import ABC
 ?"""
 # __pragma__ ('noecom')
 

@@ -12,6 +12,7 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
+from .agent import agent
 from .cli import cli
 from .command_handler import command_handler
 from .on import on

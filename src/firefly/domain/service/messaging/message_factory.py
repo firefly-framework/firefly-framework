@@ -20,7 +20,7 @@ from typing import Union, TypeVar, Type, Tuple, get_type_hints
 # __pragma__('noskip')
 # __pragma__ ('ecom')
 """?
-from firefly.ui.web.polyfills import make_dataclass, fields, is_dataclass, asdict, Union, TypeVar, Type, Tuple, get_type_hints
+from firefly.presentation.web.polyfills import make_dataclass, fields, is_dataclass, asdict, Union, TypeVar, Type, Tuple, get_type_hints
 ?"""
 # __pragma__ ('noecom')
 

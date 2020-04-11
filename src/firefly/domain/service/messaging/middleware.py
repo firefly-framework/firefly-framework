@@ -21,7 +21,7 @@ from abc import ABC, abstractmethod
 # __pragma__('noskip')
 # __pragma__ ('ecom')
 """?
-from firefly.ui.web.polyfills import ABC, abstractmethod
+from firefly.presentation.web.polyfills import ABC, abstractmethod
 ?"""
 # __pragma__ ('noecom')
 

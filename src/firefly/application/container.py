@@ -36,10 +36,13 @@ class Container(di.Container):
     # System Bus
     event_resolver: ffd.EventResolvingMiddleware = lambda self: self.build(
         ffd.EventResolvingMiddleware, event_listeners={
-            ffd.ContainersLoaded: [ffa.LoadApplicationServices],
-            ffd.ApplicationServicesLoaded: [
+            ffd.ContainersLoaded: [
+                ffa.LoadInfrastructureLayer,
+                ffa.LoadApplicationLayer,
+            ],
+            ffd.ApplicationLayerLoaded: [
                 ffa.LoadEntities,
-                ffa.LoadUi
+                ffa.LoadPresentationLayer,
             ],
             ffd.DomainEntitiesLoaded: [ffa.AutoGenerateAggregateApis],
         }

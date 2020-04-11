@@ -12,6 +12,32 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from firefly.ui.web.js_libs.inflection import inflection
-from firefly.ui.web.js_libs.mithril import m, Stream
-from firefly.ui.web.js_libs.moment import moment
+from firefly.presentation.web.js_libs.mithril import m
+from firefly.presentation.web.polyfills import *  # __:skip
+
+# __pragma__('kwargs')
+
+os = None
+agent = navigator.userAgent or navigator.vendor or window.opera
+if 'windows phone' in agent:
+    os = 'windows'
+elif 'android' in agent:
+    os = 'android'
+elif 'iPad' in agent or 'iPhone' in agent or 'iPod' in agent:
+    os = 'ios'
+
+
+class Icon:
+    def __init__(self, name: str, onclick=None):
+        self._name = name
+        self._onclick = onclick
+
+    def view(self):
+        icon = None
+        name = self._name
+        # __pragma__('js', '{}', "icon = require(`@fortawesome/fontawesome-free/svgs/${py_name}.svg`);")
+
+        if self._onclick is not None:
+            return m('span.cursor-pointer', {'onclick': self._onclick}, m.trust(icon))
+
+        return m.trust(icon)

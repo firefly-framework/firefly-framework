@@ -13,10 +13,10 @@
 #  <http://www.gnu.org/licenses/>.
 from datetime import datetime, date
 
-from firefly.ui.web.js_libs.mithril import m
-from firefly.ui.web.js_libs.inflection import inflection
-from firefly.ui.web.js_libs.moment import moment
-from firefly.ui.web.polyfills import MissingType, ValueObject, Entity
+from firefly.presentation.web.js_libs.mithril import m
+from firefly.presentation.web.js_libs.inflection import inflection
+from firefly.presentation.web.js_libs.moment import moment
+from firefly.presentation.web.polyfills import MissingType, ValueObject, Entity
 from firefly import Validator, IsOneOf
 
 import firefly.domain as ffd

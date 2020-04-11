@@ -12,8 +12,8 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from firefly.ui.web.js_libs.mithril import m
-from firefly.ui.web.polyfills import *  # __:skip
+from firefly.presentation.web.js_libs.mithril import m
+from firefly.presentation.web.polyfills import *  # __:skip
 
 
 firefly_icon = {

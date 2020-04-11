@@ -14,8 +14,8 @@
 
 from typing import Callable
 
-from firefly.ui.web.polyfills import *  # __:skip
-from firefly.ui.web.js_libs.mithril import m
+from firefly.presentation.web.polyfills import *  # __:skip
+from firefly.presentation.web.js_libs.mithril import m
 
 from firefly import SystemBus, Middleware, EventBus, domain as ffd, CommandBus, QueryBus, MessageFactory
 

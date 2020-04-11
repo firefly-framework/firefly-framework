@@ -12,14 +12,14 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from firefly.ui.web.bus import bus
-from firefly.ui.web.components.firefly_logo import firefly_logo
-from firefly.ui.web.components.form import Form, form
-from firefly.ui.web.components.icon import Icon
-from firefly.ui.web.js_libs.mithril import m
-from firefly.ui.web.js_libs.inflection import inflection
-from firefly.ui.web.plugins import add_route
-from firefly.ui.web.polyfills import *  # __:skip
+from firefly.presentation.web.bus import bus
+from firefly.presentation.web.components.firefly_logo import firefly_logo
+from firefly.presentation.web.components.form import Form, form
+from firefly.presentation.web.components.icon import Icon
+from firefly.presentation.web.js_libs.mithril import m
+from firefly.presentation.web.js_libs.inflection import inflection
+from firefly.presentation.web.plugins import add_route
+from firefly.presentation.web.polyfills import *  # __:skip
 
 import firefly as ff
 

@@ -12,10 +12,10 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from firefly.ui.web.components.layouts.default import menu_item, compose, default_layout
-from firefly.ui.web.js_libs.mithril import m
-from firefly.ui.web.plugins import add_route, add_menu_item
-from firefly.ui.web.polyfills import *  # __:skip
+from firefly.presentation.web.components.layouts.default import menu_item, compose, default_layout
+from firefly.presentation.web.js_libs.mithril import m
+from firefly.presentation.web.plugins import add_route, add_menu_item
+from firefly.presentation.web.polyfills import *  # __:skip
 
 # __pragma__('opov')
 

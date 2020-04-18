@@ -12,25 +12,16 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations
+from typing import Any, List, Type
 
-import firefly.domain as ffd
+from firefly.domain.value_object import ValueObject
+from firefly.domain.entity.entity import optional, required, list_
 
 
-@ffd.cli('firefly deploy')
-@ffd.command_handler('firefly.Deploy')
-class Deploy(ffd.ApplicationService):
-    _config: ffd.Configuration = None
-    _agent_factory: ffd.AgentFactory = None
-
-    def __call__(self, env: str = 'local', **kwargs):
-        config = self._config.environments.get(env, {})
-        provider = config.get('provider', 'default')
-        deployment = ffd.Deployment(environment=env, provider=provider)
-        self.dispatch(ffd.DeploymentCreated(deployment=deployment))
-        self.dispatch(ffd.DeploymentInitialized(deployment=deployment))
-
-        agent = self._agent_factory(provider)
-        self.dispatch(ffd.DeploymentStarting(deployment=deployment))
-        agent.handle(deployment, **kwargs)
-        self.dispatch(ffd.DeploymentComplete(deployment=deployment))
+class CliArgument(ValueObject):
+    name: str = required()
+    type: Type = required()
+    default: Any = optional()
+    required: bool = optional(default=False)
+    help: str = optional()
+    alias: List[str] = list_()

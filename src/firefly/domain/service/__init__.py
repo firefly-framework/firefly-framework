@@ -13,6 +13,7 @@
 #  <http://www.gnu.org/licenses/>.
 
 from .annotation import *
+from .command_line import *
 from .content_negotiation import *
 from .core import *
 from .crud import *

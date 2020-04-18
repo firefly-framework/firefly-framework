@@ -19,6 +19,8 @@ from typing import List, Union
 import firefly as ff
 import firefly.domain as ffd
 import firefly_di as di
+from firefly.domain.entity.core.cli_app import CliApp
+from firefly.domain.entity.core.cli_endpoint import CliEndpoint
 
 from ..aggregate_root import AggregateRoot
 from ..entity import list_, hidden
@@ -96,3 +98,11 @@ class ContextMap(AggregateRoot):
         if isinstance(message, str):
             return message.split('.')[0]
         return message.get_context()
+
+    def get_cli_app(self, name: str):
+        app = CliApp(name=name)
+        for context in self.contexts:
+            for endpoint in context.endpoints:
+                if isinstance(endpoint, CliEndpoint) and endpoint.app == name:
+                    app.endpoints.append(endpoint)
+        return app

@@ -22,7 +22,7 @@ from ..entity import Entity, list_
 
 
 class ApiGateway(Entity):
-    endpoints: List[ffd.Endpoint] = list_()
+    endpoints: List[ffd.HttpEndpoint] = list_()
 
-    def add(self, endpoint: ffd.Endpoint):
+    def add(self, endpoint: ffd.HttpEndpoint):
         self.endpoints.append(endpoint)

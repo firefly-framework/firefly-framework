@@ -20,6 +20,7 @@ from typing import List, Type
 
 import firefly.domain as ffd
 import inflection
+import typing
 
 
 class LoadApplicationLayer(ffd.ApplicationService):
@@ -28,6 +29,7 @@ class LoadApplicationLayer(ffd.ApplicationService):
     _command_resolver: ffd.CommandResolvingMiddleware = None
     _query_resolver: ffd.QueryResolvingMiddleware = None
     _agent_factory: ffd.AgentFactory = None
+    _message_factory: ffd.MessageFactory = None
 
     def __call__(self, **kwargs):
         for context in self._context_map.contexts:
@@ -51,14 +53,20 @@ class LoadApplicationLayer(ffd.ApplicationService):
         if cls.is_command_handler():
             if cls.get_command() is None:
                 cls.set_command(self._generate_message_name(cls))
-            self._command_resolver.add_command_handler(cls, cls.get_command())
-            context.command_handlers[cls] = cls.get_command()
+            cmd = cls.get_command()
+            if isinstance(cmd, str):
+                cmd = self._message_factory.command_class(cmd, typing.get_type_hints(cls.__call__))
+            self._command_resolver.add_command_handler(cls, cmd)
+            context.command_handlers[cls] = cmd
 
         if cls.is_query_handler():
             if cls.get_query() is None:
                 cls.set_query(self._generate_message_name(cls))
-            self._query_resolver.add_query_handler(cls, cls.get_query())
-            context.query_handlers[cls] = cls.get_query()
+            query = cls.get_query()
+            if isinstance(query, str):
+                query = self._message_factory.command_class(query, typing.get_type_hints(cls.__call__))
+            self._query_resolver.add_query_handler(cls, query)
+            context.query_handlers[cls] = query
 
         if cls.is_agent():
             self._agent_factory.register(cls.get_agent(), cls)
@@ -73,7 +81,7 @@ class LoadApplicationLayer(ffd.ApplicationService):
                     endpoint.message = context.command_handlers[cls]
                 elif cls in context.query_handlers:
                     endpoint.message = context.query_handlers[cls]
-                else:
+                elif isinstance(endpoint, ffd.HttpEndpoint):
                     if endpoint.method.lower() == 'get':
                         cls.set_query(self._generate_message_name(cls))
                         endpoint.message = cls.get_query()

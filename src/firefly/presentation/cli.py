@@ -24,46 +24,48 @@ def main():
     from firefly.application import Container
     container = Container()
     container.kernel.boot()
-    app = App(container.context_map, container.system_bus, container.message_factory, 'firefly')
-    app.run()
-
-
-class CliOutput(ffd.Middleware):
-    def __call__(self, message: ffd.Message, next_: Callable, **kwargs) -> Optional[dict]:
-        print('CliOutput called...')
-        response = next_(message)
-
-        if isinstance(response, dict):
-            for title, data in response.items():
-                response[title].insert(0, ('Name', 'Type'))
-                print(SingleTable(data, title).table)
-        elif isinstance(response, list):
-            response.insert(0, ('Name', 'Type'))
-            print(SingleTable(response).table)
-
-        return response
-
-
-@ffd.cli(
-    app_name='firefly',
-    description='Firefly command line utilities',
-    middleware=[CliOutput()]
-)
-class FireflyCli:
-
-    @ffd.cli(
-        target='firefly.Deploy',
-        alias={
-            'env': 'e',
-        },
-        help_={
-            'env': 'The environment to deploy'
-        }
+    container.cli_executor.run(
+        container.context_map.get_cli_app('firefly')
     )
-    def deploy(self, message: ffd.Message, next_: Callable, **kwargs):
-        print('Deploy called...')
-        return next_(message)
+    # app = App(container.context_map, container.system_bus, container.message_factory, 'firefly')
+    # app.run()
 
-    # @ffd.cli(target='')
-    # def generate_typescript(self):
-    #     pass
+
+# class CliOutput(ffd.Middleware):
+#     def __call__(self, message: ffd.Message, next_: Callable, **kwargs) -> Optional[dict]:
+#         print('CliOutput called...')
+#         response = next_(message)
+#
+#         if isinstance(response, dict):
+#             for title, data in response.items():
+#                 response[title].insert(0, ('Name', 'Type'))
+#                 print(SingleTable(data, title).table)
+#         elif isinstance(response, list):
+#             response.insert(0, ('Name', 'Type'))
+#             print(SingleTable(response).table)
+#
+#         return response
+#
+#
+# @ffd.cli(
+#     app_name='firefly',
+#     description='Firefly command line utilities',
+#     middleware=[CliOutput()]
+# )
+# class FireflyCli:
+#
+#     @ffd.cli(
+#         target='firefly.Deploy',
+#         alias={
+#             'env': 'e',
+#         },
+#         help_={
+#             'env': 'The environment to deploy'
+#         }
+#     )
+#     def deploy(self):
+#         pass
+#
+#     # @ffd.cli(target='')
+#     # def generate_typescript(self):
+#     #     pass

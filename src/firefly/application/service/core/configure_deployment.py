@@ -41,7 +41,8 @@ class ConfigureDeployment(ffd.ApplicationService):
             ))
 
             for endpoint in context.endpoints:
-                gateway.endpoints.append(endpoint)
+                if isinstance(endpoint, ffd.HttpEndpoint):
+                    gateway.endpoints.append(endpoint)
 
         deployment.api_gateways.append(gateway)
 

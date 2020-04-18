@@ -14,22 +14,55 @@
 
 from __future__ import annotations
 
-from typing import Union, Type, List
+import inspect
 
-import firefly.domain as ffd
+import firefly as ff
+import firefly.domain.error as error
+from firefly.domain.entity.core.cli_argument import CliArgument
+from firefly.domain.entity.core.cli_endpoint import CliEndpoint
 
-NAME: str = '__ff_cli'
+
+class Cli:
+    def __call__(self, command: str, app: str = None, description: str = None, target: ff.TypeOfMessage = None,
+                 alias: dict = None, help_: str = None, args_help: dict = None):
+        def cli_wrapper(cls):
+            arguments = []
+
+            if inspect.isfunction(cls):
+                args = ff.get_arguments(cls)
+            else:
+                args = ff.get_arguments(cls.__call__)
+
+            for name, arg in args.items():
+                arguments.append(CliArgument(
+                    name=name,
+                    type=arg['type'],
+                    default=arg['default'] if arg['default'] is not inspect.Parameter.empty else None,
+                    required=arg['default'] is inspect.Parameter.empty,
+                    help=args_help[name] if isinstance(args_help, dict) and name in args_help else None,
+                    alias=alias[name] if isinstance(alias, dict) and name in alias else None
+                ))
+
+            endpoint = CliEndpoint(
+                app=app if app is not None else command.split(' ')[0],
+                command=command,
+                description=description,
+                message=target,
+                alias=alias,
+                help=help_,
+                arguments=arguments,
+            )
+
+            try:
+                cls.add_endpoint(endpoint)
+            except AttributeError:
+                if inspect.isfunction(cls):
+                    ff.add_endpoint(cls, endpoint)
+                else:
+                    raise error.FrameworkError('@cli used on invalid target')
+            return cls
+
+        return cli_wrapper
 
 
-def cli(target: Union[str, Type[ffd.ApplicationService]] = None, name: str = None, description: str = None,
-        alias: dict = None, help_: dict = None, middleware: List[ffd.Middleware] = None, app_name: str = None):
-    kwargs = locals()
-
-    def wrapper(cls):
-        if kwargs['name'] is None:
-            kwargs['name'] = cls.__name__
-        setattr(cls, NAME, kwargs)
-        cls.__ff_port = True
-        return cls
-
-    return wrapper
+cli = Cli()

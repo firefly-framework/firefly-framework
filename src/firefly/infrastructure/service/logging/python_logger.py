@@ -34,3 +34,21 @@ class PythonLogger(ffd.Logger):
 
     def error(self, message: str, *args, **kwargs):
         self.log.error(message, *args, **kwargs)
+
+    def set_level_to_fatal(self):
+        self.log.getLogger().setLevel(logging.FATAL)
+
+    def set_level_to_error(self):
+        self.log.getLogger().setLevel(logging.ERROR)
+
+    def set_level_to_warning(self):
+        self.log.getLogger().setLevel(logging.WARNING)
+
+    def set_level_to_info(self):
+        self.log.getLogger().setLevel(logging.INFO)
+
+    def set_level_to_debug(self):
+        self.log.getLogger().setLevel(logging.DEBUG)
+
+    def disable(self):
+        self.log.getLogger().setLevel(logging.NOTSET)

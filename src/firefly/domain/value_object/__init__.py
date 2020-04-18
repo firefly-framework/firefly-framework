@@ -21,5 +21,6 @@ from firefly.domain.meta.value_object_meta import ValueObjectMeta
 
 
 class ValueObject(metaclass=ValueObjectMeta):
-    pass
+    def __init__(self, **kwargs):
+        pass
 # __pragma__('noskip')

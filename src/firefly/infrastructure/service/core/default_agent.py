@@ -53,7 +53,7 @@ class DefaultAgent(ffd.Agent, ffd.LoggerAware):
 
     def _start_web_app(self):
         self._compile_web_app()
-        cmd = 'webpack-dev-server -w --mode development --env local'
+        cmd = './node_modules/.bin/webpack-dev-server -w --mode development --env local'
         webpack = subprocess.Popen(
             cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True, bufsize=0
         )

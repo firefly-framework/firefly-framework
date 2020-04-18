@@ -73,8 +73,9 @@ class Container(di.Container):
     ])
     system_bus: ffd.SystemBus = ffd.SystemBus
 
-    # Web Server
+    # API
     web_server: ffi.WebServer = ffi.WebServer
+    cli_executor: ffd.CliAppExecutor = ffi.ArgparseExecutor
 
     # Deployment
     agent_factory: ffd.AgentFactory = lambda self: self.build(ffd.AgentFactory, agents={

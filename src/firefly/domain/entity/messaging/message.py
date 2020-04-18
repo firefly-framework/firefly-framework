@@ -38,6 +38,9 @@ class Message(FireflyType, metaclass=MessageMeta):
     _id: str = None
     _context: str = None
 
+    def __init__(self, *args, **kwargs):
+        pass
+
     def get_parameters(self):
         return ffd.get_arguments(self.__init__)
 

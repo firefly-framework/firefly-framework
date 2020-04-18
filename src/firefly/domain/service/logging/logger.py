@@ -32,6 +32,30 @@ class Logger(ABC):
     def error(self, *args, **kwargs):
         pass
 
+    @abstractmethod
+    def set_level_to_fatal(self):
+        pass
+
+    @abstractmethod
+    def set_level_to_error(self):
+        pass
+
+    @abstractmethod
+    def set_level_to_warning(self):
+        pass
+
+    @abstractmethod
+    def set_level_to_info(self):
+        pass
+
+    @abstractmethod
+    def set_level_to_debug(self):
+        pass
+
+    @abstractmethod
+    def disable(self):
+        pass
+
 
 class LoggerAware:
     _logger: Logger = None

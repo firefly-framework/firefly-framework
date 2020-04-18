@@ -52,8 +52,14 @@ class MessageFactory:
     def event(self, name: str, data: dict = None):
         return self._build(name, data or {}, (ffd.Event,))
 
+    def event_class(self, name: str, fields_: dict = None):
+        return self._build_message_class(name, fields_, (ffd.Event,))
+
     def command(self, name: str, data: dict = None):
         return self._build(name, data or {}, (ffd.Command,))
+
+    def command_class(self, name: str, fields_: dict = None):
+        return self._build_message_class(name, fields_, (ffd.Command,))
 
     def query(self, name: str, criteria: ffd.BinaryOp = None, data: dict = None):
         data = data or {}
@@ -61,12 +67,13 @@ class MessageFactory:
             data['criteria'] = criteria.to_dict()
         return self._build(name, data, (ffd.Query,))
 
-    @staticmethod
-    def _build(name: str, data: dict, bases: tuple):
+    def query_class(self, name: str, fields_: dict = None):
+        return self._build_message_class(name, fields_, (ffd.Command,))
+
+    def _build(self, name: str, data: dict, bases: tuple):
         if '.' in name:
             context, name = name.split('.')
             data['_context'] = context
-        annotations_ = {k: type(v) for k, v in data.items()}
 
         # __pragma__ ('ecom')
         """?
@@ -74,8 +81,10 @@ class MessageFactory:
         ?"""
         # __pragma__ ('noecom')
 
-        # __pragma__('skip')
-        t = ffd.MessageMeta.__new__(ffd.MessageMeta, name, bases, data, fields_=data, annotations_=annotations_)
+        return self._build_message_class(name, {k: type(v) for k, v in data.items()}, bases)(**data)
 
-        return t(**data)
+    @staticmethod
+    def _build_message_class(name: str, fields_: dict, bases: tuple):
+        # __pragma__('skip')
+        return ffd.MessageMeta.__new__(ffd.MessageMeta, name, bases, fields_, fields_=fields_, annotations_=fields_)
         # __pragma__('noskip')

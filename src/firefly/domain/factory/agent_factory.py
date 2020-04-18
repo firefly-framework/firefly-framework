@@ -20,7 +20,7 @@ from firefly.domain.factory.factory import T
 
 from .factory import Factory
 from ..error import ConfigurationError
-from ..service.core.agent import Agent
+from firefly.domain.service.core.agent import Agent
 
 
 class AgentFactory(Factory[Agent]):

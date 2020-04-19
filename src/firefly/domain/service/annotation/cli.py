@@ -29,9 +29,9 @@ class Cli:
             arguments = []
 
             if inspect.isfunction(cls):
-                args = ff.get_arguments(cls)
+                args = ff.get_arguments(cls, none_type_unions=False)
             else:
-                args = ff.get_arguments(cls.__call__)
+                args = ff.get_arguments(cls.__call__, none_type_unions=False)
 
             for name, arg in args.items():
                 arguments.append(CliArgument(

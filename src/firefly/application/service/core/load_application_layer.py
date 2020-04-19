@@ -83,11 +83,15 @@ class LoadApplicationLayer(ffd.ApplicationService):
                     endpoint.message = context.query_handlers[cls]
                 elif isinstance(endpoint, ffd.HttpEndpoint):
                     if endpoint.method.lower() == 'get':
-                        cls.set_query(self._generate_message_name(cls))
+                        cls.set_query(self._generate_message(cls, 'query'))
                         endpoint.message = cls.get_query()
                     else:
-                        cls.set_command(self._generate_message_name(cls))
+                        cls.set_command(self._generate_message(cls, 'command'))
                         endpoint.message = cls.get_command()
+                    self._register_service(cls, context)
+                elif isinstance(endpoint, ffd.CliEndpoint):
+                    cls.set_command(self._generate_message(cls, 'command'))
+                    endpoint.message = cls.get_command()
                     self._register_service(cls, context)
 
             context.endpoints.append(endpoint)
@@ -112,3 +116,9 @@ class LoadApplicationLayer(ffd.ApplicationService):
     @staticmethod
     def _generate_message_name(cls):
         return f'{cls.get_class_context()}.{inflection.camelize(cls.__name__)}'
+
+    def _generate_message(self, cls, type_: str):
+        return getattr(self._message_factory, f'{type_}_class')(
+            self._generate_message_name(cls),
+            fields_=typing.get_type_hints(cls.__call__)
+        )

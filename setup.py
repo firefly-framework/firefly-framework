@@ -20,20 +20,6 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 
-# class PostDevelopCommand(develop):
-#     def run(self):
-#         import firefly as ff
-#         ff.container.kernel.install_extension()
-#         develop.run(self)
-#
-#
-# class PostInstallCommand(install):
-#     def run(self):
-#         import firefly as ff
-#         ff.container.kernel.install_extension()
-#         install.run(self)
-
-
 setuptools.setup(
     name='firefly-framework',
     version='0.1',

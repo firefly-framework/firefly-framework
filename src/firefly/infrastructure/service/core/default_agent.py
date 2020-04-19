@@ -34,7 +34,7 @@ class DefaultAgent(ffd.Agent, ffd.LoggerAware):
     def __init__(self):
         self._deployment: Optional[ffd.Deployment] = None
 
-    def handle(self, deployment: ffd.Deployment, start_server: bool = True, start_web_app: bool = True, **kwargs):
+    def __call__(self, deployment: ffd.Deployment, start_server: bool = True, start_web_app: bool = True, **kwargs):
         self._deployment = deployment
         self._web_server.add_extension(self._register_gateways)
 

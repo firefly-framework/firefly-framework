@@ -20,5 +20,5 @@ import firefly.domain as ffd
 
 class Agent(ffd.MetaAware, ABC):
     @abstractmethod
-    def handle(self, deployment: ffd.Deployment, **kwargs):
+    def __call__(self, deployment: ffd.Deployment, **kwargs):
         pass

@@ -13,6 +13,7 @@
 #  <http://www.gnu.org/licenses/>.
 
 from .api_gateway import ApiGateway
+from .cli_endpoint import CliEndpoint
 from .configuration import Configuration
 from .context import Context
 from .context_map import ContextMap

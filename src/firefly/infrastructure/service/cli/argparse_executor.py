@@ -58,7 +58,7 @@ class ArgparseExecutor(CliAppExecutor, SystemBusAware):
             return
 
         message = self._message_cache[target]
-        instance = message(build_argument_list(vars(args), message))
+        instance = message(**build_argument_list(vars(args), message))
         if issubclass(message, Command):
             self.invoke(instance)
         elif issubclass(message, Query):

@@ -12,12 +12,4 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from firefly.application import Container
-
-container = Container()
-
-print(
-    container.serializer.serialize(
-        container.message_factory.query('firefly.ContextMaps')
-    )
-)
+from .initialize_project import InitializeProject

@@ -32,5 +32,5 @@ class Deploy(ffd.ApplicationService):
 
         agent = self._agent_factory(provider)
         self.dispatch(ffd.DeploymentStarting(deployment=deployment))
-        agent.handle(deployment, **kwargs)
+        agent(deployment, **kwargs)
         self.dispatch(ffd.DeploymentComplete(deployment=deployment))

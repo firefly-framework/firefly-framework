@@ -18,13 +18,20 @@ import inspect
 import typing
 
 
-def get_arguments(c: callable) -> dict:
+def get_arguments(c: callable, none_type_unions: bool = True) -> dict:
     ret = {}
     sig = dict(inspect.signature(c).parameters)
 
     for k, v in typing.get_type_hints(c).items():
         if k == 'return':
             continue
+
+        if none_type_unions is False:
+            try:
+                if len(v.__args__) == 2 and ('NoneType' in str(v.__args__[0]) or 'NoneType' in str(v.__args__[1])):
+                    v = v.__args__[0] if 'NoneType' in str(v.__args__[1]) else v.__args__[1]
+            except AttributeError:
+                pass
 
         ret[k] = {
             'type': v,

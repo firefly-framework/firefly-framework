@@ -14,3 +14,4 @@
 
 from .core import *
 from .deployment import *
+from .utilities import *

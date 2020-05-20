@@ -44,7 +44,7 @@ setuptools.setup(
         'python-dotenv>=0.10.3',
         'pyyaml>=5.1.1',
         'terminaltables>=3.1.0',
-        'transcrypt>=3.7.16',
+        # 'transcrypt>=3.7.16',
         'websockets>=8.0.2',
         'firefly-dependency-injection>=0.1',
     ],

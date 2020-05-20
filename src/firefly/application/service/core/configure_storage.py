@@ -14,8 +14,11 @@
 
 from __future__ import annotations
 
+import importlib
+import inspect
+
 import firefly.domain as ffd
-import firefly.infrastructure as ffi
+import inflection
 
 
 @ffd.on(ffd.DomainEntitiesLoaded)
@@ -25,73 +28,66 @@ class ConfigureStorage(ffd.ApplicationService):
     _registry: ffd.Registry = None
     _serializer: ffd.Serializer = None
 
-    def __call__(self, context: str, **kwargs):
-        context = self._context_map.get_context(context)
-        config = context.config.get('storage')
-        if config is None:
-            return
+    def __init__(self):
+        self._connection_factories = {}
+        self._repository_factories = {}
 
-        self._configure_connections(config.get('connections', {}), context)
-        self._configure_repositories(config, context)
+    def __call__(self, **kwargs):
+        self._load_factories()
+        connections = {}
+        factories = {}
+
+        for context in self._context_map.contexts:
+            storage = context.config.get('storage', {})
+            if 'services' in storage:
+                for name, config in storage.get('services').items():
+                    if name not in self._connection_factories:
+                        raise ffd.ConfigurationError(f"No ConfigurationFactory configured for '{name}'")
+                    connections[name] = context.container.build(self._connection_factories[name])(
+                        **(config.get('connection') or {})
+                    )
+
+        for context in self._context_map.contexts:
+            storage = context.config.get('storage', {})
+            if 'services' in storage:
+                for name, config in storage.get('services').items():
+                    if name not in self._repository_factories:
+                        raise ffd.ConfigurationError(f"No RepositoryFactory configured for '{name}'")
+                    factory = context.container.autowire(self._repository_factories[name])
+                    try:
+                        factories[name] = factory(connections[name], **(config.get('repository') or {}))
+                    except TypeError as e:
+                        if '__init__() takes exactly one argument' in str(e):
+                            raise ffd.FrameworkError(f"{factory.__name__}.__init__() must take a connection as "
+                                                     f"the first argument")
+                        raise e
+
+        for context in self._context_map.contexts:
+            storage = context.config.get('storage', {})
+            if 'aggregates' in storage:
+                for entity, service in storage.get('aggregates').items():
+                    if not entity.startswith(context.name):
+                        entity = f'{context.name}.{entity}'
+                    entity = ffd.load_class(entity)
+                    self._registry.register_factory(entity, factories[service])
 
         # TODO Get persistence working in these core services.
         # self._registry(ffd.ContextMap).add(self._context_map)
 
-        self.dispatch(ffd.StorageConfigured(context=context.name))
+        self.dispatch(ffd.StorageConfigured())
 
-    def _configure_connections(self, config: dict, context: ffd.Context):
-        container = context.container.__class__
-        if not hasattr(container, '__annotations__'):
-            container.__annotations__ = {}
-        interface_registry = ffi.DbApiStorageInterfaceRegistry()
-        container.db_api_interface_registry = lambda self: interface_registry
-        container.__annotations__['db_api_interface_registry'] = ffi.DbApiStorageInterfaceRegistry
-        context.container.clear_annotation_cache()
-
-        for name, c in config.items():
+    def _load_factories(self):
+        for context in self._context_map.contexts:
+            module_name = context.config.get('infrastructure_module', '{}.infrastructure')
             try:
-                type_ = c['type']
-            except KeyError:
-                raise ffd.ConfigurationError(f'type is a required field for connection {name}')
-
-            if type_ == 'db_api':
-                interface_registry.add(name, self._build_storage_interface(name, c))
-
-    def _build_storage_interface(self, name: str, config: dict):
-        try:
-            driver = config['driver']
-        except KeyError:
-            raise ffd.ConfigurationError(f'driver is required in db_api connection {name}')
-
-        if driver == 'sqlite':
-            return ffi.SqliteStorageInterface(name, config, self._serializer)
-
-    def _configure_repositories(self, config: dict, context: ffd.Context):
-        container = context.container.__class__
-        container.db_api_object_repository_factory = ffi.DbApiObjectRepositoryFactory
-        container.__annotations__['db_api_object_repository_factory'] = ffi.DbApiObjectRepositoryFactory
-        factory: ffi.DbApiObjectRepositoryFactory = context.container.db_api_object_repository_factory
-        context.container.clear_annotation_cache()
-
-        types = {}
-        for k, v in config.items():
-            if k == 'connections':
+                module = importlib.import_module(module_name.format(context.name))
+            except ModuleNotFoundError:
                 continue
-            if k == 'default':
-                if v == 'memory':
-                    self._registry.set_default_factory(context.name, ffi.MemoryRepositoryFactory())
-                else:
-                    factory.set_default_storage_interface(v)
-                    self._registry.set_default_factory(context.name, factory)
-                continue
-            if v not in types:
-                types[v] = []
-            types[v].append(ffd.load_class(f'{context.name}.{k}'))
 
-        for interface_name, entity_types in types.items():
-            for entity_type in entity_types:
-                if interface_name == 'memory':
-                    self._registry.register_factory(entity_type, ffi.MemoryRepositoryFactory())
-                else:
-                    factory.register_storage_interface(entity_type, interface_name)
-                    self._registry.register_factory(entity_type, factory)
+            for k, v in module.__dict__.items():
+                if not inspect.isclass(v):
+                    continue
+                if issubclass(v, ffd.ConnectionFactory):
+                    self._connection_factories[inflection.underscore(v.__name__.replace('ConnectionFactory', ''))] = v
+                elif issubclass(v, ffd.RepositoryFactory):
+                    self._repository_factories[inflection.underscore(v.__name__.replace('RepositoryFactory', ''))] = v

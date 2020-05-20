@@ -12,14 +12,12 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from typing import Callable, Optional
+from __future__ import annotations
 
-from firefly.infrastructure.cli.app import App
-
-import firefly.domain as ffd
-from terminaltables import SingleTable
+from firefly.infrastructure import set_env
 
 
+@set_env
 def main():
     from firefly.application import Container
     container = Container()
@@ -27,8 +25,6 @@ def main():
     container.cli_executor.run(
         container.context_map.get_cli_app('firefly')
     )
-    # app = App(container.context_map, container.system_bus, container.message_factory, 'firefly')
-    # app.run()
 
 
 # class CliOutput(ffd.Middleware):

@@ -27,14 +27,14 @@ import firefly.domain as ffd
 import firefly.infrastructure as ffi
 
 
-class DefaultAgent(ffd.Agent, ffd.LoggerAware):
+class DefaultAgent(ffd.ApplicationService, ffd.LoggerAware):
     _web_server: ffi.WebServer = None
     _config: ffd.Configuration = None
 
     def __init__(self):
         self._deployment: Optional[ffd.Deployment] = None
 
-    def __call__(self, deployment: ffd.Deployment, start_server: bool = True, start_web_app: bool = True, **kwargs):
+    def __call__(self, deployment: ffd.Deployment, start_server: bool = True, start_web_app: bool = False, **kwargs):
         self._deployment = deployment
         self._web_server.add_extension(self._register_gateways)
 

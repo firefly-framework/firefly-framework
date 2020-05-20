@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from typing import List
+from typing import List, Callable, Optional
 
 import firefly.domain as ffd
 import firefly.infrastructure as ffi
@@ -28,17 +28,11 @@ class DbApiObjectRepository(ffd.Repository[T]):
         self._table = inflection.tableize(self._entity_type.__name__)
         self._interface = interface
 
-    def all(self) -> List[T]:
-        return self._interface.all(self._entity_type)
-
     def add(self, entity: T):
         self._interface.add(entity)
 
     def remove(self, entity: T):
         self._interface.remove(entity)
-
-    def update(self, entity: T):
-        self._interface.update(entity)
 
     def find(self, uuid) -> T:
         return self._interface.find(uuid, self._entity_type)
@@ -48,3 +42,15 @@ class DbApiObjectRepository(ffd.Repository[T]):
 
     def find_one_matching(self, criteria: ffd.BinaryOp) -> T:
         return self._interface.all(self._entity_type, criteria=criteria, limit=1)
+
+    def filter(self, cb: Callable) -> List[T]:
+        pass
+
+    def reduce(self, cb: Callable) -> Optional[T]:
+        pass
+
+    def __iter__(self):
+        pass
+
+    def __next__(self):
+        pass

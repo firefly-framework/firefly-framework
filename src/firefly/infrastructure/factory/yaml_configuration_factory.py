@@ -14,8 +14,10 @@
 
 from __future__ import annotations
 
+import importlib
 import os
 import re
+from pprint import pprint
 
 import firefly.domain as ffd
 import yaml
@@ -25,19 +27,30 @@ from firefly.domain.entity.core.configuration import Configuration
 
 class YamlConfigurationFactory(ffd.ConfigurationFactory):
     def __call__(self) -> Configuration:
-        return Configuration(_config=self._load_config())
+        configuration = Configuration(_config=self._load_config())
+        for context, config in configuration.contexts.items():
+            module = importlib.import_module(context)
+            if module.__file__ is None:
+                continue
+            with open(f'{os.path.dirname(module.__file__)}/../../firefly.yml', 'r') as fp:
+                context_config = self._parse(fp.read())
+            configuration.contexts[context] = ffd.merge(
+                context_config['contexts'].get(context),
+                configuration.contexts[context] or {},
+            )
+        return configuration
 
     @staticmethod
     def _parse(data: str):
-        path_matcher = re.compile(r'\$\{([^}^{]+)\}')
+        path_matcher = re.compile(r'.*(\$\{([^}^{]+)\}).*')
 
         def path_constructor(loader, node):
             value = node.value
             match = path_matcher.match(value)
-            env_var = match.group()[2:-1]
+            env_var = match.groups()[1]
             if env_var not in os.environ:
                 raise ffd.ConfigurationError(f'Environment variable {env_var} is used in config, but is not set')
-            return os.environ.get(env_var) + value[match.end():1]
+            return str(value).replace(f'${{{env_var}}}', os.environ.get(env_var))
 
         yaml.add_implicit_resolver('!path', path_matcher, None, yaml.SafeLoader)
         yaml.add_constructor('!path', path_constructor, yaml.SafeLoader)
@@ -59,9 +72,9 @@ class YamlConfigurationFactory(ffd.ConfigurationFactory):
         return config
 
     def _load_environment_vars(self):
-        stage = os.environ.get('STAGE', 'local')
+        env = os.environ.get('ENV', 'local')
         dir_ = self._move_to_project_root()
-        load_dotenv(dotenv_path=os.path.join(os.getcwd(), f'.env.{stage}'))
+        load_dotenv(dotenv_path=os.path.join(os.getcwd(), f'.env.{env}'))
         os.chdir(dir_)
 
     @staticmethod

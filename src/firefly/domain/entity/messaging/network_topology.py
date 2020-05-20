@@ -24,4 +24,4 @@ from ..entity import id_, list_
 
 class NetworkTopology(AggregateRoot):
     id: str = id_()
-    forwarders: List[ffd.Forwarder] = list_()
+    topics: List[ffd.Topic] = list_()

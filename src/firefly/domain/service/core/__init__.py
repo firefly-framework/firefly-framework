@@ -12,7 +12,7 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from .agent import Agent
+# from .agent import Agent
 from .application_service import ApplicationService
 from .device import Device
 from .domain_service import DomainService

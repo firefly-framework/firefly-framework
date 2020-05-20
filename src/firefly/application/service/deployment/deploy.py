@@ -14,6 +14,8 @@
 
 from __future__ import annotations
 
+import os
+
 import firefly.domain as ffd
 
 
@@ -24,9 +26,10 @@ class Deploy(ffd.ApplicationService):
     _agent_factory: ffd.AgentFactory = None
 
     def __call__(self, env: str = 'local', **kwargs):
-        config = self._config.environments.get(env, {})
-        provider = config.get('provider', 'default')
-        deployment = ffd.Deployment(environment=env, provider=provider)
+        provider = self._config.all.get('provider', 'default')
+        if env == 'local':
+            provider = 'default'
+        deployment = ffd.Deployment(environment=env, provider=provider, project=self._config.all.get('project'))
         self.dispatch(ffd.DeploymentCreated(deployment=deployment))
         self.dispatch(ffd.DeploymentInitialized(deployment=deployment))
 

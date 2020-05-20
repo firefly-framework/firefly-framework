@@ -152,3 +152,20 @@ def is_command_handler(cls):
 def is_query_handler(cls):
     check_for_meta(cls)
     return cls.__FIREFLY__.is_query_handler()
+
+
+def merge(a, b, path=None):
+    if path is None:
+        path = []
+    for key in b:
+        if key in a:
+            if isinstance(a[key], dict) and isinstance(b[key], dict):
+                merge(a[key], b[key], path + [str(key)])
+            elif a[key] == b[key]:
+                pass
+            else:
+                a[key] = b[key]
+                # raise Exception('Conflict at %s' % '.'.join(path + [str(key)]))
+        else:
+            a[key] = b[key]
+    return a

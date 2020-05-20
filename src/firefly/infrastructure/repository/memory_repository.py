@@ -14,7 +14,8 @@
 
 from __future__ import annotations
 
-from typing import List
+from functools import reduce
+from typing import List, Callable, Optional, Union
 
 import firefly.domain as ffd
 from firefly.domain.repository.repository import T
@@ -23,9 +24,7 @@ from firefly.domain.repository.repository import T
 class MemoryRepository(ffd.Repository[T]):
     def __init__(self):
         self.entities = []
-
-    def all(self) -> List[T]:
-        return self.entities
+        self._index = 0
 
     def add(self, entity: T):
         self.entities.append(entity)
@@ -33,26 +32,33 @@ class MemoryRepository(ffd.Repository[T]):
     def remove(self, entity: T):
         self.entities.remove(entity)
 
-    def update(self, entity: T):
-        self.remove(entity)
-        self.add(entity)
+    def find(self, exp: Union[str, Callable]) -> Optional[T]:
+        if isinstance(exp, str):
+            for e in self.entities:
+                if e.id_value() == exp:
+                    return e
+        else:
+            criteria = self._get_search_criteria(exp)
+            results = list(filter(lambda i: criteria.matches(i), self.entities))
+            if len(results) > 1:
+                raise ffd.MultipleResultsFound()
+            if len(results) == 0:
+                raise ffd.NoResultFound()
+            return results[0]
 
-    def find(self, uuid) -> T:
-        for e in self.entities:
-            if e.id_value() == uuid:
-                return e
+    def filter(self, cb: Callable) -> List[T]:
+        criteria = self._get_search_criteria(cb)
+        return list(filter(lambda i: criteria.matches(i), self.entities))
 
-    def find_all_matching(self, criteria: ffd.BinaryOp) -> List[T]:
-        ret = []
-        for entity in self.entities:
-            if criteria.matches(entity):
-                ret.append(entity)
+    def reduce(self, cb: Callable) -> Optional[T]:
+        return reduce(cb, self.entities)
 
-        return ret
+    def __iter__(self):
+        return self
 
-    def find_one_matching(self, criteria: ffd.BinaryOp) -> T:
-        for entity in self.entities:
-            if criteria.matches(entity):
-                return entity
-
-        return None
+    def __next__(self):
+        if self._index >= len(self.entities):
+            self._index = 0
+            raise StopIteration()
+        self._index += 1
+        return self.entities[self._index - 1]

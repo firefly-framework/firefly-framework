@@ -14,24 +14,10 @@
 
 from __future__ import annotations
 
-from typing import Dict
-
-import firefly_di as di
-from firefly.domain.factory.factory import T
-from firefly.domain.service.core.agent import Agent
-
-from .factory import Factory
-from ..error import ConfigurationError
+from abc import ABC, abstractmethod
 
 
-class AgentFactory(Factory[Agent]):
-    def __init__(self, agents: Dict[str, Agent]):
-        self._agents = agents
-
-    def __call__(self, provider: str) -> T:
-        if provider not in self._agents:
-            raise ConfigurationError(f'No agent registered for provider "{provider}"')
-        return self._agents[provider]
-
-    def register(self, provider: str, agent: Agent):
-        self._agents[provider] = agent
+class ConnectionFactory(ABC):
+    @abstractmethod
+    def __call__(self, **kwargs):
+        pass

@@ -26,15 +26,15 @@ from firefly.presentation.web.polyfills import ABC
 ?"""
 # __pragma__ ('noecom')
 
-from firefly.domain.entity.entity import Entity
+from firefly.domain.entity.entity import Entity, hidden
 from firefly.domain.meta.meta_aware import MetaAware
 
 
 class AggregateRoot(Entity, MetaAware, ABC):
     # __pragma__('skip')
-    _create_on: ff.TypeOfEvent = None
-    _delete_on: ff.TypeOfEvent = None
-    _update_on: ff.TypeOfEvent = None
+    _create_on: ff.TypeOfEvent = hidden()
+    _delete_on: ff.TypeOfEvent = hidden()
+    _update_on: ff.TypeOfEvent = hidden()
 
     @classmethod
     def get_create_on(cls):

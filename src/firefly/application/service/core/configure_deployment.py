@@ -23,38 +23,40 @@ class ConfigureDeployment(ffd.ApplicationService):
     _context_map: ffd.ContextMap = None
 
     def __call__(self, deployment: ffd.Deployment):
-        self._add_gateways(deployment)
-        self._add_message_queues(deployment)
+        for context in self._context_map.contexts:
+            if context.config.get('is_extension', False):
+                continue
+            service = ffd.Service(name=context.name)
+            self._add_gateways(service, context)
+            self._add_message_queues(service, context)
+            deployment.services.append(service)
 
-    def _add_gateways(self, deployment: ffd.Deployment):
+    @staticmethod
+    def _add_gateways(service: ffd.Service, context: ffd.Context):
         gateway = ffd.ApiGateway()
+        name = inflection.dasherize(context.name)
+        gateway.endpoints.append(ffd.HttpEndpoint(
+            route=f'/{name}',
+            method='POST'
+        ))
+        gateway.endpoints.append(ffd.HttpEndpoint(
+            route=f'/{name}',
+            method='GET'
+        ))
 
-        for context in self._context_map.contexts:
-            name = inflection.dasherize(context.name)
-            gateway.endpoints.append(ffd.HttpEndpoint(
-                route=f'/{name}',
-                method='POST'
-            ))
-            gateway.endpoints.append(ffd.HttpEndpoint(
-                route=f'/{name}',
-                method='GET'
-            ))
+        for endpoint in context.endpoints:
+            if isinstance(endpoint, ffd.HttpEndpoint):
+                gateway.endpoints.append(endpoint)
 
-            for endpoint in context.endpoints:
-                if isinstance(endpoint, ffd.HttpEndpoint):
-                    gateway.endpoints.append(endpoint)
+        service.api_gateways.append(gateway)
 
-        deployment.api_gateways.append(gateway)
-
-    def _add_message_queues(self, deployment: ffd.Deployment):
+    def _add_message_queues(self, service: ffd.Service, context: ffd.Context):
         top = ffd.NetworkTopology()
+        camel = inflection.camelize(context.name)
+        subscribers = self._get_subscribers(context)
+        top.topics.append(ffd.Topic(name=f'{camel}Topic', subscribers=subscribers))
 
-        for context in self._context_map.contexts:
-            camel = inflection.camelize(context.name)
-            subscribers = self._get_subscribers(context)
-            top.forwarders.append(ffd.Forwarder(name=f'{camel}Forwarder', subscribers=subscribers))
-
-        deployment.network_topology = top
+        service.network_topology = top
 
     def _get_subscribers(self, context: ffd.Context):
         ret = {}

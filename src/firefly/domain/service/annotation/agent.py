@@ -19,7 +19,7 @@ class Agent:
     def __call__(self, name: str):
         def agent_wrapper(cls):
             try:
-                cls.add_agent(name)
+                cls.set_agent(name)
             except AttributeError:
                 raise error.FrameworkError('@agent used on invalid target')
             return cls

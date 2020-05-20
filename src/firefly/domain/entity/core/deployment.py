@@ -24,5 +24,5 @@ from ..entity import list_, required
 class Deployment(AggregateRoot):
     environment: str = required()
     provider: str = required()
-    api_gateways: List[ffd.ApiGateway] = list_()
-    network_topology: ffd.NetworkTopology = None
+    project: str = required()
+    services: List[ffd.Service] = list_()

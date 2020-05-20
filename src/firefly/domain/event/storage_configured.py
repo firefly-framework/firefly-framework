@@ -17,4 +17,4 @@ from ..entity.entity import required
 
 
 class StorageConfigured(FrameworkEvent):
-    context: str = required()
+    pass

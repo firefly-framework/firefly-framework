@@ -29,6 +29,7 @@ class HtmlConverter(ffd.ContentConverter):
         self._environments = {}
 
         for name, context in config.contexts.items():
+            context = context or {}
             self._environments[name] = Environment(
                 loader=TemplateLoader(name, context),
                 autoescape=select_autoescape(

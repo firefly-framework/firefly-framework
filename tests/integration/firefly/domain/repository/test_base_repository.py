@@ -14,44 +14,62 @@
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
-from typing import List, TypeVar, Generic, Union, Callable, Optional
+from typing import Callable, Optional, List, Union
 
-import firefly.domain as ffd
-
-from ..value_object import GenericBase
-
-T = TypeVar('T')
+import firefly as ff
+from firefly.domain.repository.repository import T
 
 
-class Repository(Generic[T], GenericBase, ABC):
-    @abstractmethod
+class Widget(ff.AggregateRoot):
+    id: str = ff.id_()
+    name: str = ff.optional()
+    value: int = ff.optional()
+
+
+class WidgetRepository(ff.Repository[Widget]):
+    def __init__(self, foos):
+        self._foos = foos
+        self._index = 0
+
     def add(self, entity: T):
         pass
 
-    @abstractmethod
     def remove(self, entity: T):
         pass
 
-    @abstractmethod
     def find(self, exp: Union[str, Callable]) -> Optional[T]:
         pass
 
-    @abstractmethod
     def filter(self, cb: Callable) -> List[T]:
-        pass
+        criteria = self._get_search_criteria(cb)
+        return list(filter(lambda i: criteria.matches(i), self._foos))
 
-    @abstractmethod
     def reduce(self, cb: Callable) -> Optional[T]:
         pass
 
-    @abstractmethod
     def __iter__(self):
-        pass
+        return self
 
-    @abstractmethod
     def __next__(self):
-        pass
+        if self._index >= len(self._foos):
+            self._index = 0
+            raise StopIteration()
+        self._index += 1
+        return self._foos[self._index - 1]
 
-    def _get_search_criteria(self, cb: Callable) -> ffd.BinaryOp:
-        return cb(ffd.EntityAttributeSpy(self._type()))
+
+def test_search_criteria():
+    widgets = WidgetRepository([
+        Widget(name='widget1', value=1),
+        Widget(name='widget2', value=2),
+        Widget(name='widget3', value=3),
+    ])
+
+    assert len(widgets.filter(lambda w: w.name == 'widget2')) == 1
+    assert len(widgets.filter(lambda w: w.name.startswith('widget'))) == 3
+    assert len(widgets.filter(lambda w: w.name.startswith('widget') and w.value == 2)) == 1
+
+    lst = []
+    for widget in widgets:
+        lst.append(widget)
+    assert len(lst) == 3

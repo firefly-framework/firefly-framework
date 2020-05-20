@@ -26,7 +26,7 @@ class LoadEntities(ffd.ApplicationService):
     def __call__(self, **kwargs):
         for context in self._context_map.contexts:
             self._load_module(context)
-            self.dispatch(ffd.DomainEntitiesLoaded(context=context.name))
+        self.dispatch(ffd.DomainEntitiesLoaded())
 
     @staticmethod
     def _load_module(context: ffd.Context):

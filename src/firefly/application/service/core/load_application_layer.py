@@ -40,6 +40,9 @@ class LoadApplicationLayer(ffd.ApplicationService):
         self.dispatch(ffd.ApplicationLayerLoaded())
 
     def _register_service(self, cls: Type[ffd.ApplicationService], context: ffd.Context):
+        if cls.is_agent():
+            self._agent_factory.register(cls.get_agent(), context.container.build(cls))
+
         if not cls.is_handler():
             return
 
@@ -67,9 +70,6 @@ class LoadApplicationLayer(ffd.ApplicationService):
                 query = self._message_factory.command_class(query, typing.get_type_hints(cls.__call__))
             self._query_resolver.add_query_handler(cls, query)
             context.query_handlers[cls] = query
-
-        if cls.is_agent():
-            self._agent_factory.register(cls.get_agent(), cls)
 
     def _add_endpoints(self, cls: Type[ffd.ApplicationService], context: ffd.Context):
         if not cls.has_endpoints():

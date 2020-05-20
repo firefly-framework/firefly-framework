@@ -33,8 +33,9 @@ class LoadInfrastructureLayer(ffd.ApplicationService):
         self.dispatch(ffd.InfrastructureLayerLoaded())
 
     def _register_object(self, cls: Type[ffd.MetaAware], context: ffd.Context):
-        if issubclass(cls, ffd.Agent) and cls.is_agent():
-            self._agent_factory.register(cls.get_agent(), context.container.build(cls))
+        pass
+        # if issubclass(cls, ffd.Agent) and cls.is_agent():
+        #     self._agent_factory.register(cls.get_agent(), context.container.build(cls))
 
     @staticmethod
     def _load_module(context: ffd.Context) -> List[Type[ffd.MetaAware]]:

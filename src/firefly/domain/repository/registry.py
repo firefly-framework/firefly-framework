@@ -50,8 +50,8 @@ class Registry:
 
         return self._cache[entity]
 
-    def register_factory(self, types: Union[Type[AR], Tuple[Type[AR]]], factory: ffd.RepositoryFactory):
-        self._factories[types] = factory
+    def register_factory(self, type_: Type[AR], factory: ffd.RepositoryFactory):
+        self._factories[type_] = factory
 
     def set_default_factory(self, context: str, factory: ffd.RepositoryFactory):
         self._default_factory[context] = factory

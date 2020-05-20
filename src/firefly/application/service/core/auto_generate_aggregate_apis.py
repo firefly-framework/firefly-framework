@@ -35,13 +35,10 @@ class AutoGenerateAggregateApis(ApplicationService, LoggerAware):
     _event_resolving_middleware: ff.EventResolvingMiddleware = None
     _query_resolving_middleware: ff.QueryResolvingMiddleware = None
 
-    def __call__(self, context: str, **kwargs):
-        ctx = self._context_map.get_context(context)
-        if ctx is None:
-            return
-
-        for entity in ctx.entities:
-            self._process_entity(ctx, entity)
+    def __call__(self, **kwargs):
+        for context in self._context_map.contexts:
+            for entity in context.entities:
+                self._process_entity(context, entity)
 
     def _process_entity(self, context: ff.Context, entity: type):
         if not issubclass(entity, ff.AggregateRoot) or entity == ff.AggregateRoot:

@@ -19,6 +19,10 @@ class RepositoryError(Exception):
     pass
 
 
+class InvalidOperand(RepositoryError):
+    pass
+
+
 class NoResultFound(RepositoryError):
     pass
 

@@ -16,10 +16,12 @@ from __future__ import annotations
 
 from typing import List
 
-from .queue import Queue
-from ..entity import Entity, id_, list_
+import firefly.domain as ffd
+
+from ..entity import Entity, list_, required
 
 
-class Forwarder(Entity):
-    name: str = id_()
-    subscribers: List[Queue] = list_()
+class Service(Entity):
+    name: str = required(str)
+    api_gateways: List[ffd.ApiGateway] = list_()
+    network_topology: ffd.NetworkTopology = None

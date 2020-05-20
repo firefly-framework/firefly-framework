@@ -14,9 +14,20 @@
 
 from __future__ import annotations
 
-from typing import Union, List
+from typing import Union, List, Type
 
 import firefly.domain as ffd
+
+
+class EntityAttributeSpy:
+    def __init__(self, type_: Type[ffd.ValueObject]):
+        self._type = type_
+
+    def __getattribute__(self, item):
+        t = object.__getattribute__(self, '_type')
+        if not hasattr(t, item):
+            raise AttributeError(f"'{t.__name__}' object has no attribute '{item}'")
+        return Attr(item)
 
 
 class AttributeString(str):
@@ -27,6 +38,12 @@ class Attr:
     def __init__(self, attr: str, default=None):
         self.attr = AttributeString(attr)
         self.default = default
+
+    def __getattribute__(self, item):
+        try:
+            return object.__getattribute__(self, item)
+        except AttributeError:
+            raise ffd.InvalidOperand(f"Use of '{item}' is not currently supported.")
 
     def is_none(self):
         return BinaryOp(self.attr, 'is', 'None')
@@ -42,6 +59,12 @@ class Attr:
 
     def contains(self, value):
         return BinaryOp(self.attr, 'contains', value)
+
+    def startswith(self, value):
+        return BinaryOp(self.attr, 'startswith', value)
+
+    def endswith(self, value):
+        return BinaryOp(self.attr, 'endswith', value)
 
     def __eq__(self, other):
         return BinaryOp(self.attr, '==', other)
@@ -164,6 +187,10 @@ class BinaryOp:
             return lhv in rhv
         if bop.op == 'contains':
             return rhv in lhv
+        if bop.op == 'startswith':
+            return str(lhv).startswith(rhv)
+        if bop.op == 'endswith':
+            return str(lhv).endswith(rhv)
         if bop.op == 'and':
             return lhv and rhv
         if bop.op == 'or':

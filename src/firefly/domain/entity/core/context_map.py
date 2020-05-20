@@ -35,8 +35,8 @@ class ContextMap(AggregateRoot):
         for name, config in self._config.contexts.items():
             self.contexts.append(ffd.Context(
                 name=name,
-                config=config,
-                is_extension=config.get('is_extension', False)
+                config=config or {},
+                is_extension=config.get('is_extension', False) if isinstance(config, dict) else False
             ))
 
         found = False

@@ -17,4 +17,4 @@ from ..entity.entity import required
 
 
 class DomainEntitiesLoaded(FrameworkEvent):
-    context: str = required()
+    pass

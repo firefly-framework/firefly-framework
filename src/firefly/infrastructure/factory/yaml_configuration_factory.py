@@ -80,7 +80,7 @@ class YamlConfigurationFactory(ffd.ConfigurationFactory):
     @staticmethod
     def _move_to_project_root() -> str:
         original_dir = os.getcwd()
-        os.chdir(os.environ.get('PWD'))
+        # os.chdir(os.environ.get('PWD'))
         while not os.path.exists('firefly.yml'):
             if os.path.realpath(os.getcwd()) == os.path.realpath('..'):
                 break

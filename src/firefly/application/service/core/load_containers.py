@@ -30,6 +30,7 @@ class LoadContainers(ffd.ApplicationService):
                 context.container = self._container
             else:
                 context.container = self._load_module(context.name, context.config)
+                context.container.register_container(self._container)
                 for name, config in context.config.get('extensions', {}).items():
                     context.container.register_container(self._context_map.get_context(name).container)
 

@@ -32,8 +32,13 @@ class YamlConfigurationFactory(ffd.ConfigurationFactory):
             module = importlib.import_module(context)
             if module.__file__ is None:
                 continue
-            with open(f'{os.path.dirname(module.__file__)}/../../firefly.yml', 'r') as fp:
-                context_config = self._parse(fp.read())
+            try:
+                with open(f'{os.path.dirname(module.__file__)}/../../firefly.yml', 'r') as fp:
+                    context_config = self._parse(fp.read())
+            except FileNotFoundError:
+                with open(f'{os.path.dirname(module.__file__)}/../firefly.yml', 'r') as fp:
+                    context_config = self._parse(fp.read())
+
             configuration.contexts[context] = ffd.merge(
                 context_config['contexts'].get(context),
                 configuration.contexts[context] or {},
@@ -44,7 +49,7 @@ class YamlConfigurationFactory(ffd.ConfigurationFactory):
     def _parse(data: str):
         path_matcher = re.compile(r'.*(\$\{([^}^{]+)\}).*')
 
-        def path_constructor(loader, node):
+        def path_constructor(_, node):
             value = node.value
             match = path_matcher.match(value)
             env_var = match.groups()[1]
@@ -74,7 +79,8 @@ class YamlConfigurationFactory(ffd.ConfigurationFactory):
     def _load_environment_vars(self):
         env = os.environ.get('ENV', 'local')
         dir_ = self._move_to_project_root()
-        load_dotenv(dotenv_path=os.path.join(os.getcwd(), f'.env.{env}'))
+        if os.path.exists(f'.env.{env}'):
+            load_dotenv(dotenv_path=os.path.join(os.getcwd(), f'.env.{env}'))
         os.chdir(dir_)
 
     @staticmethod

@@ -30,6 +30,7 @@ class LoadApplicationLayer(ffd.ApplicationService):
     _query_resolver: ffd.QueryResolvingMiddleware = None
     _agent_factory: ffd.AgentFactory = None
     _message_factory: ffd.MessageFactory = None
+    _rest_router: ffd.RestRouter = None
 
     def __call__(self, **kwargs):
         for context in self._context_map.contexts:
@@ -89,6 +90,7 @@ class LoadApplicationLayer(ffd.ApplicationService):
                         cls.set_command(self._generate_message(cls, 'command'))
                         endpoint.message = cls.get_command()
                     self._register_service(cls, context)
+                    self._rest_router.register(endpoint.route, str(endpoint.message), method=endpoint.method)
                 elif isinstance(endpoint, ffd.CliEndpoint):
                     cls.set_command(self._generate_message(cls, 'command'))
                     endpoint.message = cls.get_command()

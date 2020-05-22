@@ -11,21 +11,18 @@
 #
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
-import os
-import sys
 
-from .cli import *
-from .config import *
-from .content_negotiation import *
-from .core import *
-from .http import *
-from .logging import *
-from .serialization import *
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+from typing import Optional
 
 
-def set_env(func):
-    for i in range(len(sys.argv)):
-        if sys.argv[i] in ('--env', '-e'):
-            os.environ['ENV'] = sys.argv[i + 1]
-            break
-    return func
+class RestRouter(ABC):
+    @abstractmethod
+    def register(self, route: str, action: str, method: str = 'get'):
+        pass
+
+    @abstractmethod
+    def match(self, route: str, method: str = 'get') -> Optional[str]:
+        pass

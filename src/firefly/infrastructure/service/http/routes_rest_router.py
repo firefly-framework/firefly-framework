@@ -11,21 +11,27 @@
 #
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
-import os
-import sys
 
-from .cli import *
-from .config import *
-from .content_negotiation import *
-from .core import *
-from .http import *
-from .logging import *
-from .serialization import *
+from __future__ import annotations
+
+from typing import Dict, Optional
+
+import firefly.domain as ffd
+from routes import Mapper
 
 
-def set_env(func):
-    for i in range(len(sys.argv)):
-        if sys.argv[i] in ('--env', '-e'):
-            os.environ['ENV'] = sys.argv[i + 1]
-            break
-    return func
+class RoutesRestRouter(ffd.RestRouter):
+    def __init__(self):
+        self._maps: Dict[str, Mapper] = {}
+
+    def register(self, route: str, action: str, method: str = 'get'):
+        if method.lower() not in self._maps:
+            self._maps[method.lower()] = Mapper()
+        self._maps[method.lower()].connect(route, action=action)
+
+    def match(self, route: str, method: str = 'get') -> Optional[str]:
+        result = self._maps[method.lower()].match(route)
+        if result is None and 'any' in self._maps:
+            result = self._maps['any'].match(route)
+
+        return result['action'] if result is not None else None

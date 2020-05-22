@@ -79,6 +79,7 @@ class Container(di.Container):
     # API
     web_server: ffi.WebServer = ffi.WebServer
     cli_executor: ffd.CliAppExecutor = ffi.ArgparseExecutor
+    rest_router: ffd.RestRouter = ffi.RoutesRestRouter
 
     # Deployment
     agent_factory: ffd.AgentFactory = lambda self: self.build(ffd.AgentFactory, agents={

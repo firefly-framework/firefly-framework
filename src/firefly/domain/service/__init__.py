@@ -18,6 +18,7 @@ from .content_negotiation import *
 from .core import *
 from .crud import *
 from .entity import *
+from .http import *
 from .logging import *
 from .messaging import *
 from .serialization import *

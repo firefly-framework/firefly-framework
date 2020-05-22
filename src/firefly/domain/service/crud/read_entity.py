@@ -32,5 +32,7 @@ class ReadEntity(Generic[T], ApplicationService, GenericBase, CrudOperation, Sys
     def __call__(self, **kwargs) -> Optional[Union[ffd.Message, object]]:
         type_ = self._type()
         id_arg = type_.match_id_from_argument_list(kwargs)
+        if not id_arg:
+            return list(self._registry(type_))
         ret = self._registry(type_).find(list(id_arg.values()).pop())
         return ret

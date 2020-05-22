@@ -18,6 +18,7 @@ import inspect
 
 import firefly as ff
 import firefly.domain.error as error
+import inflection
 from firefly.domain.entity.core.http_endpoint import HttpEndpoint
 
 
@@ -40,6 +41,49 @@ class Rest:
                     ff.add_endpoint(cls, endpoint)
                 else:
                     raise error.FrameworkError('@rest used on invalid target')
+            return cls
+
+        return on_wrapper
+
+    @staticmethod
+    def crud(exclude: list = None, gateway: str = None):
+        exclude = exclude or []
+
+        def on_wrapper(cls):
+            context = cls.get_class_context()
+            base = inflection.pluralize(inflection.dasherize(inflection.underscore(cls.__name__)))
+            if 'create' not in exclude:
+                cls.add_endpoint(HttpEndpoint(
+                    route=f'/{base}',
+                    method='post',
+                    message=f'{context}.Create{cls.__name__}',
+                    gateway=gateway,
+                ))
+
+            if 'update' not in exclude:
+                cls.add_endpoint(HttpEndpoint(
+                    route=f'/{base}/{{{cls.id_name()}}}',
+                    method='put',
+                    message=f'{context}.Update{cls.__name__}',
+                    gateway=gateway,
+                ))
+
+            if 'delete' not in exclude:
+                cls.add_endpoint(HttpEndpoint(
+                    route=f'/{base}/{{{cls.id_name()}}}',
+                    method='delete',
+                    message=f'{context}.Delete{cls.__name__}',
+                    gateway=gateway,
+                ))
+
+            if 'read' not in exclude and 'retrieve' not in exclude:
+                cls.add_endpoint(HttpEndpoint(
+                    route=f'/{base}/{{{cls.id_name()}}}',
+                    method='get',
+                    message=f'{context}.{inflection.pluralize(cls.__name__)}',
+                    gateway=gateway,
+                ))
+
             return cls
 
         return on_wrapper

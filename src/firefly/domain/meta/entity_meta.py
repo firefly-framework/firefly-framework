@@ -56,6 +56,10 @@ class EntityMeta(ABCMeta):
                 ret._delete_on = kwargs['delete_on']
             if 'update_on' in kwargs:
                 ret._update_on = kwargs['update_on']
+            if 'sync_with' in kwargs:
+                ret._create_on = f"{kwargs['sync_with']}Created"
+                ret._delete_on = f"{kwargs['sync_with']}Deleted"
+                ret._update_on = f"{kwargs['sync_with']}Updated"
         # __pragma__('noskip')
 
         return ret

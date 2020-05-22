@@ -38,6 +38,9 @@ class LoadApplicationLayer(ffd.ApplicationService):
             for cls in self._load_module(context):
                 self._register_service(cls, context)
                 self._add_endpoints(cls, context)
+            for entity in context.entities:
+                if issubclass(entity, ffd.AggregateRoot):
+                    self._add_endpoints(entity, context)
 
         self.dispatch(ffd.ApplicationLayerLoaded())
 
@@ -73,7 +76,7 @@ class LoadApplicationLayer(ffd.ApplicationService):
             self._query_resolver.add_query_handler(cls, query)
             context.query_handlers[cls] = query
 
-    def _add_endpoints(self, cls: Type[ffd.ApplicationService], context: ffd.Context):
+    def _add_endpoints(self, cls: Type[ffd.MetaAware], context: ffd.Context):
         if not cls.has_endpoints():
             return
 

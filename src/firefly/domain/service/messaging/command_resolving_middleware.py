@@ -57,4 +57,6 @@ class CommandResolvingMiddleware(Middleware):
                             command: Union[Type[Command], str]):
         if inspect.isclass(handler):
             handler = self._context_map.get_context(handler.get_class_context()).container.build(handler)
+        if inspect.isclass(command):
+            command = command.get_fqn()
         self._command_handlers[command.get_fqn() if not isinstance(command, str) else command] = handler

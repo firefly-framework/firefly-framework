@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import importlib
 import inspect
+from pprint import pprint
 from typing import List, Type
 
 import firefly.domain as ffd
@@ -60,8 +61,6 @@ class LoadApplicationLayer(ffd.ApplicationService):
             cmd = cls.get_command()
             if isinstance(cmd, str):
                 cmd = self._message_factory.command_class(cmd, typing.get_type_hints(cls.__call__))
-            if inspect.isclass(cmd):
-                cmd = cmd.__name__
             self._command_resolver.add_command_handler(cls, cmd)
             context.command_handlers[cls] = cmd
 
@@ -71,8 +70,6 @@ class LoadApplicationLayer(ffd.ApplicationService):
             query = cls.get_query()
             if isinstance(query, str):
                 query = self._message_factory.query_class(query, typing.get_type_hints(cls.__call__))
-            if inspect.isclass(query):
-                query = query.__name__
             self._query_resolver.add_query_handler(cls, query)
             context.query_handlers[cls] = query
 
@@ -100,7 +97,7 @@ class LoadApplicationLayer(ffd.ApplicationService):
                         route = f'/{route}'
                     if not route.startswith(route_prefix):
                         route = f'{route_prefix}{route}'
-                    self._rest_router.register(route, endpoint.message.__name__, method=endpoint.method)
+                    self._rest_router.register(route, endpoint.message, method=endpoint.method)
                 elif isinstance(endpoint, ffd.CliEndpoint):
                     cls.set_command(self._generate_message(cls, 'command'))
                     endpoint.message = cls.get_command()

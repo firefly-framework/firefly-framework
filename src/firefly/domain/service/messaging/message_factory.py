@@ -86,5 +86,11 @@ class MessageFactory:
     @staticmethod
     def _build_message_class(name: str, fields_: dict, bases: tuple):
         # __pragma__('skip')
-        return ffd.MessageMeta.__new__(ffd.MessageMeta, name, bases, fields_, fields_=fields_, annotations_=fields_)
+        context = None
+        if '.' in name:
+            context, name = name.split('.')
+        ret = ffd.MessageMeta.__new__(ffd.MessageMeta, name, bases, fields_, fields_=fields_, annotations_=fields_)
+        if context is not None:
+            ret._context = context
+        return ret
         # __pragma__('noskip')

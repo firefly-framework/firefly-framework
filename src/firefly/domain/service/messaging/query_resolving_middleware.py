@@ -49,7 +49,10 @@ class QueryResolvingMiddleware(Middleware):
         raise ffd.ConfigurationError(f'No query handler registered for {message}')
 
     def add_query_handler(self, handler: Union[ffd.ApplicationService, Type[ffd.ApplicationService]],
-                          command: Union[Type[Query], str]):
+                          query: Union[Type[Query], str]):
         if inspect.isclass(handler):
             handler = self._context_map.get_context(handler.get_class_context()).container.build(handler)
-        self._query_handlers[handler] = command
+        if inspect.isclass(query):
+            query = query.get_fqn()
+
+        self._query_handlers[handler] = query

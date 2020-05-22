@@ -15,12 +15,14 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union, Type
+
+from ...entity.messaging.message import Message
 
 
 class RestRouter(ABC):
     @abstractmethod
-    def register(self, route: str, action: str, method: str = 'get'):
+    def register(self, route: str, action: Union[str, Type[Message]], method: str = 'get'):
         pass
 
     @abstractmethod

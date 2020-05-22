@@ -33,4 +33,8 @@ class ContextAware(ABC):
 
     @classmethod
     def get_fqn(cls):
-        return f'{cls.get_class_context()}.{cls.__name__}'
+        if hasattr(cls, '_context') and cls._context is not None:
+            context = cls._context
+        else:
+            context = cls.get_class_context()
+        return f'{context}.{cls.__name__}'

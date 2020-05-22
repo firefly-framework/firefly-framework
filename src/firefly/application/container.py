@@ -39,12 +39,14 @@ class Container(di.Container):
             ffd.ContainersLoaded: [
                 ffa.LoadInfrastructureLayer,
                 ffa.LoadEntities,
-                ffa.LoadPresentationLayer,
             ],
             ffd.DomainEntitiesLoaded: [
                 ffa.LoadApplicationLayer,
                 ffa.AutoGenerateAggregateApis,
             ],
+            ffd.ApplicationLayerLoaded: [
+                ffa.LoadPresentationLayer,
+            ]
         }
     )
     command_resolver: ffd.CommandResolvingMiddleware = lambda self: self.build(

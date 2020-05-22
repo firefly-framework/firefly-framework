@@ -24,9 +24,9 @@ from ..db_api_storage_interface import DbApiStorageInterface
 
 
 class SqliteStorageInterface(DbApiStorageInterface):
-    def __init__(self, name: str, config: dict, serializer: ffd.Serializer):
+    def __init__(self, serializer: ffd.Serializer, **config):
         self._serializer = serializer
-        super().__init__(name, config)
+        super().__init__(config)
         self._connection: Optional[sqlite3.Connection] = None
         self._cache = {}
 

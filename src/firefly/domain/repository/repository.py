@@ -53,5 +53,13 @@ class Repository(Generic[T], GenericBase, ABC):
     def __next__(self):
         pass
 
+    @abstractmethod
+    def __len__(self):
+        pass
+
+    @abstractmethod
+    def __getitem__(self, item):
+        pass
+
     def _get_search_criteria(self, cb: Callable) -> ffd.BinaryOp:
         return cb(ffd.EntityAttributeSpy(self._type()))

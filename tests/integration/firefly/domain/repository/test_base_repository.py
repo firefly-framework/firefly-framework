@@ -57,6 +57,12 @@ class WidgetRepository(ff.Repository[Widget]):
         self._index += 1
         return self._foos[self._index - 1]
 
+    def __len__(self):
+        return len(self._foos)
+
+    def __getitem__(self, item):
+        return self._foos[item]
+
 
 def test_search_criteria():
     widgets = WidgetRepository([

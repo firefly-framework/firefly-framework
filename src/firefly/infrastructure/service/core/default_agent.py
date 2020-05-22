@@ -47,9 +47,10 @@ class DefaultAgent(ffd.ApplicationService, ffd.LoggerAware):
             self._web_server.run()
 
     def _register_gateways(self, web_server: ffi.WebServer):
-        for api_gateway in self._deployment.api_gateways:
-            for endpoint in api_gateway.endpoints:
-                web_server.add_endpoint(endpoint.method, endpoint.route, endpoint.message)
+        for service in self._deployment.services:
+            for api_gateway in service.api_gateways:
+                for endpoint in api_gateway.endpoints:
+                    web_server.add_endpoint(endpoint.method, endpoint.route, endpoint.message)
 
     def _start_web_app(self):
         self._compile_web_app()

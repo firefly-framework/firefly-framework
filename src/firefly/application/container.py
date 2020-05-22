@@ -73,6 +73,9 @@ class Container(di.Container):
     ])
     system_bus: ffd.SystemBus = ffd.SystemBus
 
+    # Storage
+    db_api_storage_interface_registry: ffi.DbApiStorageInterfaceRegistry = ffi.DbApiStorageInterfaceRegistry
+
     # API
     web_server: ffi.WebServer = ffi.WebServer
     cli_executor: ffd.CliAppExecutor = ffi.ArgparseExecutor

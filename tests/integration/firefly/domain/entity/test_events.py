@@ -24,12 +24,12 @@ def test_create_on_event(system_bus, registry, message_factory):
         'email': 'foo@bar.com',
     }))
 
-    todos = registry(todo.TodoList).all()
+    todos = registry(todo.TodoList)
     assert len(todos) == 1
     assert todos[0].user.name == 'foo'
     assert todos[0].name == "foo's TODO List"
 
-    calendars = registry(calendar.Calendar).all()
+    calendars = registry(calendar.Calendar)
     assert len(calendars) == 1
 
 
@@ -39,14 +39,14 @@ def test_delete_on_event(system_bus, registry, message_factory):
         'email': 'foo@bar.com',
     }))
 
-    todos = registry(todo.TodoList).all()
+    todos = registry(todo.TodoList)
     assert len(todos) == 1
 
     system_bus.invoke(message_factory.command('iam.DeleteUser', {
         'id': todos[0].id,
     }))
 
-    assert len(registry(todo.TodoList).all()) == 0
+    assert len(registry(todo.TodoList)) == 0
 
 
 def test_application_service_event(system_bus, registry, message_factory):
@@ -55,4 +55,4 @@ def test_application_service_event(system_bus, registry, message_factory):
         'email': 'foo@bar.com',
     }))
 
-    assert len(registry(calendar.Calendar).all()) == 1
+    assert len(registry(calendar.Calendar)) == 1

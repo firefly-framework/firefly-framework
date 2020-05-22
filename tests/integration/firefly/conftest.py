@@ -26,12 +26,14 @@ def config():
                 'container_module': 'test_src.todo.application',
                 'application_service_module': 'test_src.todo.application.service',
                 'storage': {
-                    'connections': {
+                    'services': {
                         'sqlite': {
                             'type': 'db_api',
-                            'driver': 'sqlite',
-                            'host': ':memory:'
-                            # 'host': '/tmp/todo.db'
+                            'connection': {
+                                'driver': 'sqlite',
+                                'host': ':memory:'
+                                # 'host': '/tmp/todo.db'
+                            }
                         },
                     },
                     'default': 'sqlite',
@@ -115,6 +117,13 @@ def registry(container, request) -> ff.Registry:
 
     def teardown():
         for context in container.context_map.contexts:
+            for entity in context.entities:
+                if issubclass(entity, ff.AggregateRoot) and entity is not ff.AggregateRoot:
+                    try:
+                        for e in registry(entity):
+                            registry(entity).remove(e)
+                    except ff.FrameworkError:
+                        pass
             try:
                 context.container.db_api_interface_registry.disconnect_all()
             except AttributeError:
@@ -126,9 +135,9 @@ def registry(container, request) -> ff.Registry:
 
 @pytest.fixture(scope="function")
 async def client(container, system_bus, aiohttp_client):
-    deployment = ff.Deployment(environment='testing', provider='default')
+    deployment = ff.Deployment(project='Test', environment='testing', provider='default')
     system_bus.dispatch('firefly.DeploymentCreated', {'deployment': deployment})
     agent = container.agent_factory('default')
-    agent.handle(deployment, start_server=False)
+    agent(deployment, start_server=False)
     container.web_server.initialize()
     return await aiohttp_client(container.web_server.app)

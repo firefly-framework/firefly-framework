@@ -18,6 +18,7 @@ import importlib
 import inspect
 
 import firefly.domain as ffd
+import firefly.infrastructure as ffi
 import inflection
 
 
@@ -27,6 +28,7 @@ class ConfigureStorage(ffd.ApplicationService):
     _context_map: ffd.ContextMap = None
     _registry: ffd.Registry = None
     _serializer: ffd.Serializer = None
+    _db_api_storage_interface_registry: ffi.DbApiStorageInterfaceRegistry = None
 
     def __init__(self):
         self._connection_factories = {}
@@ -41,9 +43,10 @@ class ConfigureStorage(ffd.ApplicationService):
             storage = context.config.get('storage', {})
             if 'services' in storage:
                 for name, config in storage.get('services').items():
-                    if name not in self._connection_factories:
-                        raise ffd.ConfigurationError(f"No ConfigurationFactory configured for '{name}'")
-                    connections[name] = context.container.build(self._connection_factories[name])(
+                    if name not in self._connection_factories and config.get('type') not in self._connection_factories:
+                        raise ffd.ConfigurationError(f"No ConnectionFactory configured for '{name}'")
+                    key = name if name in self._connection_factories else config.get('type')
+                    connections[name] = context.container.build(self._connection_factories[key])(
                         **(config.get('connection') or {})
                     )
 
@@ -51,9 +54,10 @@ class ConfigureStorage(ffd.ApplicationService):
             storage = context.config.get('storage', {})
             if 'services' in storage:
                 for name, config in storage.get('services').items():
-                    if name not in self._repository_factories:
+                    if name not in self._repository_factories and config.get('type') not in self._repository_factories:
                         raise ffd.ConfigurationError(f"No RepositoryFactory configured for '{name}'")
-                    factory = context.container.autowire(self._repository_factories[name])
+                    key = name if name in self._repository_factories else config.get('type')
+                    factory = context.container.autowire(self._repository_factories[key])
                     try:
                         factories[name] = factory(connections[name], **(config.get('repository') or {}))
                     except TypeError as e:
@@ -64,12 +68,18 @@ class ConfigureStorage(ffd.ApplicationService):
 
         for context in self._context_map.contexts:
             storage = context.config.get('storage', {})
+            registered_aggregates = []
             if 'aggregates' in storage:
                 for entity, service in storage.get('aggregates').items():
                     if not entity.startswith(context.name):
                         entity = f'{context.name}.{entity}'
                     entity = ffd.load_class(entity)
+                    registered_aggregates.append(entity)
                     self._registry.register_factory(entity, factories[service])
+            if 'default' in storage:
+                for entity in context.entities:
+                    if issubclass(entity, ffd.AggregateRoot) and entity not in registered_aggregates:
+                        self._registry.register_factory(entity, factories[storage.get('default')])
 
         # TODO Get persistence working in these core services.
         # self._registry(ffd.ContextMap).add(self._context_map)
@@ -91,3 +101,6 @@ class ConfigureStorage(ffd.ApplicationService):
                     self._connection_factories[inflection.underscore(v.__name__.replace('ConnectionFactory', ''))] = v
                 elif issubclass(v, ffd.RepositoryFactory):
                     self._repository_factories[inflection.underscore(v.__name__.replace('RepositoryFactory', ''))] = v
+                elif issubclass(v, ffi.DbApiStorageInterface) and v is not ffi.DbApiStorageInterface:
+                    name = inflection.underscore(k.replace('StorageInterface', ''))
+                    self._db_api_storage_interface_registry.add(name, v)

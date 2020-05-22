@@ -22,8 +22,7 @@ import inflection
 
 
 class DbApiStorageInterface(ABC):
-    def __init__(self, name: str, config: dict):
-        self.name = name
+    def __init__(self, config: dict):
         self._config = config
         self._tables_checked = []
 

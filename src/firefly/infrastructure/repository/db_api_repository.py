@@ -22,17 +22,21 @@ import inflection
 from firefly.domain.repository.repository import T
 
 
-class DbApiObjectRepository(ffd.Repository[T]):
+class DbApiRepository(ffd.Repository[T]):
     def __init__(self, interface: ffi.DbApiStorageInterface):
         self._entity_type = self._type()
         self._table = inflection.tableize(self._entity_type.__name__)
         self._interface = interface
+        self._entities = None
+        self._index = 0
 
     def add(self, entity: T):
         self._interface.add(entity)
+        self._entities = None
 
     def remove(self, entity: T):
         self._interface.remove(entity)
+        self._entities = None
 
     def find(self, uuid) -> T:
         return self._interface.find(uuid, self._entity_type)
@@ -50,7 +54,25 @@ class DbApiObjectRepository(ffd.Repository[T]):
         pass
 
     def __iter__(self):
-        pass
+        return self
 
     def __next__(self):
-        pass
+        self._load_all()
+        if self._index >= len(self._entities):
+            self._index = 0
+            self._entities = None
+            raise StopIteration()
+        self._index += 1
+        return self._entities[self._index - 1]
+
+    def __len__(self):
+        self._load_all()
+        return len(self._entities)
+
+    def __getitem__(self, item):
+        self._load_all()
+        return self._entities[item]
+
+    def _load_all(self):
+        if self._entities is None:
+            self._entities = self._interface.all(self._entity_type)

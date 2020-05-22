@@ -12,11 +12,17 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from .db_api_connection_factory import DbApiConnectionFactory
-from .db_api_repository import DbApiRepository
-from .db_api_repository_factory import DbApiRepositoryFactory
-from .db_api_storage_interface import DbApiStorageInterface
+from __future__ import annotations
+
+import firefly.domain as ffd
+import firefly_di as di
+
 from .db_api_storage_interface_registry import DbApiStorageInterfaceRegistry
-from .db_api_storage_interfaces import *
-from .memory_repository import MemoryRepository
-from .memory_repository_factory import MemoryRepositoryFactory
+
+
+class DbApiConnectionFactory(ffd.ConnectionFactory):
+    _container: di.Container = None
+    _db_api_storage_interface_registry: DbApiStorageInterfaceRegistry = None
+
+    def __call__(self, **kwargs):
+        return self._container.build(self._db_api_storage_interface_registry.get(kwargs['driver']), **kwargs)

@@ -14,21 +14,23 @@
 
 from __future__ import annotations
 
-from typing import Dict
+from typing import Dict, Type
 
 import firefly.infrastructure as ffi
 
 
 class DbApiStorageInterfaceRegistry:
+
+
     def __init__(self):
-        self._connections: Dict[str, ffi.DbApiStorageInterface] = {}
+        self._interfaces: Dict[str, Type[ffi.DbApiStorageInterface]] = {}
 
-    def add(self, name: str, connection: ffi.DbApiStorageInterface):
-        self._connections[name] = connection
+    def add(self, name: str, interface: Type[ffi.DbApiStorageInterface]):
+        self._interfaces[name] = interface
 
-    def get(self, name: str) -> ffi.DbApiStorageInterface:
-        return self._connections.get(name)
+    def get(self, name: str) -> Type[ffi.DbApiStorageInterface]:
+        return self._interfaces.get(name)
 
     def disconnect_all(self):
-        for name, interface in self._connections.items():
+        for name, interface in self._interfaces.items():
             interface.disconnect()

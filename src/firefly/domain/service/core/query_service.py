@@ -32,6 +32,6 @@ class QueryService(Generic[T], GenericBase, ApplicationService):
             if 'criteria' in kwargs:
                 return self._registry(self._type()).find_all_matching(ffd.BinaryOp.from_dict(kwargs['criteria']))
             else:
-                return self._registry(self._type()).all()
+                return self._registry(self._type())
         except KeyError:
             raise ffd.MissingArgument(self._type().id_name())

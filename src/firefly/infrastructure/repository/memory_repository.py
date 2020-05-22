@@ -62,3 +62,9 @@ class MemoryRepository(ffd.Repository[T]):
             raise StopIteration()
         self._index += 1
         return self.entities[self._index - 1]
+
+    def __len__(self):
+        return len(self.entities)
+
+    def __getitem__(self, item):
+        return self.entities[item]

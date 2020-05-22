@@ -60,7 +60,7 @@ def todo(registry, request):
     r = registry(TodoList)
 
     def teardown():
-        for l in r.all():
+        for l in r:
             r.remove(l)
 
     request.addfinalizer(teardown)

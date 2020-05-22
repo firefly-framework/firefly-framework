@@ -43,6 +43,7 @@ class ConfigureStorage(ffd.ApplicationService):
             storage = context.config.get('storage', {})
             if 'services' in storage:
                 for name, config in storage.get('services').items():
+                    config = config or {}
                     if name not in self._connection_factories and config.get('type') not in self._connection_factories:
                         raise ffd.ConfigurationError(f"No ConnectionFactory configured for '{name}'")
                     key = name if name in self._connection_factories else config.get('type')

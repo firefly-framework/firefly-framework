@@ -25,17 +25,24 @@ class LoadContainers(ffd.ApplicationService):
     _container: di.Container = None
 
     def __call__(self):
+        self.debug('LoadContainers called')
         for context in self._context_map.contexts:
+            self.debug(f'Checking context "{context.name}"')
             if context.name == 'firefly':
                 context.container = self._container
             else:
                 context.container = self._load_module(context.name, context.config)
+                self.debug(f'Loaded container: {context.container}')
+                self.debug('Registering root container')
                 context.container.register_container(self._container)
-                for name, config in context.config.get('extensions', {}).items():
-                    context.container.register_container(self._context_map.get_context(name).container)
                 self._container.register_container(context.container)
-
             self.dispatch(ffd.ContainerInitialized(context=context.name))
+
+        self.debug('All containers are built. Looping through again to link them all together.')
+        for context in self._context_map.contexts:
+            for name, config in context.config.get('extensions', {}).items():
+                self.debug(f'Registering {name} container with {context.name}')
+                context.container.register_container(self._context_map.get_context(name).container)
 
         self.dispatch(ffd.ContainersLoaded())
 

@@ -30,8 +30,12 @@ class ContentNegotiator(Middleware):
     def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
         accept = None
         try:
-            accept = message.headers['http_request']['headers']['Accept']
-        except KeyError:
+            headers = message.headers['http_request']['headers']
+            for k, v in headers.items():
+                if k.lower() == 'accept':
+                    accept = v
+                    break
+        except AttributeError:
             pass
 
         response = next_(message)

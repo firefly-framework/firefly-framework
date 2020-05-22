@@ -87,7 +87,6 @@ class LoadApplicationLayer(ffd.ApplicationService):
                 elif cls in context.query_handlers:
                     endpoint.message = context.query_handlers[cls]
                 elif isinstance(endpoint, ffd.HttpEndpoint):
-                    route_prefix = f'/{inflection.dasherize(context.name)}'
                     if endpoint.method.lower() == 'get':
                         cls.set_query(self._generate_message(cls, 'query'))
                         endpoint.message = cls.get_query()
@@ -95,18 +94,19 @@ class LoadApplicationLayer(ffd.ApplicationService):
                         cls.set_command(self._generate_message(cls, 'command'))
                         endpoint.message = cls.get_command()
                     self._register_service(cls, context)
-                    route = endpoint.route
-                    if not route.startswith('/'):
-                        route = f'/{route}'
-                    if not route.startswith(route_prefix):
-                        route = f'{route_prefix}{route}'
-                    self._rest_router.register(route, endpoint.message.get_fqn(), method=endpoint.method)
                 elif isinstance(endpoint, ffd.CliEndpoint):
                     cls.set_command(self._generate_message(cls, 'command'))
                     endpoint.message = cls.get_command()
                     self._register_service(cls, context)
 
             context.endpoints.append(endpoint)
+            route_prefix = f'/{inflection.dasherize(context.name)}'
+            route = endpoint.route
+            if not route.startswith('/'):
+                route = f'/{route}'
+            if not route.startswith(route_prefix):
+                route = f'{route_prefix}{route}'
+            self._rest_router.register(route, endpoint.message.get_fqn(), method=endpoint.method)
 
     @staticmethod
     def _load_module(context: ffd.Context) -> List[Type[ffd.ApplicationService]]:

@@ -35,7 +35,7 @@ class ContentNegotiator(Middleware):
                 if k.lower() == 'accept':
                     accept = v
                     break
-        except AttributeError:
+        except (KeyError, AttributeError):
             pass
 
         response = next_(message)

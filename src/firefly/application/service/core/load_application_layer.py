@@ -100,13 +100,17 @@ class LoadApplicationLayer(ffd.ApplicationService):
                     self._register_service(cls, context)
 
             context.endpoints.append(endpoint)
-            route_prefix = f'/{inflection.dasherize(context.name)}'
-            route = endpoint.route
-            if not route.startswith('/'):
-                route = f'/{route}'
-            if not route.startswith(route_prefix):
-                route = f'{route_prefix}{route}'
-            self._rest_router.register(route, endpoint.message.get_fqn(), method=endpoint.method)
+            if isinstance(endpoint, ffd.HttpEndpoint):
+                route_prefix = f'/{inflection.dasherize(context.name)}'
+                route = endpoint.route
+                if not route.startswith('/'):
+                    route = f'/{route}'
+                if not route.startswith(route_prefix):
+                    route = f'{route_prefix}{route}'
+                msg = endpoint.message
+                if inspect.isclass(msg):
+                    msg = msg.get_fqn()
+                self._rest_router.register(route, msg, method=endpoint.method)
 
     @staticmethod
     def _load_module(context: ffd.Context) -> List[Type[ffd.ApplicationService]]:

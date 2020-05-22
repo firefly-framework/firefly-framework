@@ -96,7 +96,7 @@ class LoadApplicationLayer(ffd.ApplicationService):
                         route = f'/{route}'
                     if not route.startswith(route_prefix):
                         route = f'{route_prefix}{route}'
-                    self._rest_router.register(route, str(endpoint.message), method=endpoint.method)
+                    self._rest_router.register(route, endpoint.message.__name__, method=endpoint.method)
                 elif isinstance(endpoint, ffd.CliEndpoint):
                     cls.set_command(self._generate_message(cls, 'command'))
                     endpoint.message = cls.get_command()

@@ -30,7 +30,9 @@ class RoutesRestRouter(ffd.RestRouter):
         self._maps[method.lower()].connect(route, action=action)
 
     def match(self, route: str, method: str = 'get') -> Optional[Tuple[str, dict]]:
-        result = self._maps[method.lower()].match(route)
+        result = None
+        if method.lower() in self._maps:
+            result = self._maps[method.lower()].match(route)
         if result is None and 'any' in self._maps:
             result = self._maps['any'].match(route)
 

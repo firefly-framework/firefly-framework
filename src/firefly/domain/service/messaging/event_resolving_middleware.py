@@ -39,7 +39,6 @@ class EventResolvingMiddleware(Middleware):
             built = []
             for listener in listeners:
                 if inspect.isclass(listener):
-                    print(listener)
                     built.append(self._context_map.get_context(listener.get_class_context()).container.build(listener))
                 else:
                     built.append(listener)

@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, Tuple
 
 
 class RestRouter(ABC):
@@ -24,5 +24,5 @@ class RestRouter(ABC):
         pass
 
     @abstractmethod
-    def match(self, route: str, method: str = 'get') -> Optional[str]:
+    def match(self, route: str, method: str = 'get') -> Optional[Tuple[str, dict]]:
         pass

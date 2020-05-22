@@ -38,13 +38,15 @@ class Container(di.Container):
         ffd.EventResolvingMiddleware, event_listeners={
             ffd.ContainersLoaded: [
                 ffa.LoadInfrastructureLayer,
+                ffa.LoadEntities,
+            ],
+            ffd.DomainEntitiesLoaded: [
                 ffa.LoadApplicationLayer,
+                ffa.AutoGenerateAggregateApis,
             ],
             ffd.ApplicationLayerLoaded: [
-                ffa.LoadEntities,
                 ffa.LoadPresentationLayer,
-            ],
-            ffd.DomainEntitiesLoaded: [ffa.AutoGenerateAggregateApis],
+            ]
         }
     )
     command_resolver: ffd.CommandResolvingMiddleware = lambda self: self.build(

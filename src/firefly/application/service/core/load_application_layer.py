@@ -60,6 +60,8 @@ class LoadApplicationLayer(ffd.ApplicationService):
             cmd = cls.get_command()
             if isinstance(cmd, str):
                 cmd = self._message_factory.command_class(cmd, typing.get_type_hints(cls.__call__))
+            if inspect.isclass(cmd):
+                cmd = cmd.__name__
             self._command_resolver.add_command_handler(cls, cmd)
             context.command_handlers[cls] = cmd
 
@@ -68,7 +70,9 @@ class LoadApplicationLayer(ffd.ApplicationService):
                 cls.set_query(self._generate_message_name(cls))
             query = cls.get_query()
             if isinstance(query, str):
-                query = self._message_factory.command_class(query, typing.get_type_hints(cls.__call__))
+                query = self._message_factory.query_class(query, typing.get_type_hints(cls.__call__))
+            if inspect.isclass(query):
+                query = query.__name__
             self._query_resolver.add_query_handler(cls, query)
             context.query_handlers[cls] = query
 

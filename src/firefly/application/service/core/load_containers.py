@@ -33,8 +33,6 @@ class LoadContainers(ffd.ApplicationService):
             else:
                 context.container = self._load_module(context.name, context.config)
                 self.debug(f'Loaded container: {context.container}')
-                self.debug('Registering root container')
-                context.container.register_container(self._container)
                 self._container.register_container(context.container)
             self.dispatch(ffd.ContainerInitialized(context=context.name))
 
@@ -43,6 +41,8 @@ class LoadContainers(ffd.ApplicationService):
             for name, config in context.config.get('extensions', {}).items():
                 self.debug(f'Registering {name} container with {context.name}')
                 context.container.register_container(self._context_map.get_context(name).container)
+            self.debug('Registering root container')
+            context.container.register_container(self._container)
 
         self.dispatch(ffd.ContainersLoaded())
 

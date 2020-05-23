@@ -22,10 +22,10 @@ from firefly import Query, Command, Event
 
 class AsyncioMessageTransport(ffd.MessageTransport, ffd.LoggerAware):
     def dispatch(self, event: Event) -> None:
-        raise NotImplemented
+        raise NotImplementedError()
 
     def invoke(self, command: Command) -> Any:
-        raise NotImplemented
+        raise NotImplementedError()
 
     def request(self, query: Query) -> Any:
-        raise NotImplemented
+        raise NotImplementedError()

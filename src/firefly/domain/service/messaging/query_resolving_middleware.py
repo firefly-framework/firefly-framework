@@ -43,7 +43,7 @@ class QueryResolvingMiddleware(Middleware):
         if not self._initialized:
             self._initialize()
 
-        if message.get_context() != self._context:
+        if message.get_context() != 'firefly' and message.get_context() != self._context:
             return self._transfer_message(message)
 
         args = message.to_dict()

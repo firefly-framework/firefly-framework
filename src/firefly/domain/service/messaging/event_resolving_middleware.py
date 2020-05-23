@@ -49,7 +49,7 @@ class EventResolvingMiddleware(Middleware):
         if not self._initialized:
             self._initialize()
 
-        if message.get_context() == self._context:
+        if message.get_context() != 'firefly' and message.get_context() == self._context:
             self._publish_message(message)
             if str(message) not in self._event_listeners:
                 return next_(message)

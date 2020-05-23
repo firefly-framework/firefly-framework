@@ -11,22 +11,29 @@
 #
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
-import os
-import sys
 
-from .cli import *
-from .config import *
-from .content_negotiation import *
-from .core import *
-from .http import *
-from .logging import *
-from .messaging import *
-from .serialization import *
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+from typing import Any
+
+from ...entity.messaging.event import Event
+from ...entity.messaging.command import Command
+from ...entity.messaging.query import Query
 
 
-def set_env(func):
-    for i in range(len(sys.argv)):
-        if sys.argv[i] in ('--env', '-e'):
-            os.environ['ENV'] = sys.argv[i + 1]
-            break
-    return func
+class MessageTransport(ABC):
+    """
+    Pass messages between services.
+    """
+    @abstractmethod
+    def dispatch(self, event: Event) -> None:
+        pass
+
+    @abstractmethod
+    def invoke(self, command: Command) -> Any:
+        pass
+
+    @abstractmethod
+    def request(self, query: Query) -> Any:
+        pass

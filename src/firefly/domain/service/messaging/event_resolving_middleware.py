@@ -24,6 +24,8 @@ from firefly.domain.service.messaging.middleware import Middleware
 
 class EventResolvingMiddleware(Middleware):
     _context_map: ffd.ContextMap = None
+    _message_transport: ffd.MessageTransport = None
+    _context: str = None
 
     def __init__(self, event_listeners: Dict[Union[Type[Event], str], List[ffd.ApplicationService]] = None):
         self._event_listeners = {}
@@ -32,8 +34,6 @@ class EventResolvingMiddleware(Middleware):
             for event, listeners in event_listeners.items():
                 self._event_listeners[event.get_fqn() if not isinstance(event, str) else event] = listeners
 
-    # This is delayed until after __init__ to avoid circular dependencies when building the event listeners.
-    # There may be a better way to do this.
     def _initialize(self):
         for event, listeners in self._event_listeners.items():
             built = []
@@ -49,6 +49,11 @@ class EventResolvingMiddleware(Middleware):
         if not self._initialized:
             self._initialize()
 
+        if message.get_context() == self._context:
+            self._publish_message(message)
+            if str(message) not in self._event_listeners:
+                return next_(message)
+
         args = message.to_dict(recursive=False)
         args['_message'] = message
 
@@ -63,6 +68,9 @@ class EventResolvingMiddleware(Middleware):
             pass
 
         return next_(message)
+
+    def _publish_message(self, message: ffd.Message):
+        self._message_transport.dispatch(message)
 
     def add_event_listener(self, handler: Union[ffd.ApplicationService, Type[ffd.ApplicationService]],
                            event: Union[Type[Event], str]):

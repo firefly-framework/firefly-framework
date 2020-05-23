@@ -18,7 +18,6 @@ import firefly.application as ffa
 import firefly.domain as ffd
 import firefly.infrastructure as ffi
 import firefly_di as di
-from jinja2 import Environment, PackageLoader
 
 
 class Container(di.Container):
@@ -77,6 +76,9 @@ class Container(di.Container):
 
     # Storage
     db_api_storage_interface_registry: ffi.DbApiStorageInterfaceRegistry = ffi.DbApiStorageInterfaceRegistry
+
+    # Messaging
+    message_transport: ffd.MessageTransport = ffi.AsyncioMessageTransport
 
     # API
     web_server: ffi.WebServer = ffi.WebServer

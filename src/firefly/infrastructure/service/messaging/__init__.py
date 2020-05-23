@@ -11,22 +11,5 @@
 #
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
-import os
-import sys
 
-from .cli import *
-from .config import *
-from .content_negotiation import *
-from .core import *
-from .http import *
-from .logging import *
-from .messaging import *
-from .serialization import *
-
-
-def set_env(func):
-    for i in range(len(sys.argv)):
-        if sys.argv[i] in ('--env', '-e'):
-            os.environ['ENV'] = sys.argv[i + 1]
-            break
-    return func
+from .asyncio_message_transport import AsyncioMessageTransport

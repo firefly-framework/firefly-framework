@@ -23,6 +23,7 @@ from .system_bus import SystemBus, SystemBusAware
 from .service_executing_middleware import ServiceExecutingMiddleware
 from .subscription_wrapper import SubscriptionWrapper
 from .message_factory import MessageFactory
+from .message_transport import MessageTransport
 from .command_resolving_middleware import CommandResolvingMiddleware
 from .event_resolving_middleware import EventResolvingMiddleware
 from .query_resolving_middleware import QueryResolvingMiddleware

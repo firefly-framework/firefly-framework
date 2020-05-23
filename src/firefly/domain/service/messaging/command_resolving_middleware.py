@@ -25,6 +25,8 @@ from firefly.domain.entity.messaging.command import Command
 
 class CommandResolvingMiddleware(Middleware):
     _context_map: ffd.ContextMap = None
+    _message_transport: ffd.MessageTransport = None
+    _context: str = None
 
     def __init__(self, command_handlers: Dict[Type[Command], ffd.ApplicationService] = None):
         self._command_handlers = {}
@@ -44,6 +46,9 @@ class CommandResolvingMiddleware(Middleware):
         if not self._initialized:
             self._initialize()
 
+        if message.get_context() != self._context:
+            return self._transfer_message(message)
+
         args = message.to_dict()
         args['_message'] = message
 
@@ -52,6 +57,9 @@ class CommandResolvingMiddleware(Middleware):
             return service(**ffd.build_argument_list(args, service))
         except KeyError:
             raise ffd.ConfigurationError(f'No command handler registered for {message}')
+
+    def _transfer_message(self, message: ffd.Message):
+        return self._message_transport.invoke(message)
 
     def add_command_handler(self, handler: Union[ffd.ApplicationService, Type[ffd.ApplicationService]],
                             command: Union[Type[Command], str]):

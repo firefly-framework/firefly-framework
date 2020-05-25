@@ -65,3 +65,7 @@ class MissingRouter(FrameworkError):
 
 class MessageBusError(FrameworkError):
     pass
+
+
+class MissingDependency(FrameworkError):
+    pass

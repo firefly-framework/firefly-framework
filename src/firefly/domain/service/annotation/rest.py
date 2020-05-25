@@ -31,7 +31,8 @@ class Rest:
                 method=method,
                 message=generates,
                 gateway=gateway,
-                query_params=query_params
+                query_params=query_params,
+                service=cls
             )
 
             try:
@@ -58,6 +59,7 @@ class Rest:
                     method='post',
                     message=f'{context}.Create{cls.__name__}',
                     gateway=gateway,
+                    service=cls
                 ))
 
             if 'update' not in exclude:
@@ -66,6 +68,7 @@ class Rest:
                     method='put',
                     message=f'{context}.Update{cls.__name__}',
                     gateway=gateway,
+                    service=cls
                 ))
 
             if 'delete' not in exclude:
@@ -74,6 +77,7 @@ class Rest:
                     method='delete',
                     message=f'{context}.Delete{cls.__name__}',
                     gateway=gateway,
+                    service=cls
                 ))
 
             if 'read' not in exclude and 'retrieve' not in exclude:
@@ -82,6 +86,7 @@ class Rest:
                     method='get',
                     message=f'{context}.{inflection.pluralize(cls.__name__)}',
                     gateway=gateway,
+                    service=cls
                 ))
 
             return cls

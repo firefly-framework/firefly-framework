@@ -22,7 +22,7 @@ import firefly.domain as ffd
 class PythonLogger(ffd.Logger):
     def __init__(self):
         self.log = logging
-        self.set_level_to_info()
+        self.set_level_to_warning()
 
     def debug(self, message: str, *args, **kwargs):
         self.log.debug(message, *args, **kwargs)

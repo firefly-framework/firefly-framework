@@ -28,5 +28,6 @@ def set_env(func):
     for i in range(len(sys.argv)):
         if sys.argv[i] in ('--env', '-e'):
             os.environ['ENV'] = sys.argv[i + 1]
-            break
+            return func
+    os.environ['ENV'] = 'local'
     return func

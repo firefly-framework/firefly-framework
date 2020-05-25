@@ -48,6 +48,10 @@ setuptools.setup(
         'websockets>=8.0.2',
         'firefly-dependency-injection>=0.1',
     ],
+    extras_require={
+        'OpenApi Generation': ['apispec>=3.3.0', 'docstring_parser>=0.7.1'],
+        'Frontend Support': ['transcrypt>=3.7.16']
+    },
     packages=setuptools.PEP420PackageFinder.find('src'),
     package_dir={'': 'src'},
     classifiers=[

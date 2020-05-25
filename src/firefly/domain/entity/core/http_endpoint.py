@@ -35,3 +35,4 @@ class HttpEndpoint(Endpoint):
     route: str = required(str)
     method: str = optional(str, default='GET')
     query_params: dict = optional(dict)
+    service: type = optional()

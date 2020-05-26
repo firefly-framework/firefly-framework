@@ -143,7 +143,7 @@ class LoadApplicationLayer(ffd.ApplicationService):
         for k, v in module.__dict__.items():
             if not inspect.isclass(v):
                 continue
-            if issubclass(v, ffd.ApplicationService):
+            if issubclass(v, (ffd.ApplicationService, ffd.Middleware)):
                 ret.append(v)
 
         return ret

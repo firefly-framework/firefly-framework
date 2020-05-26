@@ -64,8 +64,8 @@ class Rest:
                     message=f'{context}.Create{cls.__name__}',
                     gateway=gateway,
                     service=cls,
-                    secured=config.get('create', default={}).get('secured', default=True),
-                    scopes=config.get('create', default={}).get('scopes', default=[])
+                    secured=config.get('create', {}).get('secured', True),
+                    scopes=config.get('create', {}).get('scopes', [])
                 ))
 
             if 'update' not in exclude:
@@ -75,8 +75,8 @@ class Rest:
                     message=f'{context}.Update{cls.__name__}',
                     gateway=gateway,
                     service=cls,
-                    secured=config.get('update', default={}).get('secured', default=True),
-                    scopes=config.get('update', default={}).get('scopes', default=[])
+                    secured=config.get('update', {}).get('secured', True),
+                    scopes=config.get('update', {}).get('scopes', [])
                 ))
 
             if 'delete' not in exclude:
@@ -86,8 +86,8 @@ class Rest:
                     message=f'{context}.Delete{cls.__name__}',
                     gateway=gateway,
                     service=cls,
-                    secured=config.get('delete', default={}).get('secured', default=True),
-                    scopes=config.get('delete', default={}).get('scopes', default=[])
+                    secured=config.get('delete', {}).get('secured', True),
+                    scopes=config.get('delete', {}).get('scopes', [])
                 ))
 
             if 'read' not in exclude:
@@ -97,8 +97,8 @@ class Rest:
                     message=f'{context}.{inflection.pluralize(cls.__name__)}',
                     gateway=gateway,
                     service=cls,
-                    secured=config.get('read', default={}).get('secured', default=True),
-                    scopes=config.get('read', default={}).get('scopes', default=[])
+                    secured=config.get('read', {}).get('secured', True),
+                    scopes=config.get('read', {}).get('scopes', [])
                 ))
 
             return cls

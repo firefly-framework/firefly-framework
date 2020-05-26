@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from typing import Union
+from typing import Union, Callable
 
 import firefly.domain as ffd
 
@@ -24,17 +24,33 @@ from firefly.domain.service.messaging.query_bus import QueryBusAware
 
 
 class SystemBus(EventBusAware, CommandBusAware, QueryBusAware):
-    def add_event_listener(self, listener: ffd.Middleware):
-        self._event_bus.add(listener)
+    def add_event_listener(self, listener: ffd.Middleware, index: int = None, cb: Callable = None):
+        if cb is not None:
+            index = cb(self._event_bus.middleware)
+        if index is not None:
+            self._event_bus.insert(index, listener)
+        else:
+            self._event_bus.add(listener)
 
-    def add_command_handler(self, handler: ffd.Middleware):
-        self._command_bus.add(handler)
+    def add_command_handler(self, handler: ffd.Middleware, index: int = None, cb: Callable = None):
+        if cb is not None:
+            index = cb(self._command_bus.middleware)
+        if index is not None:
+            self._command_bus.insert(index, handler)
+        else:
+            self._command_bus.add(handler)
 
+    # deprecated
     def insert_command_handler(self, index: int, handle: ffd.Middleware):
         self._command_bus.insert(index, handle)
 
-    def add_query_handler(self, handler: ffd.Middleware):
-        self._query_bus.add(handler)
+    def add_query_handler(self, handler: ffd.Middleware, index: int = None, cb: Callable = None):
+        if cb is not None:
+            index = cb(self._query_bus.middleware)
+        if index is not None:
+            self._query_bus.insert(index, handler)
+        else:
+            self._query_bus.add(handler)
 
 
 class SystemBusAware:

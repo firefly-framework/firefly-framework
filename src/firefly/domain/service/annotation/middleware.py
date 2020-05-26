@@ -14,19 +14,35 @@
 
 from __future__ import annotations
 
+from typing import List, Callable
+
 from firefly.domain import error
 
 
-class Agent:
-    def __call__(self, name: str):
-        def agent_wrapper(cls):
+class RegisterMiddleware:
+    def __call__(self, index: int = None, buses: List[str] = None, cb: Callable = None):
+        """
+        Decorator to mark a class for insertion into the middleware stack in at least one of the buses.
+
+        :param index: Optional positional index at which to insert the middleware.
+        :param buses: Optional list of buses to which to add this middleware. Can contain 'event', 'command' and/or
+        'query'
+        :param cb: Optional callback that takes the current list of middleware and returns a numeric index at which to
+        insert the middleware.
+        :return:
+        """
+        def middleware_wrapper(cls):
             try:
-                cls.set_agent(name)
+                cls.set_middleware_config({
+                    'index': index,
+                    'buses': buses,
+                    'cb': cb,
+                })
             except AttributeError:
-                raise error.FrameworkError('@agent used on invalid target')
+                raise error.FrameworkError('@middleware used on invalid target')
             return cls
 
-        return agent_wrapper
+        return middleware_wrapper
 
 
-agent = Agent()
+middleware = RegisterMiddleware()

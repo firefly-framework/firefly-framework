@@ -32,17 +32,39 @@ class LoadApplicationLayer(ffd.ApplicationService):
     _agent_factory: ffd.AgentFactory = None
     _message_factory: ffd.MessageFactory = None
     _rest_router: ffd.RestRouter = None
+    _system_bus: ffd.SystemBus = None
 
     def __call__(self, **kwargs):
         for context in self._context_map.contexts:
             for cls in self._load_module(context):
-                self._register_service(cls, context)
-                self._add_endpoints(cls, context)
+                if issubclass(cls, ffd.ApplicationService):
+                    self._register_service(cls, context)
+                    self._add_endpoints(cls, context)
+                elif issubclass(cls, ffd.Middleware):
+                    self._add_middleware(cls, context)
             for entity in context.entities:
                 if issubclass(entity, ffd.AggregateRoot):
                     self._add_endpoints(entity, context)
 
         self.dispatch(ffd.ApplicationLayerLoaded())
+
+    def _add_middleware(self, cls: Type[ffd.Middleware], context: ffd.Context):
+        if not cls.is_middleware():
+            return
+        config = cls.get_middleware_config()
+        params = {}
+        if config['index'] is not None:
+            params['index'] = config['index']
+        elif config['cb'] is not None:
+            params['cb'] = config['cb']
+
+        built = context.container.build(cls)
+        if config['buses'] is None or 'event' in config['buses']:
+            self._system_bus.add_event_listener(built, **params)
+        if config['buses'] is None or 'command' in config['buses']:
+            self._system_bus.add_command_handler(built, **params)
+        if config['buses'] is None or 'query' in config['buses']:
+            self._system_bus.add_query_handler(built, **params)
 
     def _register_service(self, cls: Type[ffd.ApplicationService], context: ffd.Context):
         if cls.is_agent():
@@ -114,7 +136,7 @@ class LoadApplicationLayer(ffd.ApplicationService):
 
     @staticmethod
     def _load_module(context: ffd.Context) -> List[Type[ffd.ApplicationService]]:
-        module_name = context.config.get('application_service_module', '{}.application.service')
+        module_name = context.config.get('application_module', '{}.application')
         try:
             module = importlib.import_module(module_name.format(context.name))
         except (ModuleNotFoundError, KeyError):

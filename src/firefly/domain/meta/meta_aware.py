@@ -26,10 +26,15 @@ class MetaAware(ABC):
     _query: Dict[Type[MetaAware], ff.TypeOfQuery] = {}
     _endpoints: Dict[Type[MetaAware], List[ff.Endpoint]] = {}
     _agent: Optional[str] = None
+    _middleware_config: Optional[Dict] = None
 
     @classmethod
     def is_handler(cls):
         return cls.is_event_listener() or cls.is_query_handler() or cls.is_command_handler()
+
+    @classmethod
+    def is_middleware(cls):
+        return cls._middleware_config is not None
 
     @classmethod
     def add_event(cls, event: ff.TypeOfEvent):
@@ -94,3 +99,11 @@ class MetaAware(ABC):
     @classmethod
     def get_agent(cls):
         return cls._agent
+
+    @classmethod
+    def set_middleware_config(cls, config: dict):
+        cls._middleware_config = config
+
+    @classmethod
+    def get_middleware_config(cls):
+        return cls._middleware_config

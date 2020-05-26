@@ -15,6 +15,7 @@
 from .agent import agent
 from .cli import cli
 from .command_handler import command_handler
+from .middleware import middleware
 from .on import on
 from .query_handler import query_handler
 from .rest import rest

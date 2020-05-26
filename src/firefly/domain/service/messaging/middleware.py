@@ -28,7 +28,7 @@ from firefly.presentation.web.polyfills import ABC, abstractmethod
 import firefly.domain as ffd
 
 
-class Middleware(ABC):
+class Middleware(ffd.MetaAware, ABC):
     @abstractmethod
     def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
         pass

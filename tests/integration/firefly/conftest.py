@@ -24,7 +24,7 @@ def config():
             'todo': {
                 'entity_module': 'test_src.todo.domain.entity',
                 'container_module': 'test_src.todo.application',
-                'application_service_module': 'test_src.todo.application.service',
+                'application_module': 'test_src.todo.application',
                 'storage': {
                     'services': {
                         'sqlite': {
@@ -42,7 +42,7 @@ def config():
             'iam': {
                 'entity_module': 'test_src.iam.domain.entity',
                 'container_module': 'test_src.iam.application',
-                'application_service_module': 'test_src.iam.application.service',
+                'application_module': 'test_src.iam.application',
                 'storage': {
                     'connections': {
                         'sqlite': {

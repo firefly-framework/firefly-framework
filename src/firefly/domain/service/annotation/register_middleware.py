@@ -45,4 +45,4 @@ class RegisterMiddleware:
         return middleware_wrapper
 
 
-middleware = RegisterMiddleware()
+register_middleware = RegisterMiddleware()

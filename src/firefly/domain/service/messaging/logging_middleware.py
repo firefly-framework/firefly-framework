@@ -27,4 +27,6 @@ class LoggingMiddleware(Middleware, LoggerAware):
 
     def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
         self.info(self._message, message)
-        return next_(message)
+        ret = next_(message)
+        self.info('Response: %', str(ret))
+        return ret

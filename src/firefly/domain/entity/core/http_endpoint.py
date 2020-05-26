@@ -26,8 +26,10 @@
 
 from __future__ import annotations
 
+from typing import List
+
 from firefly.domain.entity.core.endpoint import Endpoint
-from firefly.domain.entity.entity import optional, required
+from firefly.domain.entity.entity import optional, required, list_
 
 
 class HttpEndpoint(Endpoint):
@@ -36,3 +38,5 @@ class HttpEndpoint(Endpoint):
     method: str = optional(str, default='GET')
     query_params: dict = optional(dict)
     service: type = optional()
+    secured: bool = optional(default=True)
+    scopes: List[str] = list_()

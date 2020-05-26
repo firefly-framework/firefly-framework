@@ -24,12 +24,12 @@ class RoutesRestRouter(ffd.RestRouter):
     def __init__(self):
         self._maps: Dict[str, Mapper] = {}
 
-    def register(self, route: str, action: str, method: str = 'get'):
-        if method.lower() not in self._maps:
-            self._maps[method.lower()] = Mapper()
-        self._maps[method.lower()].connect(route, action=action)
+    def register(self, route: str, endpoint: ffd.HttpEndpoint):
+        if endpoint.method.lower() not in self._maps:
+            self._maps[endpoint.method.lower()] = Mapper()
+        self._maps[endpoint.method.lower()].connect(route, action=endpoint)
 
-    def match(self, route: str, method: str = 'get') -> Optional[Tuple[str, dict]]:
+    def match(self, route: str, method: str = 'get') -> Optional[Tuple[ffd.HttpEndpoint, dict]]:
         result = None
         if method.lower() in self._maps:
             result = self._maps[method.lower()].match(route)

@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import inspect
+from typing import List
 
 import firefly as ff
 import firefly.domain.error as error
@@ -24,7 +25,7 @@ from firefly.domain.entity.core.http_endpoint import HttpEndpoint
 
 class Rest:
     def __call__(self, route: str, method: str = 'GET', generates: ff.TypeOfMessage = None, gateway: str = None,
-                 query_params: dict = None):
+                 query_params: dict = None, secured: bool = True, scopes: List[str] = None):
         def on_wrapper(cls):
             endpoint = HttpEndpoint(
                 route=route,
@@ -32,7 +33,9 @@ class Rest:
                 message=generates,
                 gateway=gateway,
                 query_params=query_params,
-                service=cls
+                service=cls,
+                secured=secured,
+                scopes=[] if scopes is None else scopes
             )
 
             try:
@@ -47,8 +50,9 @@ class Rest:
         return on_wrapper
 
     @staticmethod
-    def crud(exclude: list = None, gateway: str = None):
+    def crud(exclude: list = None, gateway: str = None, config: dict = None):
         exclude = exclude or []
+        config = config or {}
 
         def on_wrapper(cls):
             context = cls.get_class_context()
@@ -59,7 +63,9 @@ class Rest:
                     method='post',
                     message=f'{context}.Create{cls.__name__}',
                     gateway=gateway,
-                    service=cls
+                    service=cls,
+                    secured=config.get('create', default={}).get('secured', default=True),
+                    scopes=config.get('create', default={}).get('scopes', default=[])
                 ))
 
             if 'update' not in exclude:
@@ -68,7 +74,9 @@ class Rest:
                     method='put',
                     message=f'{context}.Update{cls.__name__}',
                     gateway=gateway,
-                    service=cls
+                    service=cls,
+                    secured=config.get('update', default={}).get('secured', default=True),
+                    scopes=config.get('update', default={}).get('scopes', default=[])
                 ))
 
             if 'delete' not in exclude:
@@ -77,16 +85,20 @@ class Rest:
                     method='delete',
                     message=f'{context}.Delete{cls.__name__}',
                     gateway=gateway,
-                    service=cls
+                    service=cls,
+                    secured=config.get('delete', default={}).get('secured', default=True),
+                    scopes=config.get('delete', default={}).get('scopes', default=[])
                 ))
 
-            if 'read' not in exclude and 'retrieve' not in exclude:
+            if 'read' not in exclude:
                 cls.add_endpoint(HttpEndpoint(
                     route=f'/{base}/{{{cls.id_name()}}}',
                     method='get',
                     message=f'{context}.{inflection.pluralize(cls.__name__)}',
                     gateway=gateway,
-                    service=cls
+                    service=cls,
+                    secured=config.get('read', default={}).get('secured', default=True),
+                    scopes=config.get('read', default={}).get('scopes', default=[])
                 ))
 
             return cls

@@ -27,8 +27,8 @@ class RegisterMiddleware:
         :param index: Optional positional index at which to insert the middleware.
         :param buses: Optional list of buses to which to add this middleware. Can contain 'event', 'command' and/or
         'query'
-        :param cb: Optional callback that takes the current list of middleware and returns a numeric index at which to
-        insert the middleware.
+        :param cb: Optional callback that takes the bus type and the current list of middleware and returns a numeric
+        index at which to insert the middleware.
         :return:
         """
         def middleware_wrapper(cls):

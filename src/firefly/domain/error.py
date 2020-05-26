@@ -35,6 +35,14 @@ class FrameworkError(Exception):
     pass
 
 
+class UnauthenticatedError(FrameworkError):
+    pass
+
+
+class UnauthorizedError(FrameworkError):
+    pass
+
+
 class LogicError(FrameworkError):
     pass
 

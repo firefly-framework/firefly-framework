@@ -129,10 +129,7 @@ class LoadApplicationLayer(ffd.ApplicationService):
                     route = f'/{route}'
                 if not route.startswith(route_prefix):
                     route = f'{route_prefix}{route}'
-                msg = endpoint.message
-                if inspect.isclass(msg):
-                    msg = msg.get_fqn()
-                self._rest_router.register(route, msg, method=endpoint.method)
+                self._rest_router.register(route, endpoint)
 
     @staticmethod
     def _load_module(context: ffd.Context) -> List[Type[ffd.ApplicationService]]:

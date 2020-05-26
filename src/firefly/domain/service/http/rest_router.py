@@ -15,16 +15,16 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Optional, Tuple, Union, Type
+from typing import Optional, Tuple
 
-from ...entity.messaging.message import Message
+from ...entity.core.http_endpoint import HttpEndpoint
 
 
 class RestRouter(ABC):
     @abstractmethod
-    def register(self, route: str, action: Union[str, Type[Message]], method: str = 'get'):
+    def register(self, route: str, endpoint: HttpEndpoint):
         pass
 
     @abstractmethod
-    def match(self, route: str, method: str = 'get') -> Optional[Tuple[str, dict]]:
+    def match(self, route: str, method: str = 'get') -> Optional[Tuple[HttpEndpoint, dict]]:
         pass

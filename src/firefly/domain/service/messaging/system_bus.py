@@ -26,7 +26,7 @@ from firefly.domain.service.messaging.query_bus import QueryBusAware
 class SystemBus(EventBusAware, CommandBusAware, QueryBusAware):
     def add_event_listener(self, listener: ffd.Middleware, index: int = None, cb: Callable = None):
         if cb is not None:
-            index = cb(self._event_bus.middleware)
+            index = cb('event', self._event_bus.middleware)
         if index is not None:
             self._event_bus.insert(index, listener)
         else:
@@ -34,7 +34,7 @@ class SystemBus(EventBusAware, CommandBusAware, QueryBusAware):
 
     def add_command_handler(self, handler: ffd.Middleware, index: int = None, cb: Callable = None):
         if cb is not None:
-            index = cb(self._command_bus.middleware)
+            index = cb('command', self._command_bus.middleware)
         if index is not None:
             self._command_bus.insert(index, handler)
         else:
@@ -46,7 +46,7 @@ class SystemBus(EventBusAware, CommandBusAware, QueryBusAware):
 
     def add_query_handler(self, handler: ffd.Middleware, index: int = None, cb: Callable = None):
         if cb is not None:
-            index = cb(self._query_bus.middleware)
+            index = cb('query', self._query_bus.middleware)
         if index is not None:
             self._query_bus.insert(index, handler)
         else:

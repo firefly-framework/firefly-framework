@@ -23,11 +23,13 @@ from routes import Mapper
 class RoutesRestRouter(ffd.RestRouter):
     def __init__(self):
         self._maps: Dict[str, Mapper] = {}
+        self._cache = {}
 
     def register(self, route: str, endpoint: ffd.HttpEndpoint):
         if endpoint.method.lower() not in self._maps:
             self._maps[endpoint.method.lower()] = Mapper()
         self._maps[endpoint.method.lower()].connect(route, action=endpoint)
+        self._cache[str(endpoint)] = endpoint
 
     def match(self, route: str, method: str = 'get') -> Optional[Tuple[ffd.HttpEndpoint, dict]]:
         result = None
@@ -42,4 +44,4 @@ class RoutesRestRouter(ffd.RestRouter):
         action = result['action']
         del result['action']
 
-        return action, result
+        return self._cache[action], result

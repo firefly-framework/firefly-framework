@@ -18,10 +18,11 @@ from typing import Callable, Dict
 
 from firefly import domain as ffd
 from firefly.domain.service.content_negotiation.content_converter import ContentConverter
+from firefly.domain.service.logging import LoggerAware
 from firefly.domain.service.messaging.middleware import Middleware
 
 
-class ContentNegotiator(Middleware, ffd.LoggerAware):
+class ContentNegotiator(Middleware, LoggerAware):
     _converters: Dict[str, ContentConverter] = None
 
     def __init__(self, converters: Dict[str, ContentConverter]):

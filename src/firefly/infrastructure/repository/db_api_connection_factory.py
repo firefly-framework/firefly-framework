@@ -25,4 +25,6 @@ class DbApiConnectionFactory(ffd.ConnectionFactory):
     _db_api_storage_interface_registry: DbApiStorageInterfaceRegistry = None
 
     def __call__(self, **kwargs):
-        return self._container.build(self._db_api_storage_interface_registry.get(kwargs['driver']), **kwargs)
+        driver = kwargs['driver']
+        del kwargs['driver']
+        return self._container.build(self._db_api_storage_interface_registry.get(driver), **kwargs)

@@ -24,7 +24,8 @@ class Container(di.Container):
     kernel: ffd.Kernel = ffd.Kernel
     event_buffer: ffd.EventBuffer = ffd.EventBuffer
     logger: ffd.Logger = ffi.PythonLogger
-    serializer: ffd.Serializer = ffi.DefaultSerializer
+    serializer: ffd.Serializer = ffi.JsonSerializer
+    json_serializer: ffi.JsonSerializer = ffi.JsonSerializer
     configuration_factory: ffd.ConfigurationFactory = ffi.YamlConfigurationFactory
     configuration: ffd.Configuration = lambda self: self.configuration_factory()
     context_map: ffd.ContextMap = ffd.ContextMap

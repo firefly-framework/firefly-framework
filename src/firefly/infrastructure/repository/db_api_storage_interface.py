@@ -22,8 +22,7 @@ import inflection
 
 
 class DbApiStorageInterface(ABC):
-    def __init__(self, config: dict):
-        self._config = config
+    def __init__(self):
         self._tables_checked = []
 
     def disconnect(self):

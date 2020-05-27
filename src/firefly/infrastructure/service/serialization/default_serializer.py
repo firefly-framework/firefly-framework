@@ -47,7 +47,7 @@ class FireflyEncoder(JSONEncoder):
         return JSONEncoder.default(self, o)
 
 
-class DefaultSerializer(ffd.Serializer):
+class JsonSerializer(ffd.Serializer):
     _message_factory: ffd.MessageFactory = None
 
     def serialize(self, data):

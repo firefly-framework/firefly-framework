@@ -22,7 +22,7 @@ class ThisCommand(ffd.Command):
     y: int = ffd.optional(default=0)
 
 
-def test_serialize_message(sut: ffi.DefaultSerializer):
+def test_serialize_message(sut: ffi.JsonSerializer):
     command = ThisCommand(x='foo')
     serialized = sut.serialize(command)
     deserialized = sut.deserialize(serialized)
@@ -34,4 +34,4 @@ def test_serialize_message(sut: ffi.DefaultSerializer):
 
 @pytest.fixture()
 def sut():
-    return ffi.DefaultSerializer()
+    return ffi.JsonSerializer()

@@ -69,6 +69,8 @@ class ConfigureStorage(ffd.ApplicationService):
                         raise e
 
         for context in self._context_map.contexts:
+            if context.name == 'firefly':
+                continue
             storage = context.config.get('storage', {})
             registered_aggregates = []
             if 'aggregates' in storage:
@@ -80,7 +82,8 @@ class ConfigureStorage(ffd.ApplicationService):
                     self._registry.register_factory(entity, factories[service])
             if 'default' in storage:
                 for entity in context.entities:
-                    if issubclass(entity, ffd.AggregateRoot) and entity not in registered_aggregates:
+                    if issubclass(entity, ffd.AggregateRoot) and entity is not ffd.AggregateRoot \
+                            and entity not in registered_aggregates:
                         self._registry.register_factory(entity, factories[storage.get('default')])
 
         # TODO Get persistence working in these core services.

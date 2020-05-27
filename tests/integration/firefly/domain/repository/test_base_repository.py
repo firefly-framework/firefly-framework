@@ -31,7 +31,7 @@ class WidgetRepository(ff.Repository[Widget]):
         self._foos = foos
         self._index = 0
 
-    def add(self, entity: T):
+    def append(self, entity: T):
         pass
 
     def remove(self, entity: T):

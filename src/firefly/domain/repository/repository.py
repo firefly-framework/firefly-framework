@@ -26,7 +26,7 @@ T = TypeVar('T')
 
 class Repository(Generic[T], GenericBase, ABC):
     @abstractmethod
-    def add(self, entity: T):
+    def append(self, entity: T):
         pass
 
     @abstractmethod

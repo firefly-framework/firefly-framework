@@ -28,9 +28,10 @@ class DbApiRepository(ffd.Repository[T]):
         self._table = inflection.tableize(self._entity_type.__name__)
         self._interface = interface
         self._entities = None
+        self._new_entities = []
         self._index = 0
 
-    def add(self, entity: T):
+    def append(self, entity: T):
         self._interface.add(entity)
         self._entities = None
 

@@ -26,7 +26,7 @@ class MemoryRepository(ffd.Repository[T]):
         self.entities = []
         self._index = 0
 
-    def add(self, entity: T):
+    def append(self, entity: T):
         self.entities.append(entity)
 
     def remove(self, entity: T):

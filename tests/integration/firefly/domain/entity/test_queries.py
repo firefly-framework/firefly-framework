@@ -53,5 +53,5 @@ def test_search_criteria_or(system_bus, message_factory):
 @pytest.fixture(autouse=True)
 def fixture_data(registry):
     r = registry(User)
-    r.add(User(name='foo', email='foo@bar.com'))
-    r.add(User(name='bar', email='bar@baz.com'))
+    r.append(User(name='foo', email='foo@bar.com'))
+    r.append(User(name='bar', email='bar@baz.com'))

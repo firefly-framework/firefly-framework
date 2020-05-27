@@ -161,7 +161,7 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
 
     @staticmethod
     async def _marshal_request(message: ffd.Message, request: web.Request):
-        #TODO make a class
+        # TODO make a class
         message.headers['http_request'] = {
             'headers': dict(request.headers),
             'method': request.method,

@@ -38,7 +38,7 @@ class CreateEntity(Generic[T], ApplicationService, GenericBase, CrudOperation, S
             entity = method(type_, **kwargs)
         else:
             entity = type_(**ffd.build_argument_list(kwargs, type_))
-        self._registry(type_).add(entity)
+        self._registry(type_).append(entity)
         self.dispatch(self._build_event(type_, 'create', asdict(entity), kwargs['_context']))
 
         return True

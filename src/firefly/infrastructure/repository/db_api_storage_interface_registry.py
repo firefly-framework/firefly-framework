@@ -20,8 +20,6 @@ import firefly.infrastructure as ffi
 
 
 class DbApiStorageInterfaceRegistry:
-
-
     def __init__(self):
         self._interfaces: Dict[str, Type[ffi.DbApiStorageInterface]] = {}
 
@@ -30,7 +28,3 @@ class DbApiStorageInterfaceRegistry:
 
     def get(self, name: str) -> Type[ffi.DbApiStorageInterface]:
         return self._interfaces.get(name)
-
-    def disconnect_all(self):
-        for name, interface in self._interfaces.items():
-            interface.disconnect()

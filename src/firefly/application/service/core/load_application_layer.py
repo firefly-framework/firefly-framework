@@ -73,14 +73,14 @@ class LoadApplicationLayer(ffd.ApplicationService):
         if not cls.is_handler():
             return
 
-        if cls.is_event_listener():
+        if cls.is_event_listener() and issubclass(cls, ffd.ApplicationService):
             for event in cls.get_events():
                 self._event_resolver.add_event_listener(cls, event)
                 if cls not in context.event_listeners:
                     context.event_listeners[cls] = []
                 context.event_listeners[cls].append(event)
 
-        if cls.is_command_handler():
+        if cls.is_command_handler() and issubclass(cls, ffd.ApplicationService):
             if cls.get_command() is None:
                 cls.set_command(self._generate_message_name(cls))
             cmd = cls.get_command()
@@ -89,7 +89,7 @@ class LoadApplicationLayer(ffd.ApplicationService):
             self._command_resolver.add_command_handler(cls, cmd)
             context.command_handlers[cls] = cmd
 
-        if cls.is_query_handler():
+        if cls.is_query_handler() and issubclass(cls, ffd.ApplicationService):
             if cls.get_query() is None:
                 cls.set_query(self._generate_message_name(cls))
             query = cls.get_query()

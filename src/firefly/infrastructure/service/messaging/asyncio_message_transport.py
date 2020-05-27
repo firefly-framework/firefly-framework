@@ -17,15 +17,20 @@ from __future__ import annotations
 from typing import Any
 
 import firefly.domain as ffd
-from firefly import Query, Command, Event
+from firefly import Query, Command, Event, SystemBus
+from ...web_server.web_server import WebServer
 
 
+# TODO add messages into the event loop in _web_server
 class AsyncioMessageTransport(ffd.MessageTransport, ffd.LoggerAware):
+    _web_server: WebServer = None
+    _system_bus: SystemBus = None
+
     def dispatch(self, event: Event) -> None:
-        raise NotImplementedError()
+        return self._system_bus.dispatch(event)
 
     def invoke(self, command: Command) -> Any:
-        raise NotImplementedError()
+        return self._system_bus.invoke(command)
 
     def request(self, query: Query) -> Any:
-        raise NotImplementedError()
+        return self._system_bus.request(query)

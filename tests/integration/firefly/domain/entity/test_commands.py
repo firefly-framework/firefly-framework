@@ -66,5 +66,5 @@ def todo(registry, request):
     request.addfinalizer(teardown)
 
     ret = TodoList(user=User(name='foo'))
-    r.add(ret)
+    r.append(ret)
     return ret

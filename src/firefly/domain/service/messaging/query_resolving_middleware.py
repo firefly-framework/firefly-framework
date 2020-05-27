@@ -27,6 +27,7 @@ class QueryResolvingMiddleware(Middleware):
     _context_map: ffd.ContextMap = None
     _message_transport: ffd.MessageTransport = None
     _context: str = None
+    _env: str = None
 
     def __init__(self, query_handlers: Dict[ffd.ApplicationService, Type[Query]] = None):
         self._initialized = False
@@ -43,7 +44,8 @@ class QueryResolvingMiddleware(Middleware):
         if not self._initialized:
             self._initialize()
 
-        if message.get_context() != 'firefly' and message.get_context() != self._context:
+        # TODO Fix the local dev server to work with multiple contexts
+        if message.get_context() != 'firefly' and message.get_context() != self._context and self._env != 'local':
             return self._transfer_message(message)
 
         args = message.to_dict()

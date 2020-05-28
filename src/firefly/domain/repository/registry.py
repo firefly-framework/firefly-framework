@@ -58,3 +58,6 @@ class Registry:
 
     def clear_cache(self):
         self._cache = {}
+
+    def get_repositories(self):
+        return list(self._cache.items())

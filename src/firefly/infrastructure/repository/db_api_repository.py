@@ -24,32 +24,30 @@ from firefly.domain.repository.repository import T
 
 class DbApiRepository(ffd.Repository[T]):
     def __init__(self, interface: ffi.DbApiStorageInterface, table_name: str = None):
+        super().__init__()
+
         self._entity_type = self._type()
         self._table = table_name or inflection.tableize(self._entity_type.__name__)
         self._interface = interface
-        self._entities = None
-        self._new_entities = []
         self._index = 0
 
     def append(self, entity: T):
-        self._interface.add(entity)
-        self._entities = None
+        self._entities.append(entity)
 
     def remove(self, entity: T):
-        self._interface.remove(entity)
-        self._entities = None
+        self._deletions.append(entity)
 
     def find(self, uuid) -> T:
-        return self._interface.find(uuid, self._entity_type)
-
-    def find_all_matching(self, criteria: ffd.BinaryOp) -> List[T]:
-        return self._interface.all(self._entity_type, criteria=criteria)
-
-    def find_one_matching(self, criteria: ffd.BinaryOp) -> T:
-        return self._interface.all(self._entity_type, criteria=criteria, limit=1)
+        ret = self._interface.find(uuid, self._entity_type)
+        if ret:
+            self._register_entity(ret)
+        return ret
 
     def filter(self, cb: Callable) -> List[T]:
-        return self._interface.all(self._entity_type, criteria=self._get_search_criteria(cb))
+        entities = self._interface.all(self._entity_type, criteria=self._get_search_criteria(cb))
+        for entity in entities:
+            self._register_entity(entity)
+        return entities
 
     def reduce(self, cb: Callable) -> Optional[T]:
         pass
@@ -77,3 +75,13 @@ class DbApiRepository(ffd.Repository[T]):
     def _load_all(self):
         if self._entities is None:
             self._entities = self._interface.all(self._entity_type)
+
+    def commit(self):
+        for entity in self._deletions:
+            self._interface.remove(entity)
+
+        for entity in self._new_entities():
+            self._interface.add(entity)
+
+        for entity in self._changed_entities():
+            self._interface.update(entity)

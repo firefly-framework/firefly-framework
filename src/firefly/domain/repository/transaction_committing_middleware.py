@@ -12,9 +12,24 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from .connection_factory import ConnectionFactory
+from __future__ import annotations
+
+from typing import Callable
+
+from firefly import domain as ffd
+
 from .registry import Registry
-from .repository import Repository
-from .repository_factory import RepositoryFactory
-from .search_criteria import *
-from .transaction_committing_middleware import TransactionCommittingMiddleware
+from ..service.messaging.middleware import Middleware
+
+
+class TransactionCommittingMiddleware(Middleware):
+    _registry: Registry = None
+
+    def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
+        try:
+            ret = next_(message)
+            for repository in self._registry.get_repositories():
+                repository.commit()
+            return ret
+        except Exception:
+            raise

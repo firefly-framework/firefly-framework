@@ -68,3 +68,6 @@ class MemoryRepository(ffd.Repository[T]):
 
     def __getitem__(self, item):
         return self.entities[item]
+
+    def commit(self):
+        pass

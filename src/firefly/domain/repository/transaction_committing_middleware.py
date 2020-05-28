@@ -16,20 +16,27 @@ from __future__ import annotations
 
 from typing import Callable
 
-from firefly import domain as ffd
+import firefly.domain as ffd
 
 from .registry import Registry
 from ..service.messaging.middleware import Middleware
+from ..service.messaging.system_bus import SystemBusAware
 
 
 class TransactionCommittingMiddleware(Middleware):
     _registry: Registry = None
 
+    def __init__(self):
+        self._level = 0
+
     def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
         try:
+            self._level += 1
             ret = next_(message)
-            for repository in self._registry.get_repositories():
-                repository.commit()
+            self._level -= 1
+            if self._level == 0:
+                for repository in self._registry.get_repositories():
+                    repository.commit()
             return ret
         except Exception:
             raise

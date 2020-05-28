@@ -14,8 +14,8 @@
 
 from __future__ import annotations
 
+import hashlib
 from abc import ABC, abstractmethod
-from pickle import dumps
 from typing import List, TypeVar, Generic, Union, Callable, Optional
 
 import firefly.domain as ffd
@@ -26,6 +26,8 @@ T = TypeVar('T')
 
 
 class Repository(Generic[T], GenericBase, ABC):
+    _serializer: ffd.Serializer = None
+
     def __init__(self):
         self._entity_hashes = {}
         self._entities = []
@@ -70,14 +72,17 @@ class Repository(Generic[T], GenericBase, ABC):
     def _get_search_criteria(self, cb: Callable) -> ffd.BinaryOp:
         return cb(ffd.EntityAttributeSpy(self._type()))
 
+    def _get_hash(self, entity: ffd.Entity):
+        return hashlib.md5(self._serializer.serialize(entity).encode('utf-8')).hexdigest()
+
     def _register_entity(self, entity: ffd.Entity):
-        self._entity_hashes[id(entity)] = dumps(entity, -1)
+        self._entity_hashes[id(entity)] = self._get_hash(entity)
         self._entities.append(entity)
 
     def _has_changed(self, entity: ffd.Entity):
         if id(entity) not in self._entity_hashes:
             return False
-        return dumps(entity, -1) == self._entity_hashes[id(entity)]
+        return self._get_hash(entity) != self._entity_hashes[id(entity)]
 
     def _new_entities(self):
         ret = []

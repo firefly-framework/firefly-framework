@@ -18,12 +18,14 @@ from typing import Type
 
 import firefly.domain as ffd
 import firefly.infrastructure as ffi
+import firefly_di as di
 from firefly import Repository
 from firefly.domain.repository.repository_factory import E
 
 
 class DbApiRepositoryFactory(ffd.RepositoryFactory):
     _context_map: ffd.ContextMap = None
+    _container: di.Container = None
 
     def __init__(self, interface: ffi.DbApiStorageInterface):
         self._interface = interface
@@ -35,7 +37,9 @@ class DbApiRepositoryFactory(ffd.RepositoryFactory):
             class LocalRepository(ffi.DbApiRepository[entity]):
                 pass
             LocalRepository.__name__ = f'{entity.__name__}Repository'
-            self._cache[entity] = LocalRepository(self._interface, **self._get_repository_arguments(entity))
+            params = self._get_repository_arguments(entity)
+            params['interface'] = self._interface
+            self._cache[entity] = self._container.build(LocalRepository, **params)
 
         return self._cache[entity]
 

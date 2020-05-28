@@ -27,7 +27,7 @@ class AsyncioMessageTransport(ffd.MessageTransport, ffd.LoggerAware):
     _system_bus: SystemBus = None
 
     def dispatch(self, event: Event) -> None:
-        return self._system_bus.dispatch(event)
+        pass
 
     def invoke(self, command: Command) -> Any:
         return self._system_bus.invoke(command)

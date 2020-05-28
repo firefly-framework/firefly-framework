@@ -23,6 +23,8 @@ from firefly.domain.repository.repository_factory import E
 
 
 class DbApiRepositoryFactory(ffd.RepositoryFactory):
+    _context_map: ffd.ContextMap = None
+
     def __init__(self, interface: ffi.DbApiStorageInterface):
         self._interface = interface
         self._cache = {}
@@ -33,6 +35,18 @@ class DbApiRepositoryFactory(ffd.RepositoryFactory):
             class LocalRepository(ffi.DbApiRepository[entity]):
                 pass
             LocalRepository.__name__ = f'{entity.__name__}Repository'
-            self._cache[entity] = LocalRepository(self._interface)
+            self._cache[entity] = LocalRepository(self._interface, **self._get_repository_arguments(entity))
 
         return self._cache[entity]
+
+    def _get_repository_arguments(self, entity: Type[E]):
+        context = self._context_map.get_context(entity.get_class_context())
+        if 'aggregates' not in context.config.get('storage', {}):
+            return {}
+        aggregates = context.config.get('storage').get('aggregates')
+        if entity.__name__ in aggregates and isinstance(aggregates.get(entity.__name__), dict):
+            return aggregates.get(entity.__name__)
+        if entity.get_fqn() in aggregates and isinstance(aggregates.get(entity.get_fqn()), dict):
+            return aggregates.get(entity.get_fqn())
+
+        return {}

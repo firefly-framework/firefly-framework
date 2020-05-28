@@ -20,13 +20,14 @@ import firefly.domain as ffd
 
 
 class EntityAttributeSpy:
-    def __init__(self, type_: Type[ffd.ValueObject]):
+    def __init__(self, type_: Type[ffd.ValueObject] = None):
         self._type = type_
 
     def __getattribute__(self, item):
-        t = object.__getattribute__(self, '_type')
-        if not hasattr(t, item):
-            raise AttributeError(f"'{t.__name__}' object has no attribute '{item}'")
+        if self._type is not None:
+            t = object.__getattribute__(self, '_type')
+            if not hasattr(t, item):
+                raise AttributeError(f"'{t.__name__}' object has no attribute '{item}'")
         return Attr(item)
 
 

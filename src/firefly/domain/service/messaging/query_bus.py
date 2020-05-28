@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from typing import Union
+from typing import Union, Callable
 
 # __pragma__('skip')
 from abc import ABC
@@ -34,7 +34,10 @@ class QueryBus(MessageBus):
     _message_factory: ffd.MessageFactory = None
 
     # __pragma__ ('kwargs')
-    def request(self, request: Union[ffd.Query, str], criteria: ffd.BinaryOp = None, data: dict = None):
+    def request(self, request: Union[ffd.Query, str], criteria: Union[ffd.BinaryOp, Callable] = None,
+                data: dict = None):
+        if not isinstance(criteria, ffd.BinaryOp):
+            criteria = criteria(ffd.EntityAttributeSpy())
         if isinstance(request, str):
             request = self._message_factory.query(request, criteria, data or {})
         return self.dispatch(request)
@@ -45,6 +48,7 @@ class QueryBusAware(ABC):
     _query_bus: QueryBus = None
 
     # __pragma__ ('kwargs')
-    def request(self, request: Union[ffd.Query, str], criteria: ffd.BinaryOp = None, data: dict = None):
+    def request(self, request: Union[ffd.Query, str], criteria: Union[ffd.BinaryOp, Callable] = None,
+                data: dict = None):
         return self._query_bus.request(request, criteria, data)
     # __pragma__ ('nokwargs')

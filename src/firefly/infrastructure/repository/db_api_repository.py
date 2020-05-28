@@ -23,9 +23,9 @@ from firefly.domain.repository.repository import T
 
 
 class DbApiRepository(ffd.Repository[T]):
-    def __init__(self, interface: ffi.DbApiStorageInterface):
+    def __init__(self, interface: ffi.DbApiStorageInterface, table_name: str = None):
         self._entity_type = self._type()
-        self._table = inflection.tableize(self._entity_type.__name__)
+        self._table = table_name or inflection.tableize(self._entity_type.__name__)
         self._interface = interface
         self._entities = None
         self._new_entities = []

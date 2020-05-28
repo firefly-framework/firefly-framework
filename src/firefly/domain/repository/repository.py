@@ -17,7 +17,6 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from pickle import dumps
 from typing import List, TypeVar, Generic, Union, Callable, Optional
-from weakref import WeakKeyDictionary
 
 import firefly.domain as ffd
 
@@ -28,7 +27,7 @@ T = TypeVar('T')
 
 class Repository(Generic[T], GenericBase, ABC):
     def __init__(self):
-        self._entity_hashes = WeakKeyDictionary()
+        self._entity_hashes = {}
         self._entities = []
         self._deletions = []
 
@@ -72,18 +71,18 @@ class Repository(Generic[T], GenericBase, ABC):
         return cb(ffd.EntityAttributeSpy(self._type()))
 
     def _register_entity(self, entity: ffd.Entity):
-        self._entity_hashes[entity] = dumps(entity, -1)
+        self._entity_hashes[id(entity)] = dumps(entity, -1)
         self._entities.append(entity)
 
     def _has_changed(self, entity: ffd.Entity):
-        if entity not in self._entity_hashes:
+        if id(entity) not in self._entity_hashes:
             return False
-        return dumps(entity, -1) == self._entity_hashes[entity]
+        return dumps(entity, -1) == self._entity_hashes[id(entity)]
 
     def _new_entities(self):
         ret = []
         for entity in self._entities:
-            if entity not in self._entity_hashes:
+            if id(entity) not in self._entity_hashes:
                 ret.append(entity)
         return ret
 

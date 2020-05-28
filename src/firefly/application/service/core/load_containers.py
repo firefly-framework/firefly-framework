@@ -57,6 +57,5 @@ class LoadContainers(ffd.ApplicationService):
             container_cls = EmptyContainer
 
         container = container_cls()
-        container.register_container(self._container)
 
         return container

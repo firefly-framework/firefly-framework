@@ -60,4 +60,4 @@ class Registry:
         self._cache = {}
 
     def get_repositories(self):
-        return list(self._cache.items())
+        return list(self._cache.values())

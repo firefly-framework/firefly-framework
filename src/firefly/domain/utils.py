@@ -22,7 +22,7 @@ from time import sleep
 import firefly as ff
 
 
-def retry(cb, valid_cb=None, wait: int = 1, backoff: bool = True, retries: int = 10, catch=Exception):
+def retry(cb, valid_cb=None, wait: int = 1, backoff: bool = True, retries: int = 5, catch=Exception):
     while retries > 0:
         try:
             ret = cb()

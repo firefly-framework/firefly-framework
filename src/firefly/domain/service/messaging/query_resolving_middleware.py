@@ -25,7 +25,6 @@ from firefly.domain.entity.messaging.query import Query
 
 class QueryResolvingMiddleware(Middleware):
     _context_map: ffd.ContextMap = None
-    _message_transport: ffd.MessageTransport = None
     _context: str = None
     _env: str = None
 
@@ -56,7 +55,7 @@ class QueryResolvingMiddleware(Middleware):
         raise ffd.ConfigurationError(f'No query handler registered for {message}')
 
     def _transfer_message(self, message: ffd.Message):
-        return self._message_transport.request(message)
+        return self._context_map.get_context(self._context).container.message_transport.request(message)
 
     def add_query_handler(self, handler: Union[ffd.ApplicationService, Type[ffd.ApplicationService]],
                           query: Union[Type[Query], str]):

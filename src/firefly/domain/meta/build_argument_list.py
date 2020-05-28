@@ -96,7 +96,7 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type]):
                 for d in params[name]:
                     entity_args = build_argument_list(d, type_.__args__[0])
                     args[name].append(type_.__args__[0](**entity_args))
-        elif name in params:
+        elif isinstance(params, dict) and name in params:
             args[name] = params[name]
         elif name.endswith('_') and name.rstrip('_') in params:
             args[name] = params[name.rstrip('_')]

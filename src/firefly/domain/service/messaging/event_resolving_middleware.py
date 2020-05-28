@@ -24,7 +24,6 @@ from firefly.domain.service.messaging.middleware import Middleware
 
 class EventResolvingMiddleware(Middleware):
     _context_map: ffd.ContextMap = None
-    _message_transport: ffd.MessageTransport = None
     _context: str = None
 
     def __init__(self, event_listeners: Dict[Union[Type[Event], str], List[ffd.ApplicationService]] = None):
@@ -70,7 +69,7 @@ class EventResolvingMiddleware(Middleware):
         return next_(message)
 
     def _publish_message(self, message: ffd.Message):
-        self._message_transport.dispatch(message)
+        self._context_map.get_context(self._context).container.message_transport.dispatch(message)
 
     def add_event_listener(self, handler: Union[ffd.ApplicationService, Type[ffd.ApplicationService]],
                            event: Union[Type[Event], str]):

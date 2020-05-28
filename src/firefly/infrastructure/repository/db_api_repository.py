@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from typing import List, Callable, Optional
+from typing import List, Callable, Optional, Union
 
 import firefly.domain as ffd
 import firefly.infrastructure as ffi
@@ -37,10 +37,18 @@ class DbApiRepository(ffd.Repository[T]):
     def remove(self, entity: T):
         self._deletions.append(entity)
 
-    def find(self, uuid) -> T:
-        ret = self._interface.find(uuid, self._entity_type)
+    def find(self, exp: Union[str, Callable]) -> T:
+        ret = None
+        if isinstance(exp, str):
+            ret = self._interface.find(exp, self._entity_type)
+        else:
+            results = self._interface.all(self._entity_type, self._get_search_criteria(exp))
+            if len(results) > 0:
+                ret = results[0]
+
         if ret:
             self._register_entity(ret)
+
         return ret
 
     def filter(self, cb: Callable) -> List[T]:

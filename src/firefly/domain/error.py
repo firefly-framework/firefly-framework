@@ -77,3 +77,7 @@ class MessageBusError(FrameworkError):
 
 class MissingDependency(FrameworkError):
     pass
+
+
+class ApiError(FrameworkError):
+    pass

@@ -71,7 +71,7 @@ class GenerateApiSpec(ffd.ApplicationService):
 
     def _parameter_list(self, endpoint: ffd.HttpEndpoint):
         ret = []
-        if issubclass(endpoint.service, ffd.AggregateRoot):
+        if inspect.isclass(endpoint.service) and issubclass(endpoint.service, ffd.AggregateRoot):
             if endpoint.method.lower() == 'post':
                 return [
                     {
@@ -87,7 +87,7 @@ class GenerateApiSpec(ffd.ApplicationService):
                 ]
 
     def _request_body(self, endpoint: ffd.HttpEndpoint):
-        if not issubclass(endpoint.service, ffd.Entity):
+        if not inspect.isclass(endpoint.service) or not issubclass(endpoint.service, ffd.Entity):
             return None
 
         if endpoint.method.lower() == 'post':

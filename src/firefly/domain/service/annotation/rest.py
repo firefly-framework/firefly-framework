@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import inspect
+import re
 from typing import List
 
 import firefly as ff
@@ -23,12 +24,20 @@ import inflection
 from firefly.domain.entity.core.http_endpoint import HttpEndpoint
 
 
+function_name = re.compile(r'.*function\s([^\.]+)\..*')
+
+
 class Rest:
     def __call__(self, route: str, method: str = 'GET', generates: ff.TypeOfMessage = None, gateway: str = None,
                  query_params: dict = None, secured: bool = True, scopes: List[str] = None):
         def on_wrapper(cls):
+            prefix = ''
+            if inspect.isfunction(cls):
+                parent = function_name.match(str(cls)).groups()[0]
+                prefix = f'/{inflection.pluralize(inflection.dasherize(inflection.underscore(parent)))}/{{id}}'
+
             endpoint = HttpEndpoint(
-                route=route,
+                route=prefix + route,
                 method=method,
                 message=generates,
                 gateway=gateway,

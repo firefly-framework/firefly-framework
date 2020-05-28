@@ -14,6 +14,8 @@
 
 from __future__ import annotations
 
+from dataclasses import is_dataclass
+from datetime import datetime, date
 from typing import Union, List, Type
 
 import firefly.domain as ffd
@@ -24,9 +26,14 @@ class EntityAttributeSpy:
         self._type = type_
 
     def __getattribute__(self, item):
-        if self._type is not None:
+        if object.__getattribute__(self, '_type') is not None:
             t = object.__getattribute__(self, '_type')
-            if not hasattr(t, item):
+            valid = False
+            if is_dataclass(t) and item in t.__dataclass_fields__:
+                valid = True
+            elif hasattr(t, item):
+                valid = True
+            if not valid:
                 raise AttributeError(f"'{t.__name__}' object has no attribute '{item}'")
         return Attr(item)
 
@@ -204,6 +211,39 @@ class BinaryOp:
 
     def __or__(self, other):
         return BinaryOp(self, 'or', other)
+
+    def to_sql(self):
+        sql, params, counter = self._to_sql()
+        return sql, params
+
+    def _to_sql(self, counter: int = None, params: dict = None):
+        counter = counter or 1
+        params = params or {}
+        lhv, params, counter = self._process_op(self.lhv, params, counter)
+        rhv, params, counter = self._process_op(self.rhv, params, counter)
+
+        return f'({lhv} {self.op} {rhv})', params, counter
+
+    @staticmethod
+    def _process_op(v, params: dict, counter: int):
+        if isinstance(v, BinaryOp):
+            v, p, counter = v._to_sql(counter, params)
+            params.update(p)
+        elif isinstance(v, (list, tuple)):
+            placeholders = []
+            for i in v:
+                var = f'var{counter}'
+                counter += 1
+                placeholders.append(f':{var}')
+                params[var] = i
+            v = f'({",".join(placeholders)})'
+        elif not isinstance(v, AttributeString):
+            var = f'var{counter}'
+            counter += 1
+            params[var] = v
+            v = f':{var}'
+
+        return v, params, counter
 
     def __repr__(self):
         return f'({self.lhv} {self.op} {self.rhv})'

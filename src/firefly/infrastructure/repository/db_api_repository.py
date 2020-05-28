@@ -49,7 +49,7 @@ class DbApiRepository(ffd.Repository[T]):
         return self._interface.all(self._entity_type, criteria=criteria, limit=1)
 
     def filter(self, cb: Callable) -> List[T]:
-        pass
+        return self._interface.all(self._entity_type, criteria=self._get_search_criteria(cb))
 
     def reduce(self, cb: Callable) -> Optional[T]:
         pass

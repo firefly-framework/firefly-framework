@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import inspect
 import json
-from dataclasses import fields
+from dataclasses import fields, is_dataclass
 from typing import Type, List
 
 import firefly.domain as ffd
@@ -105,6 +105,8 @@ class GenerateApiSpec(ffd.ApplicationService):
             return entity.__name__
         props = {}
         hints = typing.get_type_hints(entity)
+        if not is_dataclass(entity):
+            return None
         for field_ in fields(entity):
             if field_.name.startswith('_'):
                 continue

@@ -36,7 +36,7 @@ class QueryBus(MessageBus):
     # __pragma__ ('kwargs')
     def request(self, request: Union[ffd.Query, str], criteria: Union[ffd.BinaryOp, Callable] = None,
                 data: dict = None):
-        if not isinstance(criteria, ffd.BinaryOp):
+        if criteria is not None and not isinstance(criteria, ffd.BinaryOp):
             criteria = criteria(ffd.EntityAttributeSpy())
         if isinstance(request, str):
             request = self._message_factory.query(request, criteria, data or {})

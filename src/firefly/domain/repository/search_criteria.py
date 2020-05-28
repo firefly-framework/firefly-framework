@@ -237,7 +237,7 @@ class BinaryOp:
                 placeholders.append(f':{var}')
                 params[var] = i
             v = f'({",".join(placeholders)})'
-        elif not isinstance(v, AttributeString):
+        elif not isinstance(v, (Attr, AttributeString)):
             var = f'var{counter}'
             counter += 1
             params[var] = v

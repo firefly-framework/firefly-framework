@@ -110,8 +110,9 @@ class Entity(ContextAware, metaclass=EntityMeta):
 
             if isinstance(type_, type(List)):
                 new_list = []
-                for item in data[name]:
-                    new_list.append(Entity._construct_entity(type_.__args__[0], item))
+                if name in data:
+                    for item in data[name]:
+                        new_list.append(Entity._construct_entity(type_.__args__[0], item))
                 data[name] = new_list
             else:
                 try:

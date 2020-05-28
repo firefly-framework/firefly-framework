@@ -76,6 +76,7 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type]):
             required = True
 
         type_ = types[name] if name in types else None
+
         if isinstance(type_, type) and issubclass(type_, ffd.Entity):
             if name in params and isinstance(params[name], type_):
                 args[name] = params[name]
@@ -89,6 +90,12 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type]):
                     del params[key]
                     if key in args:
                         del args[key]
+        elif isinstance(type_, type(typing.List)) and issubclass(type_.__args__[0], ffd.Entity):
+            args[name] = []
+            if name in params:
+                for d in params[name]:
+                    entity_args = build_argument_list(d, type_.__args__[0])
+                    args[name].append(type_.__args__[0](**entity_args))
         elif name in params:
             args[name] = params[name]
         elif name.endswith('_') and name.rstrip('_') in params:

@@ -20,12 +20,13 @@ from typing import List, TypeVar, Generic, Union, Callable, Optional
 
 import firefly.domain as ffd
 
+from ..service.logging.logger import LoggerAware
 from ..value_object import GenericBase
 
 T = TypeVar('T')
 
 
-class Repository(Generic[T], GenericBase, ABC):
+class Repository(Generic[T], GenericBase, LoggerAware, ABC):
     _serializer: ffd.Serializer = None
 
     def __init__(self):

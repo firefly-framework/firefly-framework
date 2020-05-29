@@ -82,7 +82,7 @@ class DbApiStorageInterface(ABC):
 
     @staticmethod
     def _fqtn(entity: Type[ffd.Entity]):
-        return f'{entity.get_class_context()}.{inflection.tableize(entity.__name__)}'
+        return inflection.tableize(entity.get_fqn())
 
     def _check_prerequisites(self, entity: Type[ffd.Entity]):
         self._ensure_connected()

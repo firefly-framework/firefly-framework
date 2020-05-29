@@ -14,17 +14,18 @@
 
 from __future__ import annotations
 
-from typing import TypeVar, Type, Tuple, Union
+from typing import TypeVar, Type
 
 import firefly.domain as ffd
 
 from .repository import Repository
 from ..entity.aggregate_root import AggregateRoot
+from ..service.logging.logger import LoggerAware
 
 AR = TypeVar('AR', bound=AggregateRoot)
 
 
-class Registry:
+class Registry(LoggerAware):
     def __init__(self):
         self._cache = {}
         self._factories = {}
@@ -60,4 +61,8 @@ class Registry:
         self._cache = {}
 
     def get_repositories(self):
-        return list(self._cache.values())
+        ret = []
+        for k, v in self._cache.items():
+            ret.append(v)
+        self.debug(ret)
+        return ret

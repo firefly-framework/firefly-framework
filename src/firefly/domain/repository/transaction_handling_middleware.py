@@ -19,10 +19,11 @@ from typing import Callable
 import firefly.domain as ffd
 
 from .registry import Registry
+from ..service.logging.logger import LoggerAware
 from ..service.messaging.middleware import Middleware
 
 
-class TransactionHandlingMiddleware(Middleware):
+class TransactionHandlingMiddleware(Middleware, LoggerAware):
     _registry: Registry = None
 
     def __init__(self):
@@ -31,18 +32,26 @@ class TransactionHandlingMiddleware(Middleware):
     def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
         try:
             if self._level == 0:
+                self.debug('Level 0 - Resetting repositories')
+                self.debug(message)
                 self._reset()
             self._level += 1
+            self.debug('Level incremented: %d', self._level)
             ret = next_(message)
             self._level -= 1
+            self.debug('Level decremented: %d', self._level)
             if self._level == 0:
+                self.debug('Level 0 - Committing changes')
                 self._commit()
             return ret
-        except Exception:
+        except Exception as e:
+            self.debug('Caught an exception during transaction')
             self._level -= 1
+            self.debug('Level decremented: %d', self._level)
             if self._level == 0:
+                self.debug('Level 0 - Resetting repositories')
                 self._reset()
-            raise
+            raise e
 
     def _reset(self):
         for repository in self._registry.get_repositories():
@@ -50,4 +59,5 @@ class TransactionHandlingMiddleware(Middleware):
 
     def _commit(self):
         for repository in self._registry.get_repositories():
+            self.debug('Committing repository %s', repository)
             repository.commit()

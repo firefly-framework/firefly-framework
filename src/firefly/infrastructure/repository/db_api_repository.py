@@ -32,9 +32,11 @@ class DbApiRepository(ffd.Repository[T]):
         self._index = 0
 
     def append(self, entity: T):
+        self.debug('Entity added to repository: %s', str(entity))
         self._entities.append(entity)
 
     def remove(self, entity: T):
+        self.debug('Entity removed from repository: %s', str(entity))
         self._deletions.append(entity)
 
     def find(self, exp: Union[str, Callable]) -> T:
@@ -86,10 +88,16 @@ class DbApiRepository(ffd.Repository[T]):
 
     def commit(self):
         for entity in self._deletions:
+            self.debug('Deleting %s', entity)
             self._interface.remove(entity)
 
         for entity in self._new_entities():
+            self.debug('Adding %s', entity)
             self._interface.add(entity)
 
         for entity in self._changed_entities():
+            self.debug('Updating %s', entity)
             self._interface.update(entity)
+
+    def __repr__(self):
+        return f'DbApiRepository[{self._entity_type}]'

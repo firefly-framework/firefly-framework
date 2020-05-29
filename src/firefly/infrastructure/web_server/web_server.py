@@ -32,6 +32,7 @@ from firefly.domain.entity.messaging.http_response import HttpResponse
 class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
     _serializer: ffd.Serializer = None
     _message_factory: ffd.MessageFactory = None
+    _rest_router: ffd.RestRouter = None
 
     def __init__(self, host: str = '0.0.0.0', port: int = 9000,
                  websocket_host: str = '0.0.0.0', websocket_port: int = 9001):
@@ -127,6 +128,19 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
                 message: ffd.Message = self._serializer.deserialize(await request.text())
             else:
                 message: ffd.Message = self._serializer.deserialize(request.query['query'])
+
+            if isinstance(message, dict):
+                endpoint, params = self._rest_router.match(request.path, request.method)
+                if endpoint.message is not None:
+                    message_name = endpoint.message if isinstance(endpoint.message, str) else endpoint.message.get_fqn()
+                else:
+                    message_name = endpoint.service
+                    if inspect.isclass(message_name):
+                        message_name = message_name.get_fqn()
+                if request.method.lower() == 'get':
+                    message = self._message_factory.query(message_name, None, message)
+                else:
+                    message = self._message_factory.command(message_name, message)
 
             self.debug(f'Decoded message: {message.to_dict()}')
 

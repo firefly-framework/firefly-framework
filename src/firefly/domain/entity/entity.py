@@ -40,6 +40,8 @@ from firefly.presentation.web.polyfills import is_dataclass, fields, field, MISS
 
 # noinspection PyDataclass
 class Entity(ContextAware, metaclass=EntityMeta):
+    _logger = None
+
     def __init__(self, **kwargs):
         pass
 
@@ -141,6 +143,18 @@ class Entity(ContextAware, metaclass=EntityMeta):
         id_name = cls.id_name()
         if id_name in args:
             return {id_name: args[id_name]}
+
+    def debug(self, *args, **kwargs):
+        return self._logger.debug(*args, **kwargs)
+
+    def info(self, *args, **kwargs):
+        return self._logger.info(*args, **kwargs)
+
+    def warning(self, *args, **kwargs):
+        return self._logger.warning(*args, **kwargs)
+
+    def error(self, *args, **kwargs):
+        return self._logger.error(*args, **kwargs)
 
 
 class Empty:

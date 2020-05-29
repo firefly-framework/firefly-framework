@@ -23,6 +23,7 @@ from firefly.domain.repository.repository import T
 
 class MemoryRepository(ffd.Repository[T]):
     def __init__(self):
+        super().__init__()
         self.entities = []
         self._index = 0
 

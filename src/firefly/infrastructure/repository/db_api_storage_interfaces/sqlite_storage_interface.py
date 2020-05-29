@@ -24,9 +24,11 @@ from ..db_api_storage_interface import DbApiStorageInterface
 
 
 class SqliteStorageInterface(DbApiStorageInterface):
-    def __init__(self, serializer: ffd.Serializer, **config):
-        self._serializer = serializer
-        super().__init__(config)
+    _serializer: ffd.Serializer = None
+
+    def __init__(self, **kwargs):
+        super().__init__()
+        self._config = kwargs
         self._connection: Optional[sqlite3.Connection] = None
         self._cache = {}
 
@@ -113,15 +115,13 @@ class SqliteStorageInterface(DbApiStorageInterface):
         if self._connection is not None:
             return
 
-        driver = self._config['driver']
         try:
             host = self._config['host']
         except KeyError:
-            raise ffd.ConfigurationError(f'host is required in db_api connection {self.name}')
+            raise ffd.ConfigurationError(f'host is required in sqlite_storage_interface')
 
-        if driver == 'sqlite':
-            self._connection = sqlite3.connect(host)
-            self._connection.row_factory = sqlite3.Row
+        self._connection = sqlite3.connect(host)
+        self._connection.row_factory = sqlite3.Row
 
     @staticmethod
     def _fqtn(entity: Type[ffd.Entity]):

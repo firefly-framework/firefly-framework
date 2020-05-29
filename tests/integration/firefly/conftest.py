@@ -13,8 +13,6 @@
 #  <http://www.gnu.org/licenses/>.
 import os
 
-import firefly as ff
-import firefly.infrastructure as ffi
 import pytest
 
 os.environ['ENV'] = 'local'
@@ -30,8 +28,7 @@ def config():
                 'application_module': 'test_src.todo.application',
                 'storage': {
                     'services': {
-                        'sqlite': {
-                            'type': 'db_api',
+                        'db_api': {
                             'connection': {
                                 'driver': 'sqlite',
                                 'host': ':memory:'
@@ -39,7 +36,7 @@ def config():
                             }
                         },
                     },
-                    'default': 'sqlite',
+                    'default': 'db_api',
                 },
             },
             'iam': {
@@ -47,100 +44,33 @@ def config():
                 'container_module': 'test_src.iam.application',
                 'application_module': 'test_src.iam.application',
                 'storage': {
-                    'connections': {
-                        'sqlite': {
-                            'type': 'db_api',
-                            'driver': 'sqlite',
-                            'host': ':memory:'
-                            # 'host': '/tmp/iam.db'
+                    'services': {
+                        'db_api': {
+                            'connection': {
+                                'driver': 'sqlite',
+                                'host': ':memory:'
+                                # 'host': '/tmp/todo.db'
+                            }
                         },
                     },
-                    'default': 'sqlite',
+                    'default': 'db_api',
                 },
             },
             'calendar': {
                 'entity_module': 'test_src.calendar.domain.entity',
                 'storage': {
-                    'connections': {
-                        'sqlite': {
-                            'type': 'db_api',
-                            'driver': 'sqlite',
-                            'host': ':memory:'
-                            # 'host': '/tmp/calendar.db'
+                    'services': {
+                        'db_api': {
+                            'connection': {
+                                'driver': 'sqlite',
+                                'host': ':memory:'
+                                # 'host': '/tmp/todo.db'
+                            }
                         },
                     },
-                    'default': 'sqlite',
+                    'default': 'db_api',
                 },
             },
         },
     }
 
-
-@pytest.fixture(scope="session")
-def container(config):
-    from firefly.application import Container
-    Container.configuration = lambda self: ffi.MemoryConfigurationFactory()(config)
-
-    c = Container()
-    # c.registry.set_default_factory(ffi.MemoryRepositoryFactory())
-
-    c.kernel.boot()
-
-    return c
-
-
-@pytest.fixture(scope="session")
-def kernel(container) -> ff.Kernel:
-    return container.kernel
-
-
-@pytest.fixture(scope="session")
-def context_map(container) -> ff.ContextMap:
-    return container.context_map
-
-
-@pytest.fixture(scope="session")
-def system_bus(container) -> ff.SystemBus:
-    return container.system_bus
-
-
-@pytest.fixture(scope="session")
-def message_factory(container) -> ff.MessageFactory:
-    return container.message_factory
-
-
-@pytest.fixture(scope="session")
-def serializer(container):
-    return container.serializer
-
-
-@pytest.fixture(scope="function")
-def registry(container, request) -> ff.Registry:
-    registry = container.registry
-
-    def teardown():
-        for context in container.context_map.contexts:
-            for entity in context.entities:
-                if issubclass(entity, ff.AggregateRoot) and entity is not ff.AggregateRoot:
-                    try:
-                        for e in registry(entity):
-                            registry(entity).remove(e)
-                    except ff.FrameworkError:
-                        pass
-            try:
-                context.container.db_api_interface_registry.disconnect_all()
-            except AttributeError:
-                pass
-    request.addfinalizer(teardown)
-    # registry.clear_cache()
-    return registry
-
-
-@pytest.fixture(scope="function")
-async def client(container, system_bus, aiohttp_client):
-    deployment = ff.Deployment(project='Test', environment='testing', provider='default')
-    system_bus.dispatch('firefly.DeploymentCreated', {'deployment': deployment})
-    agent = container.agent_factory('default')
-    agent(deployment, start_server=False)
-    container.web_server.initialize()
-    return await aiohttp_client(container.web_server.app)

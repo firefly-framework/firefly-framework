@@ -22,15 +22,15 @@ import firefly.domain as ffd
 
 class LoadEntities(ffd.ApplicationService):
     _context_map: ffd.ContextMap = None
+    _logger: ffd.Logger = None
 
     def __call__(self, **kwargs):
         for context in self._context_map.contexts:
             self._load_module(context)
         self.dispatch(ffd.DomainEntitiesLoaded())
 
-    @staticmethod
-    def _load_module(context: ffd.Context):
-        module_name = context.config.get('entity_module', '{}.domain.entity')
+    def _load_module(self, context: ffd.Context):
+        module_name = context.config.get('entity_module', '{}.domain')
         try:
             module = importlib.import_module(module_name.format(context.name))
         except (ModuleNotFoundError, KeyError):
@@ -40,4 +40,7 @@ class LoadEntities(ffd.ApplicationService):
             if not inspect.isclass(v):
                 continue
             if issubclass(v, ffd.Entity):
+                v._logger = self._logger
                 context.entities.append(v)
+            elif issubclass(v, ffd.ValueObject):
+                v._logger = self._logger

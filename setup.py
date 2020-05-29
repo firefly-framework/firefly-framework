@@ -30,7 +30,8 @@ setuptools.setup(
     # long_description_content_type="text/markdown",
     url="https://github.com/firefly19/python-framework",
     entry_points={
-        'console_scripts': ['firefly=firefly.presentation.cli:main']
+        'console_scripts': ['firefly=firefly.presentation.cli:main'],
+        'pytest11': ['firefly=firefly.plugins.pytest']
     },
     install_requires=[
         'aiohttp>=3.5.4',

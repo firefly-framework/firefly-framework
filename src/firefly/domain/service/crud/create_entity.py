@@ -31,7 +31,7 @@ class CreateEntity(Generic[T], ApplicationService, GenericBase, CrudOperation, S
     _registry: ffd.Registry = None
     _context_map: ffd.ContextMap = None
 
-    def __call__(self, **kwargs) -> bool:
+    def __call__(self, **kwargs) -> ffd.Entity:
         type_ = self._type()
         method = self._find_factory_method(type_)
         if method is not None:
@@ -41,7 +41,7 @@ class CreateEntity(Generic[T], ApplicationService, GenericBase, CrudOperation, S
         self._registry(type_).append(entity)
         self.dispatch(self._build_event(type_, 'create', asdict(entity), kwargs['_context']))
 
-        return True
+        return entity
 
     @staticmethod
     def _find_factory_method(type_: Type[ffd.Entity]):

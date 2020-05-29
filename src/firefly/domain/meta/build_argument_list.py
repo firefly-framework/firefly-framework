@@ -77,12 +77,17 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type]):
 
         type_ = types[name] if name in types else None
 
-        if isinstance(type_, type) and issubclass(type_, ffd.Entity):
+        if isinstance(type_, type) and issubclass(type_, (ffd.Entity, ffd.ValueObject)):
             if name in params and isinstance(params[name], type_):
                 args[name] = params[name]
                 continue
 
-            entity_args = build_argument_list(params, type_)
+            try:
+                entity_args = build_argument_list(params, type_)
+            except ffd.MissingArgument:
+                if required is False:
+                    continue
+                raise
             # TODO use factories where appropriate
             args[name] = type_(**entity_args)
             for key in entity_args.keys():
@@ -90,11 +95,16 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type]):
                     del params[key]
                     if key in args:
                         del args[key]
-        elif isinstance(type_, type(typing.List)) and issubclass(type_.__args__[0], ffd.Entity):
+        elif isinstance(type_, type(typing.List)) and issubclass(type_.__args__[0], (ffd.Entity, ffd.ValueObject)):
             args[name] = []
             if name in params:
                 for d in params[name]:
-                    entity_args = build_argument_list(d, type_.__args__[0])
+                    try:
+                        entity_args = build_argument_list(d, type_.__args__[0])
+                    except ffd.MissingArgument:
+                        if required is False:
+                            continue
+                        raise
                     args[name].append(type_.__args__[0](**entity_args))
         elif isinstance(params, dict) and name in params:
             args[name] = params[name]

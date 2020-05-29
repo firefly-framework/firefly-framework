@@ -12,29 +12,3 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-# __pragma__('skip')
-from .event_buffer import EventBuffer
-from .generic_base import GenericBase
-from .parameter import Parameter
-
-from firefly.domain.meta.value_object_meta import ValueObjectMeta
-
-
-class ValueObject(metaclass=ValueObjectMeta):
-    _logger = None
-
-    def __init__(self, **kwargs):
-        pass
-
-    def debug(self, *args, **kwargs):
-        return self._logger.debug(*args, **kwargs)
-
-    def info(self, *args, **kwargs):
-        return self._logger.info(*args, **kwargs)
-
-    def warning(self, *args, **kwargs):
-        return self._logger.warning(*args, **kwargs)
-
-    def error(self, *args, **kwargs):
-        return self._logger.error(*args, **kwargs)
-# __pragma__('noskip')

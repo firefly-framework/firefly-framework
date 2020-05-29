@@ -69,7 +69,7 @@ class DbApiRepository(ffd.Repository[T]):
         self._load_all()
         if self._index >= len(self._entities):
             self._index = 0
-            self._entities = None
+            self._entities = []
             raise StopIteration()
         self._index += 1
         return self._entities[self._index - 1]

@@ -32,7 +32,7 @@ def test_auto_generated_api(system_bus, message_factory, todo):
 
 async def test_http_endpoint(client, todo, serializer):
     assert len(todo.tasks) == 0
-    await client.post(f'/todo-list/{todo.id}/task', data=serializer.serialize({
+    await client.post(f'/todo-lists/{todo.id}/task', data=serializer.serialize({
         'todo_list': todo.id,
         'name': 'my new task',
         'due_date': datetime.now() + timedelta(days=1)
@@ -67,4 +67,5 @@ def todo(registry, request):
 
     ret = TodoList(user=User(name='foo'))
     r.append(ret)
+    r.commit()
     return ret

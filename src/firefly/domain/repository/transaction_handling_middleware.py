@@ -20,10 +20,9 @@ import firefly.domain as ffd
 
 from .registry import Registry
 from ..service.messaging.middleware import Middleware
-from ..service.messaging.system_bus import SystemBusAware
 
 
-class TransactionCommittingMiddleware(Middleware):
+class TransactionHandlingMiddleware(Middleware):
     _registry: Registry = None
 
     def __init__(self):
@@ -31,12 +30,24 @@ class TransactionCommittingMiddleware(Middleware):
 
     def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
         try:
+            if self._level == 0:
+                self._reset()
             self._level += 1
             ret = next_(message)
             self._level -= 1
             if self._level == 0:
-                for repository in self._registry.get_repositories():
-                    repository.commit()
+                self._commit()
             return ret
         except Exception:
+            self._level -= 1
+            if self._level == 0:
+                self._reset()
             raise
+
+    def _reset(self):
+        for repository in self._registry.get_repositories():
+            repository.reset()
+
+    def _commit(self):
+        for repository in self._registry.get_repositories():
+            repository.commit()

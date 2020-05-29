@@ -27,7 +27,7 @@ class DbApiRepository(ffd.Repository[T]):
         super().__init__()
 
         self._entity_type = self._type()
-        self._table = table_name or inflection.tableize(self._entity_type.__name__)
+        self._table = table_name or inflection.tableize(self._entity_type.get_fqn())
         self._interface = interface
         self._index = 0
 

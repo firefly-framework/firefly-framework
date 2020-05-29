@@ -101,3 +101,8 @@ class Repository(Generic[T], GenericBase, ABC):
     @abstractmethod
     def commit(self):
         pass
+
+    def reset(self):
+        self._deletions = []
+        self._entities = []
+        self._entity_hashes = {}

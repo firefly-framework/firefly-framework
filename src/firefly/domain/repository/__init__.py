@@ -17,4 +17,4 @@ from .registry import Registry
 from .repository import Repository
 from .repository_factory import RepositoryFactory
 from .search_criteria import *
-from .transaction_committing_middleware import TransactionCommittingMiddleware
+from .transaction_handling_middleware import TransactionHandlingMiddleware

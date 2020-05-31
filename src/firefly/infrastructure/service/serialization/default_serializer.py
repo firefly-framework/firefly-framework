@@ -29,7 +29,7 @@ class FireflyEncoder(JSONEncoder):
             return o.to_dict()
         elif inspect.isclass(o) and issubclass(o, ffd.Entity):
             return f'{o.get_class_context()}.{o.__name__}'
-        elif isinstance(o, di.Container):
+        elif isinstance(o, (di.Container, ffd.Empty)):
             return None
         elif isinstance(o, (datetime, date)):
             return o.isoformat()

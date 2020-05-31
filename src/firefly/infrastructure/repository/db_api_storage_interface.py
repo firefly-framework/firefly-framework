@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from dataclasses import fields
 from typing import Type
 
 import firefly.domain as ffd
@@ -22,8 +23,18 @@ import inflection
 
 
 class DbApiStorageInterface(ABC):
+    _serializer: ffd.Serializer = None
+    _cache: dict = {}
+
     def __init__(self):
         self._tables_checked = []
+        self._cache = {
+            'sql': {
+                'insert': {},
+                'update': {},
+            },
+            'indexes': {},
+        }
 
     def disconnect(self):
         self._disconnect()
@@ -89,3 +100,87 @@ class DbApiStorageInterface(ABC):
         if entity not in self._tables_checked:
             self._ensure_table_created(entity)
             self._tables_checked.append(entity)
+
+    def _get_indexes(self, entity: Type[ffd.Entity]):
+        if entity not in self._cache['indexes']:
+            self._cache['indexes'][entity] = []
+            for field_ in fields(entity):
+                if 'index' in field_.metadata and field_.metadata['index'] is True:
+                    self._cache['indexes'][entity].append(field_)
+
+        return self._cache['indexes'][entity]
+
+    def _generate_insert(self, entity: ffd.Entity):
+        t = entity.__class__
+        sql = f"insert into {self._fqtn(t)} ({self._generate_column_list(t)}) values ({self._generate_value_list(t)})"
+        return sql, self._generate_parameters(entity)
+
+    def _generate_update(self, entity: ffd.Entity):
+        t = entity.__class__
+        sql = f"update {self._fqtn(t)} set {self._generate_update_list(t)} where id = :id"
+        return sql, self._generate_parameters(entity)
+
+    def _generate_update_list(self, entity: Type[ffd.Entity]):
+        values = ['obj=:obj']
+        for index in self._get_indexes(entity):
+            values.append(f'`{index.name}`=:{index.name}')
+        return ','.join(values)
+
+    def _generate_column_list(self, entity: Type[ffd.Entity]):
+        values = ['id', 'obj']
+        for index in self._get_indexes(entity):
+            values.append(index.name)
+        return ','.join(values)
+
+    def _generate_value_list(self, entity: Type[ffd.Entity]):
+        placeholders = [':id', ':obj']
+        for index in self._get_indexes(entity):
+            placeholders.append(f':{index.name}')
+        return ','.join(placeholders)
+
+    def _generate_parameters(self, entity: ffd.Entity):
+        params = {'id': entity.id_value(), 'obj': self._serializer.serialize(entity)}
+        for index in self._get_indexes(entity.__class__):
+            params[index.name] = getattr(entity, index.name)
+        return params
+
+    @staticmethod
+    def _generate_where_clause(criteria: ffd.BinaryOp):
+        if criteria is None:
+            return '', {}
+        return criteria.to_sql()
+
+    def _generate_index(self, name: str):
+        return ''
+
+    def _generate_create_table(self, entity: Type[ffd.Entity]):
+        columns = []
+        indexes = []
+        for i in self._get_indexes(entity):
+            indexes.append(self._generate_index(i.name))
+            if i.type == 'float':
+                columns.append(f"`{i.name}` float")
+            elif i.type == 'int':
+                columns.append(f"`{i.name}` integer")
+            elif i.type == 'datetime':
+                columns.append(f"`{i.name}` datetime")
+            else:
+                length = i.metadata['length'] if 'length' in i.metadata else 256
+                columns.append(f"`{i.name}` varchar({length})")
+        extra = ''
+        if len(columns) > 0:
+            self._generate_extra(columns, indexes)
+            extra = self._generate_extra(columns, indexes)
+
+        sql = f"""
+            create table if not exists {self._fqtn(entity)} (
+                id varchar(36)
+                , obj longtext not null
+                {extra}
+                , primary key(id)
+            )
+        """
+        return sql
+
+    def _generate_extra(self, columns: list, indexes: list):
+        return f", {','.join(columns)}"

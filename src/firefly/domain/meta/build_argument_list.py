@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import inspect
+import keyword
 import typing
 import firefly.domain as ffd
 
@@ -29,10 +30,25 @@ from firefly.presentation.web.polyfills import is_dataclass, fields
 # __pragma__ ('noecom')
 
 
+keyword_list = keyword.kwlist
+keyword_list.append('id')
+
+
+def _fix_keywords(params: dict):
+    if not isinstance(params, dict):
+        return params
+
+    for k, v in params.copy().items():
+        if k in keyword_list:
+            params[f'{k}_'] = v
+    return params
+
+
 def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type]):
     args = {}
     field_dict = {}
     is_dc = False
+    params = _fix_keywords(params)
 
     if is_dataclass(obj):
         is_dc = True
@@ -77,7 +93,7 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type]):
 
         type_ = types[name] if name in types else None
 
-        if isinstance(type_, type) and issubclass(type_, (ffd.Entity, ffd.ValueObject)):
+        if isinstance(type_, type) and issubclass(type_, ffd.ValueObject):
             if name in params and isinstance(params[name], type_):
                 args[name] = params[name]
                 continue
@@ -95,9 +111,9 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type]):
                     del params[key]
                     if key in args:
                         del args[key]
-        elif isinstance(type_, type(typing.List)) and issubclass(type_.__args__[0], (ffd.Entity, ffd.ValueObject)):
+        elif isinstance(type_, type(typing.List)) and issubclass(type_.__args__[0], ffd.ValueObject):
             args[name] = []
-            if name in params:
+            if isinstance(params, dict) and name in params:
                 for d in params[name]:
                     try:
                         entity_args = build_argument_list(d, type_.__args__[0])

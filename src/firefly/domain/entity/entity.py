@@ -20,6 +20,7 @@ from datetime import datetime, date
 import inflection
 
 from firefly.domain.meta.entity_meta import EntityMeta
+from firefly.domain.value_object import ValueObject
 from firefly.domain.meta.context_aware import ContextAware
 from firefly.domain.meta.build_argument_list import build_argument_list
 
@@ -39,7 +40,7 @@ from firefly.presentation.web.polyfills import is_dataclass, fields, field, MISS
 
 
 # noinspection PyDataclass
-class Entity(ContextAware, metaclass=EntityMeta):
+class Entity(ContextAware, ValueObject):
     _logger = None
 
     def __init__(self, **kwargs):
@@ -98,32 +99,6 @@ class Entity(ContextAware, metaclass=EntityMeta):
                     pass
 
         return data
-
-    @classmethod
-    def from_dict(cls, data: dict):
-        return cls._construct_entity(cls, data)
-
-    @staticmethod
-    def _construct_entity(cls: typing.Type[Entity], data: dict):
-        t = typing.get_type_hints(cls)
-        for name, type_ in t.items():
-            if name.startswith('_'):
-                continue
-
-            if isinstance(type_, type(List)):
-                new_list = []
-                if name in data:
-                    for item in data[name]:
-                        new_list.append(Entity._construct_entity(type_.__args__[0], item))
-                data[name] = new_list
-            else:
-                try:
-                    if issubclass(type_, Entity):
-                        data[name] = type_(**build_argument_list(data[name], type_))
-                except TypeError:
-                    pass
-
-        return cls(**build_argument_list(data, cls))
 
     @classmethod
     def id_name(cls):

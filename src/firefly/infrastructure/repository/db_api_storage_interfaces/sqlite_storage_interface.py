@@ -23,14 +23,13 @@ import inflection
 from ..db_api_storage_interface import DbApiStorageInterface
 
 
-class SqliteStorageInterface(DbApiStorageInterface):
+class SqliteStorageInterface(DbApiStorageInterface, ffd.LoggerAware):
     _serializer: ffd.Serializer = None
 
     def __init__(self, **kwargs):
         super().__init__()
         self._config = kwargs
         self._connection: Optional[sqlite3.Connection] = None
-        self._cache = {}
 
     def _disconnect(self):
         if self._connection is not None:
@@ -41,14 +40,17 @@ class SqliteStorageInterface(DbApiStorageInterface):
 
     def _add(self, entity: ffd.Entity):
         cursor = self._connection.cursor()
-        sql = f"insert into {self._fqtn(entity.__class__)} (id, obj) values (?, ?)"
-        cursor.execute(sql, (entity.id_value(), self._serializer.serialize(entity.to_dict())))
+        cursor.execute(*self._generate_insert(entity))
         self._connection.commit()
-        self._set(entity)
 
     def _all(self, entity_type: Type[ffd.Entity], criteria: ffd.BinaryOp = None, limit: int = None):
         cursor = self._connection.cursor()
-        cursor.execute(f"select * from {self._fqtn(entity_type)}")
+        sql = f"select obj from {self._fqtn(entity_type)}"
+        params = {}
+        if criteria is not None:
+            clause, params = self._generate_where_clause(criteria)
+            sql = f'{sql} where {clause}'
+        cursor.execute(sql, params)
 
         ret = []
         row = cursor.fetchone()
@@ -58,11 +60,6 @@ class SqliteStorageInterface(DbApiStorageInterface):
                 row = cursor.fetchone()
                 continue
             e = entity_type.from_dict(data)
-            oe = self._get(e)
-            if oe is not None:
-                e = oe
-            else:
-                self._set(e)
             ret.append(e)
             if limit is not None and len(ret) >= limit:
                 break
@@ -75,17 +72,11 @@ class SqliteStorageInterface(DbApiStorageInterface):
 
     def _find(self, uuid: str, entity_type: Type[ffd.Entity]):
         cursor = self._connection.cursor()
-        sql = f"select * from {self._fqtn(entity_type)} where id = ?"
+        sql = f"select obj from {self._fqtn(entity_type)} where id = ?"
         cursor.execute(sql, (uuid,))
         row = cursor.fetchone()
         if row is not None:
-            ret = entity_type.from_dict(self._serializer.deserialize(row['obj']))
-            oe = self._get(ret)
-            if oe is not None:
-                ret = oe
-            else:
-                self._set(ret)
-            return ret
+            return entity_type.from_dict(self._serializer.deserialize(row['obj']))
 
     def _remove(self, entity: ffd.Entity):
         cursor = self._connection.cursor()
@@ -96,20 +87,12 @@ class SqliteStorageInterface(DbApiStorageInterface):
 
     def _update(self, entity: ffd.Entity):
         cursor = self._connection.cursor()
-        sql = f"update {self._fqtn(entity.__class__)} set obj = ? where id = ?"
-        cursor.execute(sql, (self._serializer.serialize(entity.to_dict()), entity.id_value()))
+        cursor.execute(*self._generate_update(entity))
         self._connection.commit()
-        self._set(entity)
 
     def _ensure_table_created(self, entity: Type[ffd.Entity]):
         cursor = self._connection.cursor()
-        sql = f"""
-            create table if not exists {self._fqtn(entity)} (
-                id text primary key,
-                obj text not null
-            )
-        """
-        cursor.execute(sql)
+        cursor.execute(self._generate_create_table(entity))
 
     def _ensure_connected(self):
         if self._connection is not None:
@@ -125,7 +108,7 @@ class SqliteStorageInterface(DbApiStorageInterface):
 
     @staticmethod
     def _fqtn(entity: Type[ffd.Entity]):
-        return inflection.tableize(entity.__name__)
+        return inflection.tableize(entity.get_fqn()).replace('.', '_')
 
     def _get(self, entity: ffd.Entity):
         if entity.__class__ in self._cache and entity.id_value() in self._cache[entity.__class__]:

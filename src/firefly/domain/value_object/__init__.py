@@ -13,14 +13,21 @@
 #  <http://www.gnu.org/licenses/>.
 
 # __pragma__('skip')
+from __future__ import annotations
+
+import typing
+from typing import List
+
+from firefly.domain.meta.build_argument_list import build_argument_list
+
 from .event_buffer import EventBuffer
 from .generic_base import GenericBase
 from .parameter import Parameter
 
-from firefly.domain.meta.value_object_meta import ValueObjectMeta
+from firefly.domain.meta.entity_meta import EntityMeta
 
 
-class ValueObject(metaclass=ValueObjectMeta):
+class ValueObject(metaclass=EntityMeta):
     _logger = None
 
     def __init__(self, **kwargs):
@@ -37,4 +44,8 @@ class ValueObject(metaclass=ValueObjectMeta):
 
     def error(self, *args, **kwargs):
         return self._logger.error(*args, **kwargs)
-# __pragma__('noskip')
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        return cls(**build_argument_list(data, cls))
+    # __pragma__('noskip')

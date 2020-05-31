@@ -87,6 +87,7 @@ class DbApiRepository(ffd.Repository[T]):
             self._entities = self._interface.all(self._entity_type)
 
     def commit(self):
+        self.debug('commit() called in %s', str(self))
         for entity in self._deletions:
             self.debug('Deleting %s', entity)
             self._interface.remove(entity)
@@ -98,6 +99,7 @@ class DbApiRepository(ffd.Repository[T]):
         for entity in self._changed_entities():
             self.debug('Updating %s', entity)
             self._interface.update(entity)
+        self.debug('Done in commit()')
 
     def __repr__(self):
         return f'DbApiRepository[{self._entity_type}]'

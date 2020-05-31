@@ -13,6 +13,7 @@
 #  <http://www.gnu.org/licenses/>.
 
 import asyncio
+import inspect
 import logging
 import sys
 import uuid
@@ -113,24 +114,8 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
             self.debug(await request.text())
             self.debug('-------------------------------------')
 
-            if msg is not None:
-                if request.method.lower() == 'get':
-                    message = self._message_factory.query(msg, None, dict(request.query))
-                elif request.method.lower() == 'post':
-                    data = await request.text()
-                    try:
-                        data = dict(self._serializer.deserialize(data))
-                    except ffd.InvalidArgument:
-                        data = dict(parse_qsl(data))
-                    data.update(dict(request.query))
-                    message = self._message_factory.command(msg, data)
-            elif request.method.lower() == 'post':
-                message: ffd.Message = self._serializer.deserialize(await request.text())
-            else:
-                message: ffd.Message = self._serializer.deserialize(request.query['query'])
-
-            if isinstance(message, dict):
-                endpoint, params = self._rest_router.match(request.path, request.method)
+            endpoint, params = self._rest_router.match(request.path, request.method)
+            if endpoint is not None:
                 if endpoint.message is not None:
                     message_name = endpoint.message if isinstance(endpoint.message, str) else endpoint.message.get_fqn()
                 else:
@@ -138,9 +123,43 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
                     if inspect.isclass(message_name):
                         message_name = message_name.get_fqn()
                 if request.method.lower() == 'get':
-                    message = self._message_factory.query(message_name, None, message)
+                    params.update(request.query)
+                    message = self._message_factory.query(message_name, None, params)
                 else:
-                    message = self._message_factory.command(message_name, message)
+                    params.update(self._serializer.deserialize(await request.text()))
+                    message = self._message_factory.command(message_name, params)
+            else:
+                if msg is not None:
+                    message_name = msg
+                    if inspect.isclass(msg):
+                        message_name = message_name.get_fqn()
+                    if request.method.lower() == 'get':
+                        message = self._message_factory.query(message_name, None, dict(request.query))
+                    elif request.method.lower() == 'post':
+                        data = await request.text()
+                        try:
+                            data = dict(self._serializer.deserialize(data))
+                        except ffd.InvalidArgument:
+                            data = dict(parse_qsl(data))
+                        data.update(dict(request.query))
+                        message = self._message_factory.command(message_name, data)
+                elif request.method.lower() == 'post':
+                    message: ffd.Message = self._serializer.deserialize(await request.text())
+                else:
+                    message: ffd.Message = self._serializer.deserialize(request.query['query'])
+
+                if isinstance(message, dict):
+                    endpoint, params = self._rest_router.match(request.path, request.method)
+                    if endpoint.message is not None:
+                        message_name = endpoint.message if isinstance(endpoint.message, str) else endpoint.message.get_fqn()
+                    else:
+                        message_name = endpoint.service
+                        if inspect.isclass(message_name):
+                            message_name = message_name.get_fqn()
+                    if request.method.lower() == 'get':
+                        message = self._message_factory.query(message_name, None, message)
+                    else:
+                        message = self._message_factory.command(message_name, message)
 
             self.debug(f'Decoded message: {message.to_dict()}')
 

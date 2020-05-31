@@ -13,3 +13,4 @@
 #  <http://www.gnu.org/licenses/>.
 
 from .asyncio_message_transport import AsyncioMessageTransport
+from .fake_message_transport import FakeMessageTransport

@@ -14,9 +14,14 @@
 
 from __future__ import annotations
 
+import os
+
 import pytest
 import firefly as ff
 import firefly.infrastructure as ffi
+
+
+os.environ['ENV'] = 'test'
 
 
 @pytest.fixture(scope="session")
@@ -28,6 +33,10 @@ def config():
 def container(config):
     from firefly.application import Container
     Container.configuration = lambda self: ffi.MemoryConfigurationFactory()(config)
+    Container.asyncio_message_transport = ffi.AsyncioMessageTransport
+    Container.message_transport = ffi.FakeMessageTransport
+
+    Container.__annotations__['asyncio_message_transport'] = ffi.AsyncioMessageTransport
 
     c = Container()
     # c.registry.set_default_factory(ffi.MemoryRepositoryFactory())
@@ -73,6 +82,7 @@ def registry(container, request) -> ff.Registry:
                     try:
                         for e in registry(entity):
                             registry(entity).remove(e)
+                        registry(entity).commit()
                     except ff.FrameworkError:
                         pass
             try:
@@ -82,6 +92,11 @@ def registry(container, request) -> ff.Registry:
     request.addfinalizer(teardown)
     # registry.clear_cache()
     return registry
+
+
+@pytest.fixture(scope="session")
+def transport(container):
+    return container.message_transport
 
 
 @pytest.fixture(scope="function")

@@ -18,12 +18,12 @@ import inspect
 from typing import Callable, Dict, Type, Union
 
 import firefly.domain as ffd
-
-from firefly.domain.service.messaging.middleware import Middleware
 from firefly.domain.entity.messaging.command import Command
+from firefly.domain.service.logging.logger import LoggerAware
+from firefly.domain.service.messaging.middleware import Middleware
 
 
-class CommandResolvingMiddleware(Middleware):
+class CommandResolvingMiddleware(Middleware, LoggerAware):
     _context_map: ffd.ContextMap = None
     _context: str = None
     _env: str = None
@@ -47,7 +47,7 @@ class CommandResolvingMiddleware(Middleware):
             self._initialize()
 
         # TODO Fix the local dev server to work with multiple contexts
-        if message.get_context() != 'firefly' and message.get_context() != self._context and self._env != 'local':
+        if message.get_context() != 'firefly' and message.get_context() != self._context:
             return self._transfer_message(message)
 
         args = message.to_dict()

@@ -42,6 +42,9 @@ class DbApiRepository(ffd.Repository[T]):
     def find(self, exp: Union[str, Callable]) -> T:
         ret = None
         if isinstance(exp, str):
+            entity = self._find_checked_out_entity(exp)
+            if entity is not None:
+                return entity
             ret = self._interface.find(exp, self._entity_type)
         else:
             results = self._interface.all(self._entity_type, self._get_search_criteria(exp))
@@ -103,3 +106,8 @@ class DbApiRepository(ffd.Repository[T]):
 
     def __repr__(self):
         return f'DbApiRepository[{self._entity_type}]'
+
+    def _find_checked_out_entity(self, id_: str):
+        for entity in self._entities:
+            if entity.id_value() == id_:
+                return entity

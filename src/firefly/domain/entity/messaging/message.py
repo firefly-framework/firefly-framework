@@ -52,7 +52,10 @@ class Message(FireflyType, metaclass=MessageMeta):
         if self._id is None:
             self._id = str(uuid.uuid1())
         if self._context is None:
-            self._context = self.__module__.split('.')[0]
+            if self.__class__._context is not None:
+                self._context = self.__class__._context
+            else:
+                self._context = self.__module__.split('.')[0]
 
     # noinspection PyDataclass
     def to_dict(self, recursive: bool = True) -> dict:

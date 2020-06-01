@@ -13,6 +13,7 @@
 #  <http://www.gnu.org/licenses/>.
 
 import argparse
+import os
 
 import inflection
 from firefly.domain.meta.build_argument_list import build_argument_list
@@ -48,6 +49,7 @@ class ArgparseExecutor(CliAppExecutor, SystemBusAware):
             self._logger.set_level_to_info()
         if args.debug is True:
             self._logger.set_level_to_debug()
+        os.environ['ENV'] = args.env or 'local'
 
         try:
             target = args.target
@@ -135,5 +137,6 @@ class ArgparseExecutor(CliAppExecutor, SystemBusAware):
         try:
             parser.add_argument('--verbose', '-v', action='store_true', default=False, help='Enable verbose output')
             parser.add_argument('--debug', '-d', action='store_true', default=False, help='Enable debug output')
+            parser.add_argument('--env', '-e', action='store', default='local', help='Environment name')
         except argparse.ArgumentError:
             pass

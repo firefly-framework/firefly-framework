@@ -33,7 +33,7 @@ class FireflyEncoder(JSONEncoder):
             return None
         elif isinstance(o, (datetime, date)):
             return o.isoformat()
-        elif isinstance(o, ffd.Message):
+        elif not inspect.isclass(o) and isinstance(o, ffd.Message):
             dic = o.to_dict()
             dic['_name'] = o.__class__.__name__
             t = 'event'

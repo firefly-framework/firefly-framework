@@ -93,6 +93,7 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
             signal(sig, self._shut_down)
 
         def event_listener(message: ffd.Message, next_: Callable):
+            print(message)
             self._broadcast(message)
             return next_(message)
         self._system_bus.add_event_listener(event_listener)

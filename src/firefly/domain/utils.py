@@ -22,7 +22,7 @@ from time import sleep
 import firefly as ff
 
 
-def retry(cb, valid_cb=None, wait: int = 1, backoff: bool = True, retries: int = 5, catch=Exception):
+def retry(cb, valid_cb=None, wait: int = 1, backoff: bool = True, retries: int = 5, catch=Exception, should_retry=None):
     while retries > 0:
         try:
             ret = cb()
@@ -30,6 +30,8 @@ def retry(cb, valid_cb=None, wait: int = 1, backoff: bool = True, retries: int =
                 raise RuntimeError('valid_cb is false-y for return value')
             return ret
         except catch as e:
+            if should_retry is not None and not should_retry(e):
+                raise e
             retries -= 1
             if retries <= 0:
                 raise e

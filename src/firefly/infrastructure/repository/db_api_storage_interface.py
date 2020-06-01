@@ -163,7 +163,7 @@ class DbApiStorageInterface(ABC):
             elif i.type == 'int':
                 columns.append(f"`{i.name}` integer")
             elif i.type == 'datetime':
-                columns.append(f"`{i.name}` datetime")
+                columns.append(self._datetime_declaration(i.name))
             else:
                 length = i.metadata['length'] if 'length' in i.metadata else 256
                 columns.append(f"`{i.name}` varchar({length})")
@@ -174,7 +174,7 @@ class DbApiStorageInterface(ABC):
 
         sql = f"""
             create table if not exists {self._fqtn(entity)} (
-                id varchar(36)
+                id varchar(40)
                 , obj longtext not null
                 {extra}
                 , primary key(id)
@@ -182,5 +182,18 @@ class DbApiStorageInterface(ABC):
         """
         return sql
 
+    @staticmethod
+    def _datetime_declaration(name: str):
+        return f"`{name}` datetime"
+
     def _generate_extra(self, columns: list, indexes: list):
         return f", {','.join(columns)}"
+
+    def _exec(self, sql: str, params: list):
+        return self._rds_data_client.execute_statement(
+            resourceArn=self._db_arn,
+            secretArn=self._db_secret_arn,
+            database=self._db_name,
+            sql=sql,
+            parameters=params
+        )

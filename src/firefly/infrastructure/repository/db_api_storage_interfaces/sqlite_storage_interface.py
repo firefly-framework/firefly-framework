@@ -50,15 +50,13 @@ class SqliteStorageInterface(DbApiStorageInterface, ffd.LoggerAware):
         if criteria is not None:
             clause, params = self._generate_where_clause(criteria)
             sql = f'{sql} where {clause}'
+            self.debug('Searching: %s. Params: %s', sql, params)
         cursor.execute(sql, params)
 
         ret = []
         row = cursor.fetchone()
         while row is not None:
             data = self._serializer.deserialize(row['obj'])
-            if criteria is not None and not criteria.matches(data):
-                row = cursor.fetchone()
-                continue
             e = entity_type.from_dict(data)
             ret.append(e)
             if limit is not None and len(ret) >= limit:
@@ -92,6 +90,7 @@ class SqliteStorageInterface(DbApiStorageInterface, ffd.LoggerAware):
 
     def _ensure_table_created(self, entity: Type[ffd.Entity]):
         cursor = self._connection.cursor()
+        self.debug(self._generate_create_table(entity))
         cursor.execute(self._generate_create_table(entity))
 
     def _ensure_connected(self):
@@ -103,7 +102,7 @@ class SqliteStorageInterface(DbApiStorageInterface, ffd.LoggerAware):
         except KeyError:
             raise ffd.ConfigurationError(f'host is required in sqlite_storage_interface')
 
-        self._connection = sqlite3.connect(host)
+        self._connection = sqlite3.connect(host, detect_types=sqlite3.PARSE_DECLTYPES)
         self._connection.row_factory = sqlite3.Row
 
     @staticmethod
@@ -122,3 +121,7 @@ class SqliteStorageInterface(DbApiStorageInterface, ffd.LoggerAware):
     def _remove_from_cache(self, entity: ffd.Entity):
         if entity.__class__ in self._cache and entity.id_value() in self._cache[entity.__class__]:
             del self._cache[entity.__class__][entity.id_value()]
+
+    @staticmethod
+    def _datetime_declaration(name: str):
+        return f"`{name}` timestamp"

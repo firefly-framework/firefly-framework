@@ -89,7 +89,7 @@ def registry(container, request) -> ff.Registry:
                 context.container.db_api_interface_registry.disconnect_all()
             except AttributeError:
                 pass
-    request.addfinalizer(teardown)
+    # request.addfinalizer(teardown)
     # registry.clear_cache()
     return registry
 

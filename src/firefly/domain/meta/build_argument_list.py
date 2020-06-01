@@ -122,6 +122,18 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type]):
                             continue
                         raise
                     args[name].append(type_.__args__[0](**entity_args))
+        elif isinstance(type_, type(typing.Dict)) and len(type_.__args__) == 2 and \
+                issubclass(type_.__args__[1], ffd.ValueObject):
+            args[name] = {}
+            if isinstance(params, dict) and name in params:
+                for k, d in params[name].items():
+                    try:
+                        entity_args = build_argument_list(d, type_.__args__[1])
+                    except ffd.MissingArgument:
+                        if required is False:
+                            continue
+                        raise
+                    args[name][k] = type_.__args__[1](**entity_args)
         elif isinstance(params, dict) and name in params:
             args[name] = params[name]
         elif name.endswith('_') and name.rstrip('_') in params:

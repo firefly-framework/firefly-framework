@@ -79,8 +79,9 @@ class YamlConfigurationFactory(ffd.ConfigurationFactory):
     def _load_environment_vars(self):
         env = os.environ.get('ENV', 'local')
         dir_ = self._move_to_project_root()
-        if os.path.exists(f'.env.{env}'):
-            load_dotenv(dotenv_path=os.path.join(os.getcwd(), f'.env.{env}'))
+        for path in ('.env', f'.env.{env}'):
+            if os.path.exists(path):
+                load_dotenv(dotenv_path=os.path.join(os.getcwd(), path))
         os.chdir(dir_)
 
     @staticmethod

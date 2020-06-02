@@ -50,8 +50,14 @@ class ContentNegotiator(Middleware, LoggerAware):
         for mime_type in mimes:
             if ';' in mime_type:
                 self.info(mime_type)
-                mime_type, params = mime_type.split(';')
-                ordered_mimes.append((mime_type, params.split('=')[1]))
+                parts = mime_type.split(';')
+                mime_type = parts.pop(0)
+                found = False
+                for part in parts:
+                    if part.startswith('q='):
+                        ordered_mimes.append((mime_type, part.split('=')[1]))
+                if not found:
+                    ordered_mimes.append((mime_type, '1.0'))
             else:
                 ordered_mimes.append((mime_type, '1.0'))
         ordered_mimes.sort(key=lambda i: i[1], reverse=True)

@@ -36,6 +36,7 @@ setuptools.setup(
     install_requires=[
         'aiohttp>=3.5.4',
         'aiohttp-cors>=0.7.0',
+        'dateparser>=0.7.4',
         'dirsync>=2.2.3',
         'inflection>=0.3.1',
         'Jinja2>=2.11.1',

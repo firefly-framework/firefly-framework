@@ -81,3 +81,7 @@ class MissingDependency(FrameworkError):
 
 class ApiError(FrameworkError):
     pass
+
+
+class InvariantViolation(FrameworkError):
+    pass

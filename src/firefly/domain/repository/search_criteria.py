@@ -222,7 +222,7 @@ class BinaryOp:
         lhv, params, counter = self._process_op(self.lhv, params, counter)
         rhv, params, counter = self._process_op(self.rhv, params, counter)
 
-        return f'({lhv} {self.op} {rhv})', params, counter
+        return f'({lhv} {self.op.replace("==", "=")} {rhv})', params, counter
 
     @staticmethod
     def _process_op(v, params: dict, counter: int):

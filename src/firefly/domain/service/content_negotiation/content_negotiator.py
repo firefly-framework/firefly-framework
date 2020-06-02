@@ -25,8 +25,9 @@ from firefly.domain.service.messaging.middleware import Middleware
 class ContentNegotiator(Middleware, LoggerAware):
     _converters: Dict[str, ContentConverter] = None
 
-    def __init__(self, converters: Dict[str, ContentConverter]):
+    def __init__(self, converters: Dict[str, ContentConverter], logger: ffd.Logger):
         self._converters = converters
+        self._logger = logger
 
     def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
         accept = None

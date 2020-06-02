@@ -57,7 +57,7 @@ class Container(di.Container):
     query_resolver: ffd.QueryResolvingMiddleware = ffd.QueryResolvingMiddleware
     content_negotiator: ffd.ContentNegotiator = lambda self: ffd.ContentNegotiator({
         'text/html': self.build(ffi.HtmlConverter),
-    })
+    }, self.logger)
     transaction_handler: ffd.TransactionHandlingMiddleware = ffd.TransactionHandlingMiddleware
     command_bus: ffd.CommandBus = lambda self: self.build(ffd.CommandBus, middleware=[
         self.build(ffd.LoggingMiddleware),

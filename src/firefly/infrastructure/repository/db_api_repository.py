@@ -30,6 +30,7 @@ class DbApiRepository(ffd.Repository[T]):
         self._table = table_name or inflection.tableize(self._entity_type.get_fqn())
         self._interface = interface
         self._index = 0
+        self._state = 'empty'
 
     def execute_ddl(self):
         self._interface.execute_ddl(self._type())
@@ -56,6 +57,8 @@ class DbApiRepository(ffd.Repository[T]):
 
         if ret:
             self._register_entity(ret)
+            if self._state == 'empty':
+                self._state = 'partial'
 
         return ret
 
@@ -63,6 +66,8 @@ class DbApiRepository(ffd.Repository[T]):
         entities = self._interface.all(self._entity_type, criteria=self._get_search_criteria(cb))
         for entity in entities:
             self._register_entity(entity)
+        if self._state == 'empty':
+            self._state = 'partial'
         return entities
 
     def reduce(self, cb: Callable) -> Optional[T]:
@@ -89,8 +94,11 @@ class DbApiRepository(ffd.Repository[T]):
         return self._entities[item]
 
     def _load_all(self):
-        if self._entities is None:
-            self._entities = self._interface.all(self._entity_type)
+        if self._state != 'full':
+            for entity in self._interface.all(self._entity_type):
+                if entity not in self._entities:
+                    self._register_entity(entity)
+            self._state = 'full'
 
     def commit(self):
         self.debug('commit() called in %s', str(self))
@@ -114,3 +122,7 @@ class DbApiRepository(ffd.Repository[T]):
         for entity in self._entities:
             if entity.id_value() == id_:
                 return entity
+
+    def reset(self):
+        super().reset()
+        self._state = 'empty'

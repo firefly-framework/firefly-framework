@@ -30,12 +30,16 @@ import firefly.infrastructure as ffi
 class DefaultAgent(ffd.ApplicationService, ffd.LoggerAware):
     _web_server: ffi.WebServer = None
     _config: ffd.Configuration = None
+    _context_map: ffd.ContextMap = None
+    _registry: ffd.Registry = None
 
     def __init__(self):
         self._deployment: Optional[ffd.Deployment] = None
 
     def __call__(self, deployment: ffd.Deployment, start_server: bool = True, start_web_app: bool = False, **kwargs):
         self._deployment = deployment
+        self._execute_ddl()
+
         self._web_server.add_extension(self._register_gateways)
 
         if start_web_app:
@@ -45,6 +49,17 @@ class DefaultAgent(ffd.ApplicationService, ffd.LoggerAware):
         if start_server:
             self.info('Starting web server')
             self._web_server.run()
+
+    def _execute_ddl(self):
+        for context in self._context_map.contexts:
+            for entity in context.entities:
+                if issubclass(entity, ffd.AggregateRoot) and entity is not ffd.AggregateRoot:
+                    try:
+                        repository = self._registry(entity)
+                        if isinstance(repository, ffi.DbApiRepository):
+                            repository.execute_ddl()
+                    except ffd.FrameworkError:
+                        pass
 
     def _register_gateways(self, web_server: ffi.WebServer):
         for service in self._deployment.services:

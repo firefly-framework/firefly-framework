@@ -101,6 +101,7 @@ class SqliteStorageInterface(DbApiStorageInterface, ffd.LoggerAware):
         self._connection.row_factory = sqlite3.Row
 
     def _execute_ddl(self, entity: Type[ffd.Entity]):
+        self._ensure_connected()
         cursor = self._connection.cursor()
         self.debug(self._generate_create_table(entity))
         cursor.execute(self._generate_create_table(entity))

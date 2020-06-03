@@ -31,6 +31,9 @@ class DbApiRepository(ffd.Repository[T]):
         self._interface = interface
         self._index = 0
 
+    def execute_ddl(self):
+        self._interface.execute_ddl(self._type())
+
     def append(self, entity: T):
         self.debug('Entity added to repository: %s', str(entity))
         self._entities.append(entity)

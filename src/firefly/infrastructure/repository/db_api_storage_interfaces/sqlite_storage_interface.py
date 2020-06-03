@@ -88,11 +88,6 @@ class SqliteStorageInterface(DbApiStorageInterface, ffd.LoggerAware):
         cursor.execute(*self._generate_update(entity))
         self._connection.commit()
 
-    def _ensure_table_created(self, entity: Type[ffd.Entity]):
-        cursor = self._connection.cursor()
-        self.debug(self._generate_create_table(entity))
-        cursor.execute(self._generate_create_table(entity))
-
     def _ensure_connected(self):
         if self._connection is not None:
             return
@@ -104,6 +99,11 @@ class SqliteStorageInterface(DbApiStorageInterface, ffd.LoggerAware):
 
         self._connection = sqlite3.connect(host, detect_types=sqlite3.PARSE_DECLTYPES)
         self._connection.row_factory = sqlite3.Row
+
+    def _execute_ddl(self, entity: Type[ffd.Entity]):
+        cursor = self._connection.cursor()
+        self.debug(self._generate_create_table(entity))
+        cursor.execute(self._generate_create_table(entity))
 
     @staticmethod
     def _fqtn(entity: Type[ffd.Entity]):

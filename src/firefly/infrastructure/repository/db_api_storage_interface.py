@@ -87,19 +87,12 @@ class DbApiStorageInterface(ffd.LoggerAware, ABC):
     def _ensure_connected(self):
         pass
 
-    @abstractmethod
-    def _ensure_table_created(self, entity: Type[ffd.Entity]):
-        pass
-
     @staticmethod
     def _fqtn(entity: Type[ffd.Entity]):
         return inflection.tableize(entity.get_fqn())
 
     def _check_prerequisites(self, entity: Type[ffd.Entity]):
         self._ensure_connected()
-        if entity not in self._tables_checked:
-            self._ensure_table_created(entity)
-            self._tables_checked.append(entity)
 
     def _get_indexes(self, entity: Type[ffd.Entity]):
         if entity not in self._cache['indexes']:
@@ -188,6 +181,13 @@ class DbApiStorageInterface(ffd.LoggerAware, ABC):
 
     def _generate_extra(self, columns: list, indexes: list):
         return f", {','.join(columns)}"
+
+    def execute_ddl(self, entity: Type[ffd.Entity]):
+        self._execute_ddl(entity)
+
+    @abstractmethod
+    def _execute_ddl(self, entity: Type[ffd.Entity]):
+        pass
 
     def _exec(self, sql: str, params: list):
         self.debug(sql)

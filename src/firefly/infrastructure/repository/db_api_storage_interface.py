@@ -22,7 +22,7 @@ import firefly.domain as ffd
 import inflection
 
 
-class DbApiStorageInterface(ABC):
+class DbApiStorageInterface(ffd.LoggerAware, ABC):
     _serializer: ffd.Serializer = None
     _cache: dict = {}
 
@@ -190,6 +190,8 @@ class DbApiStorageInterface(ABC):
         return f", {','.join(columns)}"
 
     def _exec(self, sql: str, params: list):
+        self.debug(sql)
+        self.debug(params)
         return self._rds_data_client.execute_statement(
             resourceArn=self._db_arn,
             secretArn=self._db_secret_arn,

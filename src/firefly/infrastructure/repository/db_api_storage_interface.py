@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import fields
+from datetime import datetime
 from typing import Type
 
 import firefly.domain as ffd
@@ -145,6 +146,16 @@ class DbApiStorageInterface(ffd.LoggerAware, ABC):
 
     def _generate_index(self, name: str):
         return ''
+
+    def _db_type(self, field_):
+        if field_.type == 'float' or field_.type is float:
+            return 'float'
+        if field_.type == 'integer' or field_.type is int:
+            return 'integer'
+        if field_.type == 'datetime' or field_.type is datetime:
+            return 'datetime'
+        length = field_.metadata['length'] if 'length' in field_.metadata else 256
+        return f'varchar({length})'
 
     def _generate_create_table(self, entity: Type[ffd.Entity]):
         columns = []

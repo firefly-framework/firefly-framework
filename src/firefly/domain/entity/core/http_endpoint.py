@@ -40,3 +40,6 @@ class HttpEndpoint(Endpoint):
     service: type = optional()
     secured: bool = optional(default=True)
     scopes: List[str] = list_()
+
+    def __eq__(self, other):
+        return isinstance(other, HttpEndpoint) and self.route == other.route and self.method == other.method

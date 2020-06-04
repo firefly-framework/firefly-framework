@@ -38,10 +38,12 @@ class DbApiRepository(ffd.Repository[T]):
     def append(self, entity: T):
         self.debug('Entity added to repository: %s', str(entity))
         self._entities.append(entity)
+        self._state = 'partial'
 
     def remove(self, entity: T):
         self.debug('Entity removed from repository: %s', str(entity))
         self._deletions.append(entity)
+        self._entities.remove(entity)
 
     def find(self, exp: Union[str, Callable]) -> T:
         ret = None

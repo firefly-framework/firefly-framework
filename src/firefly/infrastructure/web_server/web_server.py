@@ -50,7 +50,7 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
             self.host = ':'.join(parts)
         self.websocket_host = websocket_host
         self.websocket_port = websocket_port
-        self.app = web.Application()
+        self.app = None
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
 
@@ -70,6 +70,7 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
         self._shut_down()
 
     def initialize(self):
+        self.app = web.Application()
         self._init_logger()
 
         for extension in self.extensions:
@@ -93,16 +94,16 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
             signal(sig, self._shut_down)
 
         def event_listener(message: ffd.Message, next_: Callable):
-            print(message)
             self._broadcast(message)
             return next_(message)
         self._system_bus.add_event_listener(event_listener)
 
     def _broadcast(self, message: ffd.Message):
-        print('broadcasting!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-        m = self._serializer.serialize(message)
-        for queue in self.queues.values():
-            queue.put_nowait(m)
+        if message.get_context() != 'firefly':
+            self.debug('Broadcasting message %s', message)
+            m = self._serializer.serialize(message)
+            for queue in self.queues.values():
+                queue.put_nowait(m)
 
     def add_endpoint(self, method: str, route: str, message: TypeOfMessage = None):
         print(f'Endpoint: {method} {route} -> {message}')
@@ -208,7 +209,7 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
         }
 
     async def _handle_websocket(self, websocket, path):
-        id_ = str(uuid.uuid1())
+        id_ = str(uuid.uuid4())
         consumer_task = asyncio.ensure_future(self._consumer(websocket, path, id_))
         producer_task = asyncio.ensure_future(self._producer(websocket, path, id_))
         done, pending = await asyncio.wait([consumer_task, producer_task], return_when=asyncio.FIRST_COMPLETED)

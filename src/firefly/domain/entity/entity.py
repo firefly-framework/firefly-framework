@@ -141,7 +141,7 @@ def id_(is_uuid: bool = True, **kwargs):
     if is_uuid:
         metadata['length'] = 36
     metadata.update(kwargs)
-    return field(default_factory=lambda: str(uuid.uuid1()), metadata=metadata) if is_uuid else \
+    return field(default_factory=lambda: str(uuid.uuid4()), metadata=metadata) if is_uuid else \
         required(**metadata)
 
 

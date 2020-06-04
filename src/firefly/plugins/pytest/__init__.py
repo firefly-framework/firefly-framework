@@ -89,8 +89,8 @@ def registry(container, request) -> ff.Registry:
                 context.container.db_api_interface_registry.disconnect_all()
             except AttributeError:
                 pass
-    # request.addfinalizer(teardown)
-    # registry.clear_cache()
+    request.addfinalizer(teardown)
+    registry.clear_cache()
     return registry
 
 
@@ -100,7 +100,8 @@ def transport(container):
 
 
 @pytest.fixture(scope="function")
-async def client(container, system_bus, aiohttp_client):
+async def client(container, system_bus, loop, aiohttp_client):
+    container.web_server.loop = loop
     deployment = ff.Deployment(project='Test', environment='testing', provider='default')
     system_bus.dispatch('firefly.DeploymentCreated', {'deployment': deployment})
     agent = container.agent_factory('default')

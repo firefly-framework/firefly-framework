@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import inspect
+from pprint import pprint
 from typing import Callable, Dict, Type, Union
 
 import firefly.domain as ffd
@@ -61,6 +62,9 @@ class CommandResolvingMiddleware(Middleware, LoggerAware):
 
     def _transfer_message(self, message: ffd.Message):
         return self._context_map.get_context(self._context).container.message_transport.invoke(message)
+
+    def has_command_handler(self, handler: str):
+        return handler in self._command_handlers
 
     def add_command_handler(self, handler: Union[ffd.ApplicationService, Type[ffd.ApplicationService]],
                             command: Union[Type[Command], str]):

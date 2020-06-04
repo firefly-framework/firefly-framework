@@ -98,9 +98,10 @@ class AutoGenerateAggregateApis(ApplicationService, LoggerAware):
 
         name = f'{name_prefix}{entity.__name__}'
         fqn = f'{context.name}.{name}'
-        Action.__name__ = name
-        self._command_resolving_middleware.add_command_handler(self._container.build(Action), fqn)
-        context.command_handlers[Action] = fqn
+        if not self._command_resolving_middleware.has_command_handler(fqn):
+            Action.__name__ = name
+            self._command_resolving_middleware.add_command_handler(self._container.build(Action), fqn)
+            context.command_handlers[Action] = fqn
 
     def _register_entity_level_event_listeners(self, entity: Type[ff.AggregateRoot], context: ff.Context):
         if entity.get_create_on() is not None:

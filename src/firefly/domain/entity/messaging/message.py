@@ -50,7 +50,7 @@ class Message(FireflyType, metaclass=MessageMeta):
 
     def __post_init__(self):
         if self._id is None:
-            self._id = str(uuid.uuid1())
+            self._id = str(uuid.uuid4())
         if self._context is None:
             if self.__class__._context is not None:
                 self._context = self.__class__._context

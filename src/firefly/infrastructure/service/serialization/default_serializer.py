@@ -56,7 +56,10 @@ class JsonSerializer(ffd.Serializer):
 
     def deserialize(self, data):
         try:
-            ret = json.loads(data)
+            if isinstance(data, (str, bytes, bytearray)):
+                ret = json.loads(data)
+            else:
+                ret = data
         except json.JSONDecodeError:
             raise ffd.InvalidArgument('Could not deserialize data')
 

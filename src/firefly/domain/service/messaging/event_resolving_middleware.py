@@ -58,15 +58,13 @@ class EventResolvingMiddleware(Middleware):
         args = message.to_dict(recursive=False)
         args['_message'] = message
 
-        try:
+        if str(message) in self._event_listeners:
             services = self._event_listeners[str(message)]
             for service in services:
                 try:
                     service(**ffd.build_argument_list(args, service))
                 except TypeError as e:
                     raise ffd.FrameworkError(f'Error calling {service.__class__.__name__}:\n\n{str(e)}')
-        except KeyError:
-            pass
 
         return next_(message)
 

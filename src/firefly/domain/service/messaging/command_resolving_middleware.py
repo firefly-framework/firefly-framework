@@ -58,6 +58,7 @@ class CommandResolvingMiddleware(Middleware, LoggerAware):
             raise ffd.ConfigurationError(f'No command handler registered for {message}')
 
         service = self._command_handlers[str(message)]
+
         return service(**ffd.build_argument_list(args, service))
 
     def _transfer_message(self, message: ffd.Message):

@@ -54,11 +54,11 @@ class CommandResolvingMiddleware(Middleware, LoggerAware):
         args = message.to_dict()
         args['_message'] = message
 
-        try:
-            service = self._command_handlers[str(message)]
-            return service(**ffd.build_argument_list(args, service))
-        except KeyError:
+        if str(message) not in self._command_handlers:
             raise ffd.ConfigurationError(f'No command handler registered for {message}')
+
+        service = self._command_handlers[str(message)]
+        return service(**ffd.build_argument_list(args, service))
 
     def _transfer_message(self, message: ffd.Message):
         return self._context_map.get_context(self._context).container.message_transport.invoke(message)

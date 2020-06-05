@@ -52,8 +52,7 @@ class EventResolvingMiddleware(Middleware):
                 message.get_context() == self._context and \
                 not message.headers.get('external', False):
             self._publish_message(message)
-            if str(message) not in self._event_listeners:
-                return next_(message)
+            return next_(message)
 
         args = message.to_dict(recursive=False)
         args['_message'] = message

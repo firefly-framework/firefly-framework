@@ -36,7 +36,6 @@ class UpdateEntity(Generic[T], ApplicationService, GenericBase, CrudOperation, S
         for k, v in kwargs.items():
             if hasattr(entity, k):
                 setattr(entity, k, v)
-        self._registry(type_).update(entity)
         self.dispatch(self._build_event(type_, 'update'))
 
         return True

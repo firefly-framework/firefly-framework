@@ -65,11 +65,15 @@ class DbApiRepository(ffd.Repository[T]):
         return ret
 
     def filter(self, cb: Callable) -> List[T]:
-        entities = self._interface.all(self._entity_type, criteria=self._get_search_criteria(cb))
-        for entity in entities:
-            self._register_entity(entity)
-        if self._state == 'empty':
-            self._state = 'partial'
+        if self._state == 'full':
+            criteria = self._get_search_criteria(cb)
+            entities = list(filter(lambda e: criteria.matches(e), self._entities))
+        else:
+            entities = self._interface.all(self._entity_type, criteria=self._get_search_criteria(cb))
+            for entity in entities:
+                self._register_entity(entity)
+            if self._state == 'empty':
+                self._state = 'partial'
         return entities
 
     def reduce(self, cb: Callable) -> Optional[T]:
@@ -82,7 +86,6 @@ class DbApiRepository(ffd.Repository[T]):
         self._load_all()
         if self._index >= len(self._entities):
             self._index = 0
-            self._entities = []
             raise StopIteration()
         self._index += 1
         return self._entities[self._index - 1]

@@ -62,7 +62,6 @@ class EventResolvingMiddleware(Middleware):
                 try:
                     service(**ffd.build_argument_list(args, service))
                 except TypeError as e:
-                    raise e
                     raise ffd.FrameworkError(f'Error calling {service.__class__.__name__}:\n\n{str(e)}')
         except KeyError:
             pass

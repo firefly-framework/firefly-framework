@@ -76,7 +76,8 @@ class Entity(ContextAware, ValueObject):
         data = self._process_data(self.__class__, data)
         t = typing.get_type_hints(self.__class__)
         for name, type_ in t.items():
-            setattr(self, name, data[name])
+            if name in data:
+                setattr(self, name, data[name])
 
     @staticmethod
     def _process_data(cls, data: dict):
@@ -85,7 +86,7 @@ class Entity(ContextAware, ValueObject):
             if name.startswith('_'):
                 continue
 
-            if isinstance(type_, type(List)):
+            if isinstance(type_, type(List)) and len(type_.__args__) == 1:
                 new_list = []
                 for item in data[name]:
                     nested_data = Entity._process_data(type_.__args__[0], item)

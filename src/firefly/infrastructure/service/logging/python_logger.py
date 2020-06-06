@@ -37,7 +37,7 @@ class PythonLogger(ffd.Logger):
 
     def error(self, message: Union[str, Exception], *args, **kwargs):
         if isinstance(message, Exception):
-            message = '\n'.join([str(message)] + traceback.format_exception(None, message, message.__traceback__))
+            message = '\r'.join([str(message)] + traceback.format_exception(None, message, message.__traceback__))
         self.log.error(message, *args, **kwargs)
 
     def set_level_to_fatal(self):

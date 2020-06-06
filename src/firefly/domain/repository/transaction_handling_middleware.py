@@ -45,7 +45,7 @@ class TransactionHandlingMiddleware(Middleware, LoggerAware):
                 self._commit()
             return ret
         except Exception as e:
-            self.error(str(e))
+            self.error(e)
             self.debug('Caught an exception during transaction')
             self._level -= 1
             self.debug('Level decremented: %d', self._level)

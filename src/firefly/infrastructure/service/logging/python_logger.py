@@ -57,3 +57,9 @@ class PythonLogger(ffd.Logger):
 
     def disable(self):
         self.log.getLogger().setLevel(logging.NOTSET)
+
+    def get_level(self):
+        return self.log.getLogger().getEffectiveLevel()
+
+    def set_level(self, level: int):
+        self.log.getLogger().setLevel(level)

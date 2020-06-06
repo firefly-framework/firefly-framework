@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import os
 from typing import Callable
 
 import firefly.domain as ffd
@@ -26,7 +27,16 @@ class LoggingMiddleware(Middleware, LoggerAware):
         self._message = message or 'Message added to bus: %s'
 
     def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
+        original_log_level = None
+        if ('DEBUG' in os.environ and os.environ['DEBUG']) or ('debug' in message.headers and message.headers['debug']):
+            original_log_level = self._logger.get_level()
+            self._logger.set_level_to_debug()
+
         self.info(self._message, message)
         ret = next_(message)
         self.info('Response: %s', str(ret))
+
+        if original_log_level is not None:
+            self._logger.set_level(original_log_level)
+
         return ret

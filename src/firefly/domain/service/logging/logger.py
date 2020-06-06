@@ -56,6 +56,14 @@ class Logger(ABC):
     def disable(self):
         pass
 
+    @abstractmethod
+    def get_level(self):
+        pass
+
+    @abstractmethod
+    def set_level(self, level: any):
+        pass
+
 
 class LoggerAware:
     _logger: Logger = None

@@ -29,7 +29,9 @@ class PythonLogger(ffd.Logger):
     def debug(self, message: str, *args, **kwargs):
         self.log.debug(message, *args, **kwargs)
 
-    def info(self, message: str, *args, **kwargs):
+    def info(self, message: Union[str, Exception], *args, **kwargs):
+        if isinstance(message, Exception):
+            message = '\r'.join([str(message)] + traceback.format_exception(None, message, message.__traceback__))
         self.log.info(message, *args, **kwargs)
 
     def warning(self, message: str, *args, **kwargs):

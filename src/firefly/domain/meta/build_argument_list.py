@@ -97,7 +97,7 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type]):
 
         type_ = types[name] if name in types else None
         if type_ is datetime and name in params and isinstance(params[name], str):
-            params[name] = parse(params[name])
+            params[name] = parse(params[name]).replace(tzinfo=None)
 
         if isinstance(type_, type) and issubclass(type_, ffd.ValueObject):
             if name in params and isinstance(params[name], type_):

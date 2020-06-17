@@ -18,9 +18,10 @@ import importlib
 import inspect
 
 import firefly.domain as ffd
+import inflection
 
 
-class LoadEntities(ffd.ApplicationService):
+class LoadDomainLayer(ffd.ApplicationService):
     _context_map: ffd.ContextMap = None
     _logger: ffd.Logger = None
 
@@ -44,3 +45,9 @@ class LoadEntities(ffd.ApplicationService):
                 context.entities.append(v)
             elif issubclass(v, ffd.ValueObject):
                 v._logger = self._logger
+            elif issubclass(v, ffd.DomainService):
+                v._logger = self._logger
+                v._system_bus = self._system_bus
+                name = inflection.underscore(v.__name__)
+                setattr(context.container, name, v)
+                context.container.__annotations__[name] = v

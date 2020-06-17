@@ -17,6 +17,6 @@ from .configure_deployment import ConfigureDeployment
 from .configure_storage import ConfigureStorage
 from .load_application_layer import LoadApplicationLayer
 from .load_containers import LoadContainers
-from .load_entities import LoadEntities
+from .load_domain_layer import LoadDomainLayer
 from .load_infrastructure_layer import LoadInfrastructureLayer
 from .load_presentation_layer import LoadPresentationLayer

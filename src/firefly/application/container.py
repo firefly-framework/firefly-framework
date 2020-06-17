@@ -38,7 +38,7 @@ class Container(di.Container):
         ffd.EventResolvingMiddleware, event_listeners={
             ffd.ContainersLoaded: [
                 ffa.LoadInfrastructureLayer,
-                ffa.LoadEntities,
+                ffa.LoadDomainLayer,
             ],
             ffd.DomainEntitiesLoaded: [
                 ffa.LoadApplicationLayer,

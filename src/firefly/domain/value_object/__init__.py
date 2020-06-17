@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import typing
+from dataclasses import asdict
 from typing import List
 
 from firefly.domain.meta.build_argument_list import build_argument_list
@@ -32,6 +33,10 @@ class ValueObject(metaclass=EntityMeta):
 
     def __init__(self, **kwargs):
         pass
+
+    def to_dict(self):
+        # noinspection PyDataclass
+        return asdict(self)
 
     def debug(self, *args, **kwargs):
         return self._logger.debug(*args, **kwargs)

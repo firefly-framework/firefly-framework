@@ -37,7 +37,8 @@ class DbApiRepository(ffd.Repository[T]):
 
     def append(self, entity: T):
         self.debug('Entity added to repository: %s', str(entity))
-        self._entities.append(entity)
+        if entity not in self._entities:
+            self._entities.append(entity)
         self._state = 'partial'
 
     def remove(self, entity: T):
@@ -80,15 +81,11 @@ class DbApiRepository(ffd.Repository[T]):
         pass
 
     def __iter__(self):
-        return self
+        self._load_all()
+        return iter(list(self._entities))
 
     def __next__(self):
-        self._load_all()
-        if self._index >= len(self._entities):
-            self._index = 0
-            raise StopIteration()
-        self._index += 1
-        return self._entities[self._index - 1]
+        pass
 
     def __len__(self):
         self._load_all()

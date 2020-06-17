@@ -105,18 +105,26 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type]):
                 continue
 
             try:
-                entity_args = build_argument_list(params, type_)
+                nested = False
+                if name in params and isinstance(params[name], dict):
+                    entity_args = build_argument_list(params[name], type_)
+                    nested = True
+                else:
+                    entity_args = build_argument_list(params, type_)
             except ffd.MissingArgument:
                 if required is False:
                     continue
                 raise
             # TODO use factories where appropriate
             args[name] = type_(**entity_args)
-            for key in entity_args.keys():
-                if key != type_.id_name():
-                    del params[key]
-                    if key in args:
-                        del args[key]
+            if nested:
+                del params[name]
+            else:
+                for key in entity_args.keys():
+                    if not hasattr(type_, 'id_name') or key != type_.id_name():
+                        del params[key]
+                        if key in args:
+                            del args[key]
         elif isinstance(type_, type(typing.List)) and issubclass(type_.__args__[0], ffd.ValueObject):
             args[name] = []
             if isinstance(params, dict) and name in params:

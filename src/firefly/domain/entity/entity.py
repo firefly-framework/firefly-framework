@@ -69,9 +69,6 @@ class Entity(ContextAware, ValueObject):
             if 'id' in field_.metadata:
                 return getattr(self, field_.name)
 
-    def to_dict(self):
-        return asdict(self)
-
     def load_dict(self, data: dict):
         data = self._process_data(self.__class__, data)
         t = typing.get_type_hints(self.__class__)

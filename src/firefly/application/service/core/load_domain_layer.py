@@ -45,9 +45,12 @@ class LoadDomainLayer(ffd.ApplicationService):
                 context.entities.append(v)
             elif issubclass(v, ffd.ValueObject):
                 v._logger = self._logger
-            elif issubclass(v, ffd.DomainService):
+            elif issubclass(v, ffd.DomainService) and v is not ffd.DomainService:
                 v._logger = self._logger
                 v._system_bus = self._system_bus
                 name = inflection.underscore(v.__name__)
-                setattr(context.container, name, v)
-                context.container.__annotations__[name] = v
+                setattr(context.container.__class__, name, v)
+                if not hasattr(context.container.__class__, '__annotations__'):
+                    context.container.__class__.__annotations__ = {}
+                context.container.__class__.__annotations__[name] = v
+                context.container.clear_annotation_cache()

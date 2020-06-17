@@ -39,8 +39,6 @@ def container(config):
     Container.__annotations__['asyncio_message_transport'] = ffi.AsyncioMessageTransport
 
     c = Container()
-    # c.registry.set_default_factory(ffi.MemoryRepositoryFactory())
-
     c.kernel.boot()
 
     return c
@@ -81,14 +79,12 @@ def registry(container, request) -> ff.Registry:
                 if issubclass(entity, ff.AggregateRoot) and entity is not ff.AggregateRoot:
                     try:
                         for e in registry(entity):
+                        # for e in registry(entity)._entities:
                             registry(entity).remove(e)
                         registry(entity).commit()
                     except ff.FrameworkError:
                         pass
-            try:
-                context.container.db_api_interface_registry.disconnect_all()
-            except AttributeError:
-                pass
+
     request.addfinalizer(teardown)
     registry.clear_cache()
     return registry

@@ -20,5 +20,5 @@ from ...service.logging.logger import LoggerAware
 from ...service.messaging.system_bus import SystemBusAware
 
 
-class DomainService(LoggerAware, SystemBusAware, ABC):
+class DomainService(ABC, LoggerAware, SystemBusAware):
     pass

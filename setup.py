@@ -22,7 +22,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name='firefly-framework',
-    version='0.1',
+    version='0.1.0',
     author="JD Williams",
     author_email="me@jdwilliams.xyz",
     description="A dependency injection framework for python",

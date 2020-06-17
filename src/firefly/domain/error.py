@@ -83,5 +83,21 @@ class ApiError(FrameworkError):
     pass
 
 
+class BadRequest(ApiError):
+    pass
+
+
+class Forbidden(ApiError):
+    pass
+
+
+class Unauthorized(ApiError):
+    pass
+
+
+class NotFound(ApiError):
+    pass
+
+
 class InvariantViolation(FrameworkError):
     pass

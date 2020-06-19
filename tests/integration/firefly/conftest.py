@@ -23,7 +23,7 @@ def config():
     return {
         'contexts': {
             'todo': {
-                'entity_module': 'test_src.todo.domain.entity',
+                'entity_module': 'test_src.todo.domain',
                 'container_module': 'test_src.todo.application',
                 'application_module': 'test_src.todo.application',
                 'storage': {
@@ -40,7 +40,7 @@ def config():
                 },
             },
             'iam': {
-                'entity_module': 'test_src.iam.domain.entity',
+                'entity_module': 'test_src.iam.domain',
                 'container_module': 'test_src.iam.application',
                 'application_module': 'test_src.iam.application',
                 'storage': {
@@ -57,7 +57,7 @@ def config():
                 },
             },
             'calendar': {
-                'entity_module': 'test_src.calendar.domain.entity',
+                'entity_module': 'test_src.calendar.domain',
                 'storage': {
                     'services': {
                         'db_api': {

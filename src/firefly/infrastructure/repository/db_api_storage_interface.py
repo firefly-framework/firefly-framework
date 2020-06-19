@@ -95,7 +95,7 @@ class DbApiStorageInterface(ffd.LoggerAware, ABC):
     def _check_prerequisites(self, entity: Type[ffd.Entity]):
         self._ensure_connected()
 
-    def _get_indexes(self, entity: Type[ffd.Entity]):
+    def get_indexes(self, entity: Type[ffd.Entity]):
         if entity not in self._cache['indexes']:
             self._cache['indexes'][entity] = []
             for field_ in fields(entity):
@@ -116,25 +116,25 @@ class DbApiStorageInterface(ffd.LoggerAware, ABC):
 
     def _generate_update_list(self, entity: Type[ffd.Entity]):
         values = ['obj=:obj']
-        for index in self._get_indexes(entity):
+        for index in self.get_indexes(entity):
             values.append(f'`{index.name}`=:{index.name}')
         return ','.join(values)
 
     def _generate_column_list(self, entity: Type[ffd.Entity]):
         values = ['id', 'obj']
-        for index in self._get_indexes(entity):
+        for index in self.get_indexes(entity):
             values.append(index.name)
         return ','.join(values)
 
     def _generate_value_list(self, entity: Type[ffd.Entity]):
         placeholders = [':id', ':obj']
-        for index in self._get_indexes(entity):
+        for index in self.get_indexes(entity):
             placeholders.append(f':{index.name}')
         return ','.join(placeholders)
 
     def _generate_parameters(self, entity: ffd.Entity):
         params = {'id': entity.id_value(), 'obj': self._serializer.serialize(entity)}
-        for index in self._get_indexes(entity.__class__):
+        for index in self.get_indexes(entity.__class__):
             params[index.name] = getattr(entity, index.name)
         return params
 
@@ -160,7 +160,7 @@ class DbApiStorageInterface(ffd.LoggerAware, ABC):
     def _generate_create_table(self, entity: Type[ffd.Entity]):
         columns = []
         indexes = []
-        for i in self._get_indexes(entity):
+        for i in self.get_indexes(entity):
             indexes.append(self._generate_index(i.name))
             if i.type == 'float':
                 columns.append(f"`{i.name}` float")

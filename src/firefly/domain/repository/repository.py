@@ -74,7 +74,9 @@ class Repository(Generic[T], GenericBase, LoggerAware, ABC):
     def __getitem__(self, item):
         pass
 
-    def _get_search_criteria(self, cb: Callable) -> ffd.BinaryOp:
+    def _get_search_criteria(self, cb: Union[Callable, ffd.BinaryOp]) -> ffd.BinaryOp:
+        if isinstance(cb, ffd.BinaryOp):
+            return cb
         return cb(ffd.EntityAttributeSpy(self._type()))
 
     def _get_hash(self, entity: ffd.Entity):

@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, Union
 
 import firefly.domain as ffd
 from routes import Mapper
@@ -31,7 +31,7 @@ class RoutesRestRouter(ffd.RestRouter):
         self._maps[endpoint.method.lower()].connect(route, action=endpoint)
         self._cache[str(endpoint)] = endpoint
 
-    def match(self, route: str, method: str = 'get') -> Optional[Tuple[ffd.HttpEndpoint, dict]]:
+    def match(self, route: str, method: str = 'get') -> Union[Tuple[ffd.HttpEndpoint, dict], Tuple[None, None]]:
         result = None
         if method.lower() in self._maps:
             result = self._maps[method.lower()].match(route)
@@ -39,7 +39,7 @@ class RoutesRestRouter(ffd.RestRouter):
             result = self._maps['any'].match(route)
 
         if result is None:
-            return None
+            return None, None
 
         action = result['action']
         del result['action']

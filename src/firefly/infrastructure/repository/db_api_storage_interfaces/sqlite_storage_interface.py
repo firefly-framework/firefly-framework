@@ -49,8 +49,9 @@ class SqliteStorageInterface(DbApiStorageInterface, ffd.LoggerAware):
         params = {}
         if criteria is not None:
             clause, params = self._generate_where_clause(criteria)
-            sql = f'{sql} where {clause}'
-            self.debug('Searching: %s. Params: %s', sql, params)
+            if len(clause) > 0:
+                sql = f'{sql} where {clause}'
+                self.debug('Searching: %s. Params: %s', sql, params)
         cursor.execute(sql, params)
 
         ret = []

@@ -73,6 +73,16 @@ def serializer(container):
 def registry(container, request) -> ff.Registry:
     registry = container.registry
 
+    for context in container.context_map.contexts:
+        for entity in context.entities:
+            if issubclass(entity, ff.AggregateRoot) and entity is not ff.AggregateRoot:
+                try:
+                    repository = registry(entity)
+                    if isinstance(repository, ffi.DbApiRepository):
+                        repository.execute_ddl()
+                except ff.FrameworkError:
+                    pass
+
     def teardown():
         for context in container.context_map.contexts:
             for entity in context.entities:

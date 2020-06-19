@@ -19,7 +19,7 @@ from test_src.iam.domain.entity import User
 
 
 def test_query_todos(system_bus, message_factory):
-    users = system_bus.request(message_factory.query('iam.Users'))
+    users = system_bus.request('iam.Users')
     assert len(users) == 2
 
 
@@ -30,9 +30,8 @@ async def test_rest_api(client):
     assert json.loads(await response.text()) == 'abc123'
 
 
-def test_search_criteria_equals(system_bus, message_factory):
-    search_criteria = User.c.name == 'foo'
-    users = system_bus.request(message_factory.query('iam.Users', search_criteria))
+def test_search_criteria_equals(system_bus):
+    users = system_bus.request('iam.Users', lambda u: u.name == 'foo')
     assert len(users) == 1
 
 
@@ -55,3 +54,4 @@ def fixture_data(registry):
     r = registry(User)
     r.append(User(name='foo', email='foo@bar.com'))
     r.append(User(name='bar', email='bar@baz.com'))
+    r.commit()

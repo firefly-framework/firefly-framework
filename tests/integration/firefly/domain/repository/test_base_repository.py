@@ -63,6 +63,9 @@ class WidgetRepository(ff.Repository[Widget]):
     def __getitem__(self, item):
         return self._foos[item]
 
+    def commit(self):
+        pass
+
 
 def test_search_criteria():
     widgets = WidgetRepository([

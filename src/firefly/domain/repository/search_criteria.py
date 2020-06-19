@@ -42,6 +42,13 @@ class AttributeString(str):
     pass
 
 
+class Invalid:
+    pass
+
+
+INVALID = Invalid()
+
+
 class Attr:
     def __init__(self, attr: str, default=None):
         self.attr = AttributeString(attr)
@@ -212,6 +219,41 @@ class BinaryOp:
     def __or__(self, other):
         return BinaryOp(self, 'or', other)
 
+    def prune(self, fields: list):
+        data = self._prune(fields, self.to_dict())
+        if data is INVALID:
+            data = {'l': 1, 'o': '==', 'r': 1}
+        return BinaryOp.from_dict(data)
+
+    def _prune(self, fields: list, data: dict):
+        if isinstance(data['l'], dict):
+            result = self._prune(fields, data['l'])
+            if result is INVALID:
+                if data['o'] == 'and':
+                    data['l'] = {'l': 1, 'o': '==', 'r': 1}
+                else:
+                    data['l'] = {'l': 1, 'o': '!=', 'r': 1}
+        elif isinstance(data['l'], str) and len(data['l']) > 2 and \
+                data['l'].startswith('a:') and data['l'][2:] not in fields:
+            return INVALID
+
+        if isinstance(data['r'], dict):
+            result = self._prune(fields, data['r'])
+            if result is INVALID:
+                if data['o'] == 'and':
+                    data['r'] = {'l': 1, 'o': '==', 'r': 1}
+                else:
+                    data['r'] = {'l': 1, 'o': '!=', 'r': 1}
+        elif isinstance(data['r'], str) and len(data['r']) > 2 and \
+                data['r'].startswith('a:') and data['r'][2:] not in fields:
+            return INVALID
+
+        if isinstance(data['r'], dict) and isinstance(data['l'], dict):
+            if data['l']['l'] == 1 and data['l']['r'] == 1 and data['r']['l'] == 1 and data['r']['r'] == 1:
+                return INVALID
+
+        return data
+
     def to_sql(self):
         sql, params, counter = self._to_sql()
         return sql, params
@@ -247,3 +289,6 @@ class BinaryOp:
 
     def __repr__(self):
         return f'({self.lhv} {self.op} {self.rhv})'
+
+    def __eq__(self, other):
+        return isinstance(other, BinaryOp) and self.to_dict() == other.to_dict()

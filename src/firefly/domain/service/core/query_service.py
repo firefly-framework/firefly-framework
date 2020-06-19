@@ -30,7 +30,7 @@ class QueryService(Generic[T], GenericBase, ApplicationService):
     def __call__(self, **kwargs):
         try:
             if 'criteria' in kwargs:
-                return self._registry(self._type()).find_all_matching(ffd.BinaryOp.from_dict(kwargs['criteria']))
+                return self._registry(self._type()).filter(ffd.BinaryOp.from_dict(kwargs['criteria']))
             else:
                 return self._registry(self._type())
         except KeyError:

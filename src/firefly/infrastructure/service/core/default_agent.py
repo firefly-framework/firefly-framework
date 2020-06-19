@@ -56,7 +56,7 @@ class DefaultAgent(ffd.ApplicationService, ffd.LoggerAware):
                 if issubclass(entity, ffd.AggregateRoot) and entity is not ffd.AggregateRoot:
                     try:
                         repository = self._registry(entity)
-                        if isinstance(repository, ffi.DbApiRepository):
+                        if isinstance(repository, ffi.RdbRepository):
                             repository.execute_ddl()
                     except ffd.FrameworkError:
                         pass

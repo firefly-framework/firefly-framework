@@ -23,7 +23,7 @@ import firefly.domain as ffd
 import inflection
 
 
-class DbApiStorageInterface(ffd.LoggerAware, ABC):
+class RdbStorageInterface(ffd.LoggerAware, ABC):
     _serializer: ffd.Serializer = None
     _cache: dict = {}
 
@@ -35,6 +35,12 @@ class DbApiStorageInterface(ffd.LoggerAware, ABC):
                 'update': {},
             },
             'indexes': {},
+            'parts': {
+                'columns': {},
+                'values': {},
+                'update': {},
+                'select': {},
+            }
         }
 
     def disconnect(self):
@@ -114,29 +120,29 @@ class DbApiStorageInterface(ffd.LoggerAware, ABC):
         sql = f"update {self._fqtn(t)} set {self._generate_update_list(t)} where id = :id"
         return sql, self._generate_parameters(entity)
 
+    @abstractmethod
     def _generate_update_list(self, entity: Type[ffd.Entity]):
-        values = ['obj=:obj']
-        for index in self.get_indexes(entity):
-            values.append(f'`{index.name}`=:{index.name}')
-        return ','.join(values)
+        pass
 
+    @abstractmethod
     def _generate_column_list(self, entity: Type[ffd.Entity]):
-        values = ['id', 'obj']
-        for index in self.get_indexes(entity):
-            values.append(index.name)
-        return ','.join(values)
+        pass
 
+    @abstractmethod
+    def _generate_select_list(self, entity: Type[ffd.Entity]):
+        pass
+
+    @abstractmethod
     def _generate_value_list(self, entity: Type[ffd.Entity]):
-        placeholders = [':id', ':obj']
-        for index in self.get_indexes(entity):
-            placeholders.append(f':{index.name}')
-        return ','.join(placeholders)
+        pass
 
-    def _generate_parameters(self, entity: ffd.Entity):
-        params = {'id': entity.id_value(), 'obj': self._serializer.serialize(entity)}
-        for index in self.get_indexes(entity.__class__):
-            params[index.name] = getattr(entity, index.name)
-        return params
+    @abstractmethod
+    def _generate_parameters(self, entity: ffd.Entity, part: str = None):
+        pass
+
+    @abstractmethod
+    def _build_entity(self, entity: Type[ffd.Entity], data, raw: bool = False):
+        pass
 
     @staticmethod
     def _generate_where_clause(criteria: ffd.BinaryOp):
@@ -144,10 +150,12 @@ class DbApiStorageInterface(ffd.LoggerAware, ABC):
             return '', {}
         return criteria.to_sql()
 
-    def _generate_index(self, name: str):
+    @staticmethod
+    def _generate_index(name: str):
         return ''
 
-    def _db_type(self, field_):
+    @staticmethod
+    def _db_type(field_):
         if field_.type == 'float' or field_.type is float:
             return 'float'
         if field_.type == 'integer' or field_.type is int:
@@ -157,40 +165,16 @@ class DbApiStorageInterface(ffd.LoggerAware, ABC):
         length = field_.metadata['length'] if 'length' in field_.metadata else 256
         return f'varchar({length})'
 
+    @abstractmethod
     def _generate_create_table(self, entity: Type[ffd.Entity]):
-        columns = []
-        indexes = []
-        for i in self.get_indexes(entity):
-            indexes.append(self._generate_index(i.name))
-            if i.type == 'float':
-                columns.append(f"`{i.name}` float")
-            elif i.type == 'int':
-                columns.append(f"`{i.name}` integer")
-            elif i.type == 'datetime':
-                columns.append(self._datetime_declaration(i.name))
-            else:
-                length = i.metadata['length'] if 'length' in i.metadata else 256
-                columns.append(f"`{i.name}` varchar({length})")
-        extra = ''
-        if len(columns) > 0:
-            self._generate_extra(columns, indexes)
-            extra = self._generate_extra(columns, indexes)
-
-        sql = f"""
-            create table if not exists {self._fqtn(entity)} (
-                id varchar(40)
-                , obj longtext not null
-                {extra}
-                , primary key(id)
-            )
-        """
-        return sql
+        pass
 
     @staticmethod
     def _datetime_declaration(name: str):
         return f"`{name}` datetime"
 
-    def _generate_extra(self, columns: list, indexes: list):
+    @staticmethod
+    def _generate_extra(columns: list, indexes: list):
         return f", {','.join(columns)}"
 
     def execute_ddl(self, entity: Type[ffd.Entity]):
@@ -198,4 +182,8 @@ class DbApiStorageInterface(ffd.LoggerAware, ABC):
 
     @abstractmethod
     def _execute_ddl(self, entity: Type[ffd.Entity]):
+        pass
+
+    @abstractmethod
+    def raw(self, entity: Type[ffd.Entity], criteria: ffd.BinaryOp = None, limit: int = None):
         pass

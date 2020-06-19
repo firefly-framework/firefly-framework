@@ -78,7 +78,7 @@ def registry(container, request) -> ff.Registry:
             if issubclass(entity, ff.AggregateRoot) and entity is not ff.AggregateRoot:
                 try:
                     repository = registry(entity)
-                    if isinstance(repository, ffi.DbApiRepository):
+                    if isinstance(repository, ffi.RdbRepository):
                         repository.execute_ddl()
                 except ff.FrameworkError:
                     pass

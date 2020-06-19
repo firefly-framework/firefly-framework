@@ -23,18 +23,18 @@ from firefly import Repository
 from firefly.domain.repository.repository_factory import E
 
 
-class DbApiRepositoryFactory(ffd.RepositoryFactory):
+class RdbRepositoryFactory(ffd.RepositoryFactory):
     _context_map: ffd.ContextMap = None
     _container: di.Container = None
 
-    def __init__(self, interface: ffi.DbApiStorageInterface):
+    def __init__(self, interface: ffi.RdbStorageInterface):
         self._interface = interface
         self._cache = {}
         self._default_interface = None
 
     def __call__(self, entity: Type[E]) -> Repository:
         if entity not in self._cache:
-            class LocalRepository(ffi.DbApiRepository[entity]):
+            class LocalRepository(ffi.RdbRepository[entity]):
                 pass
             LocalRepository.__name__ = f'{entity.__name__}Repository'
             params = self._get_repository_arguments(entity)

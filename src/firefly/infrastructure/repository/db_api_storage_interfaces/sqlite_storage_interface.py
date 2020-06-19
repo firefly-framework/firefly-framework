@@ -20,10 +20,10 @@ from typing import Type, Optional
 import firefly.domain as ffd
 import inflection
 
-from ..db_api_storage_interface import DbApiStorageInterface
+from ..rdb_storage_interface import RdbStorageInterface
 
 
-class SqliteStorageInterface(DbApiStorageInterface, ffd.LoggerAware):
+class SqliteStorageInterface(RdbStorageInterface, ffd.LoggerAware):
     _serializer: ffd.Serializer = None
 
     def __init__(self, **kwargs):

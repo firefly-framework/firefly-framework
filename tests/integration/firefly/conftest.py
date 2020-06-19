@@ -28,7 +28,7 @@ def config():
                 'application_module': 'test_src.todo.application',
                 'storage': {
                     'services': {
-                        'db_api': {
+                        'rdb': {
                             'connection': {
                                 'driver': 'sqlite',
                                 'host': ':memory:'
@@ -36,7 +36,7 @@ def config():
                             }
                         },
                     },
-                    'default': 'db_api',
+                    'default': 'rdb',
                 },
             },
             'iam': {
@@ -45,7 +45,7 @@ def config():
                 'application_module': 'test_src.iam.application',
                 'storage': {
                     'services': {
-                        'db_api': {
+                        'rdb': {
                             'connection': {
                                 'driver': 'sqlite',
                                 'host': ':memory:'
@@ -53,14 +53,14 @@ def config():
                             }
                         },
                     },
-                    'default': 'db_api',
+                    'default': 'rdb',
                 },
             },
             'calendar': {
                 'entity_module': 'test_src.calendar.domain',
                 'storage': {
                     'services': {
-                        'db_api': {
+                        'rdb': {
                             'connection': {
                                 'driver': 'sqlite',
                                 'host': ':memory:'
@@ -68,7 +68,7 @@ def config():
                             }
                         },
                     },
-                    'default': 'db_api',
+                    'default': 'rdb',
                 },
             },
         },

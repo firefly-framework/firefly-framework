@@ -14,17 +14,17 @@
 
 from __future__ import annotations
 
-from typing import Dict, Type
+import firefly.domain as ffd
+import firefly_di as di
 
-import firefly.infrastructure as ffi
+from .rdb_storage_interface_registry import RdbStorageInterfaceRegistry
 
 
-class DbApiStorageInterfaceRegistry:
-    def __init__(self):
-        self._interfaces: Dict[str, Type[ffi.DbApiStorageInterface]] = {}
+class RdbConnectionFactory(ffd.ConnectionFactory):
+    _container: di.Container = None
+    _db_api_storage_interface_registry: RdbStorageInterfaceRegistry = None
 
-    def add(self, name: str, interface: Type[ffi.DbApiStorageInterface]):
-        self._interfaces[name] = interface
-
-    def get(self, name: str) -> Type[ffi.DbApiStorageInterface]:
-        return self._interfaces.get(name)
+    def __call__(self, **kwargs):
+        driver = kwargs['driver']
+        del kwargs['driver']
+        return self._container.build(self._db_api_storage_interface_registry.get(driver), **kwargs)

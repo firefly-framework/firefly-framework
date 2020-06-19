@@ -12,11 +12,11 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from .db_api_connection_factory import DbApiConnectionFactory
-from .db_api_repository import DbApiRepository
-from .db_api_repository_factory import DbApiRepositoryFactory
-from .db_api_storage_interface import DbApiStorageInterface
-from .db_api_storage_interface_registry import DbApiStorageInterfaceRegistry
+from .rdb_connection_factory import RdbConnectionFactory
+from .rdb_repository import RdbRepository
+from .rdb_repository_factory import RdbRepositoryFactory
+from .rdb_storage_interface import RdbStorageInterface
+from .rdb_storage_interface_registry import RdbStorageInterfaceRegistry
 from .db_api_storage_interfaces import *
 from .memory_repository import MemoryRepository
 from .memory_repository_factory import MemoryRepositoryFactory

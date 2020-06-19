@@ -22,8 +22,8 @@ import inflection
 from firefly.domain.repository.repository import T
 
 
-class DbApiRepository(ffd.Repository[T]):
-    def __init__(self, interface: ffi.DbApiStorageInterface, table_name: str = None):
+class RdbRepository(ffd.Repository[T]):
+    def __init__(self, interface: ffi.RdbStorageInterface, table_name: str = None):
         super().__init__()
 
         self._entity_type = self._type()
@@ -65,18 +65,19 @@ class DbApiRepository(ffd.Repository[T]):
 
         return ret
 
+    def raw(self, cb: Union[Callable, ffd.BinaryOp] = None, limit: int = None):
+        criteria = None
+        if cb is not None:
+            criteria = self._get_search_criteria(cb)
+        return self._interface.raw(self._entity_type, criteria, limit)
+
     def filter(self, cb: Union[Callable, ffd.BinaryOp]) -> List[T]:
         if self._state == 'full':
             criteria = self._get_search_criteria(cb)
             entities = list(filter(lambda e: criteria.matches(e), self._entities))
         else:
             criteria = self._get_search_criteria(cb)
-            indexes = self._interface.get_indexes(self._entity_type)
-            pruned_criteria = criteria.prune(indexes)
-
-            entities = self._interface.all(self._entity_type, criteria=pruned_criteria)
-            if criteria != pruned_criteria:
-                entities = list(filter(lambda e: criteria.matches(e), entities))
+            entities = self._interface.all(self._entity_type, criteria=criteria)
 
             for entity in entities:
                 self._register_entity(entity)

@@ -109,7 +109,14 @@ class Repository(Generic[T], GenericBase, LoggerAware, ABC):
     def commit(self):
         pass
 
+    @abstractmethod
+    def execute_ddl(self):
+        pass
+
     def reset(self):
         self._deletions = []
         self._entities = []
         self._entity_hashes = {}
+
+    def raw(self, cb: Union[Callable, ffd.BinaryOp] = None, limit: int = None):
+        raise NotImplementedError()

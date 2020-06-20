@@ -113,6 +113,8 @@ class RdbStorageInterface(ffd.LoggerAware, ABC):
     def _generate_insert(self, entity: ffd.Entity):
         t = entity.__class__
         sql = f"insert into {self._fqtn(t)} ({self._generate_column_list(t)}) values ({self._generate_value_list(t)})"
+        print(sql)
+        print(self._generate_parameters(entity))
         return sql, self._generate_parameters(entity)
 
     def _generate_update(self, entity: ffd.Entity):

@@ -127,3 +127,66 @@ class SqliteStorageInterface(RdbStorageInterface, ffd.LoggerAware):
     @staticmethod
     def _datetime_declaration(name: str):
         return f"`{name}` timestamp"
+
+    def _generate_update_list(self, entity: Type[ffd.Entity]):
+        values = ['obj=:obj']
+        for index in self.get_indexes(entity):
+            values.append(f'`{index.name}`=:{index.name}')
+        return ','.join(values)
+
+    def _build_entity(self, entity: Type[ffd.Entity], data, raw: bool = False):
+        return entity.from_dict(self._serializer.deserialize(data[0]['stringValue']))
+
+    def _generate_select_list(self, entity: Type[ffd.Entity]):
+        return 'obj'
+
+    def _generate_column_list(self, entity: Type[ffd.Entity]):
+        values = ['id', 'obj']
+        for index in self.get_indexes(entity):
+            values.append(index.name)
+        return ','.join(values)
+
+    def _generate_value_list(self, entity: Type[ffd.Entity]):
+        placeholders = [':id', ':obj']
+        for index in self.get_indexes(entity):
+            placeholders.append(f':{index.name}')
+        return ','.join(placeholders)
+
+    def _generate_parameters(self, entity: ffd.Entity, part: str = None):
+        obj = self._serializer.serialize(entity)
+        params = {'id': entity.id_value(), 'obj': obj}
+        for field_ in self.get_indexes(entity.__class__):
+            params[field_.name] = getattr(entity, field_.name)
+        return params
+
+    def _generate_create_table(self, entity: Type[ffd.Entity]):
+        columns = []
+        indexes = []
+        for i in self.get_indexes(entity):
+            indexes.append(self._generate_index(i.name))
+            if i.type == 'float':
+                columns.append(f"`{i.name}` float")
+            elif i.type == 'int':
+                columns.append(f"`{i.name}` integer")
+            elif i.type == 'datetime':
+                columns.append(self._datetime_declaration(i.name))
+            else:
+                length = i.metadata['length'] if 'length' in i.metadata else 256
+                columns.append(f"`{i.name}` varchar({length})")
+        extra = ''
+        if len(columns) > 0:
+            self._generate_extra(columns, indexes)
+            extra = self._generate_extra(columns, indexes)
+
+        sql = f"""
+            create table if not exists {self._fqtn(entity)} (
+                id varchar(40)
+                , obj longtext not null
+                {extra}
+                , primary key(id)
+            )
+        """
+        return sql
+
+    def raw(self, entity: Type[ffd.Entity], criteria: ffd.BinaryOp = None, limit: int = None):
+        pass

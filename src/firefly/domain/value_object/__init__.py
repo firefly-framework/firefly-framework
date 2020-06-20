@@ -51,6 +51,11 @@ class ValueObject(metaclass=EntityMeta):
         return self._logger.error(*args, **kwargs)
 
     @classmethod
-    def from_dict(cls, data: dict):
-        return cls(**build_argument_list(data, cls))
+    def from_dict(cls, data: dict, map_: dict = None):
+        d = None
+        if map_ is not None:
+            d = data.copy()
+            for source, target in map_.items():
+                d[target] = d[source]
+        return cls(**build_argument_list(d or data, cls))
     # __pragma__('noskip')

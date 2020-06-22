@@ -12,3 +12,13 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
+from __future__ import annotations
+
+import firefly as ff
+
+import firefly_test.calendar.domain as cal
+
+
+class Reminder(ff.Entity):
+    id: str = ff.id_()
+    event: cal.Event = ff.required()

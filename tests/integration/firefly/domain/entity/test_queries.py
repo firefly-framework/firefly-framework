@@ -15,7 +15,7 @@ import json
 
 import pytest
 
-from test_src.iam.domain.entity import User
+from firefly_test.iam.domain import User
 
 
 def test_query_todos(system_bus, message_factory):

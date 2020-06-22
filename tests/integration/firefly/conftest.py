@@ -23,9 +23,9 @@ def config():
     return {
         'contexts': {
             'todo': {
-                'entity_module': 'test_src.todo.domain',
-                'container_module': 'test_src.todo.application',
-                'application_module': 'test_src.todo.application',
+                'entity_module': 'firefly_test.todo.domain',
+                'container_module': 'firefly_test.todo.application',
+                'application_module': 'firefly_test.todo.application',
                 'storage': {
                     'services': {
                         'rdb': {
@@ -40,9 +40,9 @@ def config():
                 },
             },
             'iam': {
-                'entity_module': 'test_src.iam.domain',
-                'container_module': 'test_src.iam.application',
-                'application_module': 'test_src.iam.application',
+                'entity_module': 'firefly_test.iam.domain',
+                'container_module': 'firefly_test.iam.application',
+                'application_module': 'firefly_test.iam.application',
                 'storage': {
                     'services': {
                         'rdb': {
@@ -57,7 +57,7 @@ def config():
                 },
             },
             'calendar': {
-                'entity_module': 'test_src.calendar.domain',
+                'entity_module': 'firefly_test.calendar.domain',
                 'storage': {
                     'services': {
                         'rdb': {
@@ -73,4 +73,3 @@ def config():
             },
         },
     }
-

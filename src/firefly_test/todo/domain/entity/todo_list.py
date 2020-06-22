@@ -14,11 +14,37 @@
 
 from __future__ import annotations
 
+from typing import List
+
 import firefly as ff
 
-import test_src.calendar.domain as cal
+from .task import Task
+from .user import User
 
 
-class Reminder(ff.Entity):
+@ff.rest('/todo-lists')
+@ff.rest('/todo-lists/{todo_list_id}')
+class TodoList(ff.AggregateRoot, create_on='iam.UserCreated', delete_on='iam.UserDeleted'):
     id: str = ff.id_()
-    event: cal.Event = ff.required()
+    user: User = ff.required()
+    name: str = ff.optional(index=True)
+    tasks: List[Task] = ff.list_()
+
+    def __post_init__(self):
+        if self.name is None:
+            self.name = f"{self.user.name}'s TODO List"
+
+    @ff.rest('/task', method='POST')
+    def add_task(self, task: Task) -> ff.EventList:
+        self.tasks.append(task)
+        return 'TaskAdded', task
+
+    def remove_task(self, task: Task):
+        self.tasks.remove(task)
+
+    def complete_task(self, task_id: str) -> ff.EventList:
+        for task in self.tasks:
+            if task_id == task.id:
+                task.complete_task()
+                return 'TaskCompleted', task
+        raise Exception(f'Task {task_id} not found in TodoList {self}')

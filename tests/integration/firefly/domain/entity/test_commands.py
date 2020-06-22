@@ -16,7 +16,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from test_src.todo import TodoList, User
+from firefly_test.todo import TodoList, User
 
 
 def test_auto_generated_api(system_bus, message_factory, registry):

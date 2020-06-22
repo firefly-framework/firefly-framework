@@ -12,10 +12,8 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from pprint import pprint
-
-import test_src.calendar.domain as calendar
-import test_src.todo.domain as todo
+import firefly_test.calendar.domain as calendar
+import firefly_test.todo.domain as todo
 
 
 def test_create_on_event(system_bus, registry, message_factory):

@@ -29,7 +29,7 @@ class ContextAware(ABC):
     def get_class_context(cls):
         parts = cls.__module__.split('.')
         # KLUDGE For integration / acceptance testing
-        return parts[0] if parts[0] != 'test_src' else parts[1]
+        return parts[0] if parts[0] != 'firefly_test' else parts[1]
 
     @classmethod
     def get_fqn(cls):

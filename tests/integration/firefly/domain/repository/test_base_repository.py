@@ -17,6 +17,7 @@ from __future__ import annotations
 from typing import Callable, Optional, List, Union
 
 import firefly as ff
+from firefly import domain as ffd
 from firefly.domain.repository.repository import T
 
 
@@ -64,6 +65,12 @@ class WidgetRepository(ff.Repository[Widget]):
         return self._foos[item]
 
     def commit(self):
+        pass
+
+    def execute_ddl(self):
+        pass
+
+    def raw(self, cb: Union[Callable, ffd.BinaryOp] = None, limit: int = None):
         pass
 
 

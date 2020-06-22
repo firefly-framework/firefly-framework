@@ -15,31 +15,27 @@
 from __future__ import annotations
 
 import logging
-import traceback
-from typing import Union
 
 import firefly.domain as ffd
 
 
 class PythonLogger(ffd.Logger):
+    _max_length: int = 5120  # ~5k
+
     def __init__(self):
         self.log = logging
-        self.set_level_to_warning()
+        self.log.basicConfig(format=f'%(message).{self._max_length}s', level=self.log.WARNING)
 
     def debug(self, message: str, *args, **kwargs):
         self.log.debug(message, *args, **kwargs)
 
-    def info(self, message: Union[str, Exception], *args, **kwargs):
-        if isinstance(message, Exception):
-            message = '\r'.join([str(message)] + traceback.format_exception(None, message, message.__traceback__))
+    def info(self, message: str, *args, **kwargs):
         self.log.info(message, *args, **kwargs)
 
     def warning(self, message: str, *args, **kwargs):
         self.log.warning(message, *args, **kwargs)
 
-    def error(self, message: Union[str, Exception], *args, **kwargs):
-        if isinstance(message, Exception):
-            message = '\r'.join([str(message)] + traceback.format_exception(None, message, message.__traceback__))
+    def error(self, message: str, *args, **kwargs):
         self.log.error(message, *args, **kwargs)
 
     def set_level_to_fatal(self):

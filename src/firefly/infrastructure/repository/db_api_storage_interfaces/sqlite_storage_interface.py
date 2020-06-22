@@ -47,8 +47,11 @@ class SqliteStorageInterface(RdbStorageInterface, ffd.LoggerAware):
         cursor = self._connection.cursor()
         sql = f"select obj from {self._fqtn(entity_type)}"
         params = {}
+
+        pruned_criteria = None
         if criteria is not None:
-            clause, params = self._generate_where_clause(criteria)
+            pruned_criteria = criteria.prune([i.name for i in self.get_indexes(entity_type)])
+            clause, params = self._generate_where_clause(pruned_criteria)
             if len(clause) > 0:
                 sql = f'{sql} where {clause}'
                 self.debug('Searching: %s. Params: %s', sql, params)
@@ -66,6 +69,9 @@ class SqliteStorageInterface(RdbStorageInterface, ffd.LoggerAware):
 
         if limit == 1 and len(ret) > 0:
             return ret[0]
+
+        if criteria != pruned_criteria:
+            ret = list(filter(lambda ee: criteria.matches(ee), ret))
 
         return ret
 

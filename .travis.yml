@@ -5,4 +5,4 @@ install:
   - pip install -r requirements.txt
 script:
   - python -m pytest tests/unit
-  - python -m pytest pytest tests/integration
+  - python -m pytest tests/integration

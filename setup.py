@@ -13,8 +13,6 @@
 #  <http://www.gnu.org/licenses/>.
 
 import setuptools
-from setuptools.command.develop import develop
-from setuptools.command.install import install
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
@@ -28,7 +26,7 @@ setuptools.setup(
     description="A SOA framework for Python",
     long_description=long_description,
     # long_description_content_type="text/markdown",
-    url="https://github.com/firefly19/python-framework",
+    url="https://github.com/firefly-framework/firefly-framework",
     entry_points={
         'console_scripts': ['firefly=firefly.presentation.cli:main'],
         'pytest11': ['firefly=firefly.plugins.pytest']
@@ -40,13 +38,11 @@ setuptools.setup(
         'dirsync>=2.2.3',
         'inflection>=0.3.1',
         'Jinja2>=2.11.1',
-        # 'kua>=0.2',
         'python-dateutil>=2.8.1',
         'python-dotenv>=0.10.3',
         'pyyaml>=5.1.1',
         'routes>=2.4.1',
         'terminaltables>=3.1.0',
-        # 'transcrypt>=3.7.16',
         'websockets>=8.0.2',
         'firefly-dependency-injection>=0.1',
     ],
@@ -60,8 +56,4 @@ setuptools.setup(
         "Programming Language :: Python :: 3.7",
         "Operating System :: OS Independent",
     ]
-    # cmdclass={
-    #     'develop': PostDevelopCommand,
-    #     'install': PostInstallCommand,
-    # }
 )

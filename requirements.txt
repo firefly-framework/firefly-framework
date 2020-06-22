@@ -9,3 +9,4 @@ pyyaml>=5.1.1
 terminaltables>=3.1.0
 websockets>=8.0.2
 firefly-dependency-injection==1.0.0
+.

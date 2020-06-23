@@ -14,19 +14,16 @@
 
 import setuptools
 
-with open("README.md", "r") as fh:
-    long_description = fh.read()
-
 
 setuptools.setup(
     name='firefly-framework',
-    version='1.0.4',
+    version='1.0.5',
     author="JD Williams",
     author_email="me@jdwilliams.xyz",
     description="A SOA framework for Python",
-    long_description=long_description,
     # long_description_content_type="text/markdown",
     url="https://github.com/firefly-framework/firefly-framework",
+    data_files=[('firefly/firefly', ['firefly.yml'])],
     include_package_data=True,
     entry_points={
         'console_scripts': ['firefly=firefly.presentation.cli:main'],

@@ -17,7 +17,6 @@ from __future__ import annotations
 import importlib
 import os
 import re
-from pprint import pprint
 
 import firefly.domain as ffd
 import yaml
@@ -33,7 +32,8 @@ class YamlConfigurationFactory(ffd.ConfigurationFactory):
             if module.__file__ is None:
                 continue
             try:
-                original_dir = self._move_to_module_root(os.path.dirname(module.__file__))
+                original_dir = os.getcwd()
+                os.chdir(f'{os.environ["VIRTUAL_ENV"]}/firefly/{context}')
                 with open(f'firefly.yml', 'r') as fp:
                     context_config = self._parse(fp.read())
                 os.chdir(original_dir)
@@ -96,12 +96,5 @@ class YamlConfigurationFactory(ffd.ConfigurationFactory):
 
         if not os.path.exists('firefly.yml'):
             raise ffd.ProjectConfigNotFound()
-
-        return original_dir
-
-    def _move_to_module_root(self, path: str):
-        original_dir = os.getcwd()
-        os.chdir(path)
-        self._move_to_project_root()
 
         return original_dir

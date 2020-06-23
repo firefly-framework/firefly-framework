@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from typing import Dict, Type
 
+import firefly.domain as ffd
 import firefly.infrastructure as ffi
 
 
@@ -27,4 +28,6 @@ class RdbStorageInterfaceRegistry:
         self._interfaces[name] = interface
 
     def get(self, name: str) -> Type[ffi.RdbStorageInterface]:
+        if name not in self._interfaces:
+            raise ffd.ConfigurationError(f'Storage interface with name "{name}" is not registered')
         return self._interfaces.get(name)

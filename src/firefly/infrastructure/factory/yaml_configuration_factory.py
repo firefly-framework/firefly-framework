@@ -38,7 +38,7 @@ class YamlConfigurationFactory(ffd.ConfigurationFactory):
                     context_config = self._parse(fp.read())
                 os.chdir(original_dir)
             except FileNotFoundError:
-                raise ffd.ConfigurationError(f'Could not find firefly.yml for module "{module}"')
+                continue
 
             configuration.contexts[context] = ffd.merge(
                 context_config['contexts'].get(context),

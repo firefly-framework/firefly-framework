@@ -59,7 +59,9 @@ class CommandResolvingMiddleware(Middleware, LoggerAware):
 
         service = self._command_handlers[str(message)]
 
-        return service(**ffd.build_argument_list(args, service))
+        parsed_args = ffd.build_argument_list(args, service)
+        self.info('Calling service with arguments: %s', parsed_args)
+        return service(**parsed_args)
 
     def _transfer_message(self, message: ffd.Message):
         return self._context_map.get_context(self._context).container.message_transport.invoke(message)

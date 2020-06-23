@@ -18,12 +18,12 @@ import inspect
 from typing import Callable, Dict, Type, Union
 
 import firefly.domain as ffd
-
-from firefly.domain.service.messaging.middleware import Middleware
 from firefly.domain.entity.messaging.query import Query
+from firefly.domain.service.logging.logger import LoggerAware
+from firefly.domain.service.messaging.middleware import Middleware
 
 
-class QueryResolvingMiddleware(Middleware):
+class QueryResolvingMiddleware(Middleware, LoggerAware):
     _context_map: ffd.ContextMap = None
     _context: str = None
     _env: str = None
@@ -51,7 +51,9 @@ class QueryResolvingMiddleware(Middleware):
         args['_message'] = message
         for service, query_type in self._query_handlers.items():
             if message.is_this(query_type):
-                return service(**ffd.build_argument_list(args, service))
+                parsed_args = ffd.build_argument_list(args, service)
+                self.info('Calling service with arguments: %s', parsed_args)
+                return service(**parsed_args)
         raise ffd.ConfigurationError(f'No query handler registered for {message}')
 
     def _transfer_message(self, message: ffd.Message):

@@ -19,10 +19,11 @@ from typing import Callable, Dict, Type, Union, List
 
 import firefly.domain as ffd
 from firefly.domain.entity.messaging.event import Event
+from firefly.domain.service.logging.logger import LoggerAware
 from firefly.domain.service.messaging.middleware import Middleware
 
 
-class EventResolvingMiddleware(Middleware):
+class EventResolvingMiddleware(Middleware, LoggerAware):
     _context_map: ffd.ContextMap = None
     _context: str = None
 
@@ -61,7 +62,9 @@ class EventResolvingMiddleware(Middleware):
             services = self._event_listeners[str(message)]
             for service in services:
                 try:
-                    service(**ffd.build_argument_list(args, service))
+                    parsed_args = ffd.build_argument_list(args, service)
+                    self.info('Calling service with arguments: %s', parsed_args)
+                    service(**parsed_args)
                 except TypeError as e:
                     raise ffd.FrameworkError(f'Error calling {service.__class__.__name__}:\n\n{str(e)}')
 

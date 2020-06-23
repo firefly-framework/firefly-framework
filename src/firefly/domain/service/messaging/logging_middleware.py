@@ -33,6 +33,10 @@ class LoggingMiddleware(Middleware, LoggerAware):
             self._logger.set_level_to_debug()
 
         self.info(self._message, message)
+        try:
+            self.info('Message properties: %s', message.to_dict())
+        except AttributeError:
+            pass
         ret = next_(message)
         self.info('Response: %s', str(ret))
 

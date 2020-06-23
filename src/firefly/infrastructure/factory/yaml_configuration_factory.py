@@ -33,11 +33,12 @@ class YamlConfigurationFactory(ffd.ConfigurationFactory):
             if module.__file__ is None:
                 continue
             try:
-                with open(f'{os.path.dirname(module.__file__)}/../../firefly.yml', 'r') as fp:
+                original_dir = self._move_to_module_root(os.path.dirname(module.__file__))
+                with open(f'firefly.yml', 'r') as fp:
                     context_config = self._parse(fp.read())
+                os.chdir(original_dir)
             except FileNotFoundError:
-                with open(f'{os.path.dirname(module.__file__)}/../firefly.yml', 'r') as fp:
-                    context_config = self._parse(fp.read())
+                raise ffd.ConfigurationError(f'Could not find firefly.yml for module "{module}"')
 
             configuration.contexts[context] = ffd.merge(
                 context_config['contexts'].get(context),
@@ -95,5 +96,12 @@ class YamlConfigurationFactory(ffd.ConfigurationFactory):
 
         if not os.path.exists('firefly.yml'):
             raise ffd.ProjectConfigNotFound()
+
+        return original_dir
+
+    def _move_to_module_root(self, path: str):
+        original_dir = os.getcwd()
+        os.chdir(path)
+        self._move_to_project_root()
 
         return original_dir

@@ -17,6 +17,7 @@ from __future__ import annotations
 import importlib
 import os
 import re
+from pprint import pprint
 
 import firefly.domain as ffd
 import yaml
@@ -33,7 +34,10 @@ class YamlConfigurationFactory(ffd.ConfigurationFactory):
                 continue
             try:
                 original_dir = os.getcwd()
-                os.chdir(f'{os.environ["VIRTUAL_ENV"]}/firefly/{context}')
+                target_dir = f'{context}_config'
+                if 'VIRTUAL_ENV' in os.environ:
+                    target_dir = f'{os.environ["VIRTUAL_ENV"]}/{context}_config'
+                os.chdir(target_dir)
                 with open(f'firefly.yml', 'r') as fp:
                     context_config = self._parse(fp.read())
                 os.chdir(original_dir)

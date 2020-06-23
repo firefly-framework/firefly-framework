@@ -17,14 +17,13 @@ import setuptools
 
 setuptools.setup(
     name='firefly-framework',
-    version='1.0.6',
+    version='1.0.7',
     author="JD Williams",
     author_email="me@jdwilliams.xyz",
     description="A SOA framework for Python",
     # long_description_content_type="text/markdown",
     url="https://github.com/firefly-framework/firefly-framework",
-    data_files=[('firefly/firefly', ['firefly.yml'])],
-    include_package_data=True,
+    data_files=[('firefly_config', ['firefly.yml'])],
     entry_points={
         'console_scripts': ['firefly=firefly.presentation.cli:main'],
         'pytest11': ['firefly=firefly.plugins.pytest']

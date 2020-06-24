@@ -41,6 +41,13 @@ class MiddlewareStack:
     def insert(self, index: int, item: Middleware):
         self._middleware.insert(index, item)
 
+    def replace(self, which: type, with_: ffd.Middleware):
+        for i, mw in enumerate(self.middleware):
+            if mw.__class__ is which:
+                self.middleware[i] = with_
+                return True
+        return False
+
     def __call__(self, msg: ffd.Message):
         def cb(message, *args, **kwargs):
             return message

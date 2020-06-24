@@ -20,7 +20,7 @@ from firefly.domain import error
 
 
 class RegisterMiddleware:
-    def __call__(self, index: int = None, buses: List[str] = None, cb: Callable = None):
+    def __call__(self, index: int = None, buses: List[str] = None, cb: Callable = None, replace: type = None):
         """
         Decorator to mark a class for insertion into the middleware stack in at least one of the buses.
 
@@ -29,6 +29,7 @@ class RegisterMiddleware:
         'query'
         :param cb: Optional callback that takes the bus type and the current list of middleware and returns a numeric
         index at which to insert the middleware.
+        :param replace: Optional class type. If provided, the first matching middleware in the bus will be replaced.
         :return:
         """
         def middleware_wrapper(cls):
@@ -37,6 +38,7 @@ class RegisterMiddleware:
                     'index': index,
                     'buses': buses,
                     'cb': cb,
+                    'replace': replace,
                 })
             except AttributeError:
                 raise error.FrameworkError('@middleware used on invalid target')

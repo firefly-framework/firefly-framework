@@ -52,6 +52,9 @@ class MessageBus:
     def insert(self, index: int, item: Union[ffd.Middleware, Callable]):
         self._handle.insert(index, item)
 
+    def replace(self, which: type, with_: ffd.Middleware):
+        return self._handle.replace(which, with_)
+
     def dispatch(self, message: ffd.Message):
         return self._handle(message)
 

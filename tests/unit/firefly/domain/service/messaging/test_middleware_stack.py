@@ -11,18 +11,55 @@
 #
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
+from typing import Callable
 
 import pytest
-from firefly import MiddlewareStack, Message
+from firefly import MiddlewareStack, Message, Middleware, domain as ffd
 
 
 class MyMessage(Message):
     pass
 
 
+class MyMiddleware1(Middleware):
+
+    def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
+        return message
+
+
+class MyMiddleware2(Middleware):
+
+    def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
+        return message
+
+
+class MyMiddleware3(Middleware):
+
+    def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
+        return message
+
+
+class MyMiddleware4(Middleware):
+
+    def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
+        return message
+
+
 def test_empty(sut):
     m = MyMessage()
     assert sut(m) is m
+
+
+def test_replace(sut):
+    sut.add(MyMiddleware1())
+    sut.add(MyMiddleware2())
+    sut.add(MyMiddleware3())
+
+    assert sut.middleware[1].__class__ is MyMiddleware2
+
+    sut.replace(MyMiddleware2, MyMiddleware4())
+
+    assert sut.middleware[1].__class__ is MyMiddleware4
 
 
 @pytest.fixture()

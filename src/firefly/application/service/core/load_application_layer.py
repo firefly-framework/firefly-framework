@@ -33,8 +33,10 @@ class LoadApplicationLayer(ffd.ApplicationService):
     _message_factory: ffd.MessageFactory = None
     _rest_router: ffd.RestRouter = None
     _system_bus: ffd.SystemBus = None
+    _deferred: List[tuple] = []
 
     def __call__(self, **kwargs):
+        self._deferred = []
         for context in self._context_map.contexts:
             for cls in self._load_module(context):
                 if issubclass(cls, ffd.ApplicationService):
@@ -45,6 +47,14 @@ class LoadApplicationLayer(ffd.ApplicationService):
             for entity in context.entities:
                 if issubclass(entity, ffd.AggregateRoot):
                     self._add_endpoints(entity, context)
+
+        for deferred in self._deferred:
+            if deferred[0] == 'event':
+                self._system_bus.add_event_listener(deferred[1], **deferred[2])
+            elif deferred[0] == 'command':
+                self._system_bus.add_command_handler(deferred[1], **deferred[2])
+            elif deferred[0] == 'query':
+                self._system_bus.add_query_handler(deferred[1], **deferred[2])
 
         self.dispatch(ffd.ApplicationLayerLoaded())
 
@@ -57,14 +67,19 @@ class LoadApplicationLayer(ffd.ApplicationService):
             params['index'] = config['index']
         elif config['cb'] is not None:
             params['cb'] = config['cb']
+        if config['replace'] is not None:
+            params['replace'] = config['replace']
 
         built = context.container.build(cls)
         if config['buses'] is None or 'event' in config['buses']:
-            self._system_bus.add_event_listener(built, **params)
+            if self._system_bus.add_event_listener(built, **params) is False:
+                self._deferred.append(('event', built, params))
         if config['buses'] is None or 'command' in config['buses']:
-            self._system_bus.add_command_handler(built, **params)
+            if self._system_bus.add_command_handler(built, **params) is False:
+                self._deferred.append(('command', built, params))
         if config['buses'] is None or 'query' in config['buses']:
-            self._system_bus.add_query_handler(built, **params)
+            if self._system_bus.add_query_handler(built, **params) is False:
+                self._deferred.append(('query', built, params))
 
     def _register_service(self, cls: Type[ffd.ApplicationService], context: ffd.Context):
         if cls.is_agent():

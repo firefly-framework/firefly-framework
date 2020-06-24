@@ -21,36 +21,35 @@ import firefly.domain as ffd
 from firefly.domain.service.messaging.command_bus import CommandBusAware
 from firefly.domain.service.messaging.event_bus import EventBusAware
 from firefly.domain.service.messaging.query_bus import QueryBusAware
+from firefly.domain.service.messaging.message_bus import MessageBus
+
+
+def _insert_middleware(bus: MessageBus, which: str, listener: ffd.Middleware, index: int = None, cb: Callable = None,
+                       replace: type = None):
+    if replace is not None:
+        return bus.replace(replace, listener)
+
+    if cb is not None:
+        index = cb(which, bus.middleware)
+    if index is not None:
+        bus.insert(index, listener)
+    else:
+        bus.add(listener)
 
 
 class SystemBus(EventBusAware, CommandBusAware, QueryBusAware):
-    def add_event_listener(self, listener: ffd.Middleware, index: int = None, cb: Callable = None):
-        if cb is not None:
-            index = cb('event', self._event_bus.middleware)
-        if index is not None:
-            self._event_bus.insert(index, listener)
-        else:
-            self._event_bus.add(listener)
+    def add_event_listener(self, listener: ffd.Middleware, **kwargs):
+        return _insert_middleware(self._event_bus, 'event', listener, **kwargs)
 
-    def add_command_handler(self, handler: ffd.Middleware, index: int = None, cb: Callable = None):
-        if cb is not None:
-            index = cb('command', self._command_bus.middleware)
-        if index is not None:
-            self._command_bus.insert(index, handler)
-        else:
-            self._command_bus.add(handler)
+    def add_command_handler(self, handler: ffd.Middleware, **kwargs):
+        return _insert_middleware(self._command_bus, 'command', handler, **kwargs)
+
+    def add_query_handler(self, handler: ffd.Middleware, **kwargs):
+        return _insert_middleware(self._query_bus, 'query', handler, **kwargs)
 
     # deprecated
     def insert_command_handler(self, index: int, handle: ffd.Middleware):
         self._command_bus.insert(index, handle)
-
-    def add_query_handler(self, handler: ffd.Middleware, index: int = None, cb: Callable = None):
-        if cb is not None:
-            index = cb('query', self._query_bus.middleware)
-        if index is not None:
-            self._query_bus.insert(index, handler)
-        else:
-            self._query_bus.add(handler)
 
 
 class SystemBusAware:

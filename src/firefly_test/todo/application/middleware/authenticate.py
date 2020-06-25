@@ -12,5 +12,26 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from .middleware import *
-from .service import *
+from __future__ import annotations
+
+from typing import Optional
+
+import firefly as ff
+
+
+@ff.authenticator()
+class Authenticate(ff.Handler):
+    def handle(self, message: ff.Message) -> Optional[bool]:
+        if 'fail_authentication' in message.headers:
+            raise ff.UnauthenticatedError()
+
+        return True
+
+
+@ff.authenticator()
+class Authenticate2(ff.Handler):
+    def handle(self, message: ff.Message) -> Optional[bool]:
+        if 'fail_authentication2' in message.headers:
+            raise ff.UnauthenticatedError()
+
+        return True

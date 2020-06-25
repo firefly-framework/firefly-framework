@@ -58,9 +58,11 @@ class Container(di.Container):
     content_negotiator: ffd.ContentNegotiator = lambda self: ffd.ContentNegotiator({
         'text/html': self.build(ffi.HtmlConverter),
     }, self.logger)
+    authenticator: ffa.AuthenticatingMiddleware = ffa.AuthenticatingMiddleware
     transaction_handler: ffd.TransactionHandlingMiddleware = ffd.TransactionHandlingMiddleware
     command_bus: ffd.CommandBus = lambda self: self.build(ffd.CommandBus, middleware=[
         self.build(ffd.LoggingMiddleware),
+        self.authenticator,
         self.content_negotiator,
         self.transaction_handler,
         self.build(ffd.EventDispatchingMiddleware),
@@ -68,11 +70,13 @@ class Container(di.Container):
     ])
     event_bus: ffd.EventBus = lambda self: self.build(ffd.EventBus, middleware=[
         self.build(ffd.LoggingMiddleware),
+        self.authenticator,
         self.transaction_handler,
         self.event_resolver,
     ])
     query_bus: ffd.QueryBus = lambda self: self.build(ffd.QueryBus, middleware=[
         self.build(ffd.LoggingMiddleware),
+        self.authenticator,
         self.content_negotiator,
         self.transaction_handler,
         self.query_resolver,

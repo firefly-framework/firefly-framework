@@ -12,5 +12,30 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from .middleware import *
-from .service import *
+from __future__ import annotations
+
+from typing import Callable
+
+import firefly.domain as ffd
+
+
+class AuthenticatingMiddleware(ffd.Middleware, ffd.ChainOfResponsibility):
+    def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
+        self.handle(message)
+        return next_(message)
+
+    def handle(self, message: ffd.Message):
+        if len(self._handlers) == 0:
+            return True
+
+        success = False
+        for handler in self._handlers:
+            try:
+                if handler.handle(message) is True:
+                    success = True
+                    break
+            except ffd.UnauthenticatedError:
+                pass
+
+        if not success:
+            raise ffd.UnauthenticatedError()

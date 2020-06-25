@@ -11,6 +11,31 @@
 #
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
+from datetime import datetime, timedelta
 
-from .middleware import *
-from .service import *
+
+async def test_fail_one_check(container, client, serializer):
+    response = await client.post(f'/todo-lists/abc123/task', data=serializer.serialize({
+        'headers': {
+            'fail_authentication': True,
+        },
+        'todo_list': 'abc123',
+        'name': 'my new task',
+        'due_date': datetime.now() + timedelta(days=1)
+    }))
+
+    assert response.status != 403
+
+
+async def test_fail_both_checks(container, client, serializer):
+    response = await client.post(f'/todo-lists/abc123/task', data=serializer.serialize({
+        'headers': {
+            'fail_authentication': True,
+            'fail_authentication2': True,
+        },
+        'todo_list': 'abc123',
+        'name': 'my new task',
+        'due_date': datetime.now() + timedelta(days=1)
+    }))
+
+    assert response.status == 403

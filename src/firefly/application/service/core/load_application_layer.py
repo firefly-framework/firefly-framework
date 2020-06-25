@@ -16,12 +16,12 @@ from __future__ import annotations
 
 import importlib
 import inspect
-from pprint import pprint
+import typing
 from typing import List, Type
 
 import firefly.domain as ffd
+import firefly_di as di
 import inflection
-import typing
 
 
 class LoadApplicationLayer(ffd.ApplicationService):
@@ -39,6 +39,9 @@ class LoadApplicationLayer(ffd.ApplicationService):
         self._deferred = []
         for context in self._context_map.contexts:
             for cls in self._load_module(context):
+                if cls.has_annotations():
+                    for annotation in cls.get_annotations():
+                        annotation.configure(cls, context.container)
                 if issubclass(cls, ffd.ApplicationService):
                     self._register_service(cls, context)
                     self._add_endpoints(cls, context)
@@ -158,7 +161,7 @@ class LoadApplicationLayer(ffd.ApplicationService):
         for k, v in module.__dict__.items():
             if not inspect.isclass(v):
                 continue
-            if issubclass(v, (ffd.ApplicationService, ffd.Middleware)):
+            if issubclass(v, (ffd.ApplicationService, ffd.Middleware, ffd.MetaAware)):
                 ret.append(v)
 
         return ret

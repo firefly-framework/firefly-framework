@@ -13,9 +13,11 @@
 #  <http://www.gnu.org/licenses/>.
 
 from .agent import agent
+from .authenticator import authenticator
 from .cli import cli
 from .command_handler import command_handler
-from .register_middleware import register_middleware
+from .configuration_annotation import ConfigurationAnnotation
 from .on import on
 from .query_handler import query_handler
+from .register_middleware import register_middleware
 from .rest import rest

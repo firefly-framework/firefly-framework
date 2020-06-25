@@ -12,5 +12,41 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from .middleware import *
-from .service import *
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+from typing import Optional
+
+from ...meta.meta_aware import MetaAware
+
+
+class Handler(MetaAware, ABC):
+    @abstractmethod
+    def handle(self, *args, **kwargs) -> Optional[bool]:
+        pass
+
+
+class ChainOfResponsibility(ABC):
+    def __init__(self):
+        self._handlers = []
+
+    def handle(self, *args, **kwargs):
+        if len(self._handlers) == 0:
+            return
+
+        ret = False
+        for handler in self._handlers:
+            if handler.handle(*args, **kwargs) is True:
+                ret = True
+                break
+        return ret
+
+    def add(self, handler: Handler):
+        self._handlers.append(handler)
+
+    def remove(self, handler: Handler):
+        self._handlers.remove(handler)
+
+    @property
+    def handlers(self):
+        return self._handlers

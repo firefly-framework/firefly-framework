@@ -174,12 +174,20 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
 
             await self._marshal_request(message, request)
 
-            if isinstance(message, ffd.Event):
-                response = self.dispatch(message)
-            elif isinstance(message, ffd.Command):
-                response = self.invoke(message)
-            elif isinstance(message, ffd.Query):
-                response = self.request(message)
+            status_code = None
+            try:
+                if isinstance(message, ffd.Event):
+                    response = self.dispatch(message)
+                elif isinstance(message, ffd.Command):
+                    response = self.invoke(message)
+                elif isinstance(message, ffd.Query):
+                    response = self.request(message)
+            except ffd.UnauthenticatedError:
+                response = {}
+                status_code = 403
+            except ffd.UnauthorizedError:
+                response = {}
+                status_code = 401
 
             self.debug(f'Response: {response}')
 
@@ -190,7 +198,11 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
                 body = self._serializer.serialize(response)
                 headers = {}
 
-            return web.Response(body=body, headers=headers)
+            params = {'body': body, 'headers': headers}
+            if status_code:
+                params['status'] = status_code
+
+            return web.Response(**params)
 
         return _handle_request
 

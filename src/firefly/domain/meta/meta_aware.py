@@ -27,6 +27,7 @@ class MetaAware(ABC):
     _endpoints: Dict[Type[MetaAware], List[ff.Endpoint]] = {}
     _agent: Optional[str] = None
     _middleware_config: Optional[Dict] = None
+    _annotations: Dict[Type[MetaAware], List[ff.ConfigurationAnnotation]] = {}
 
     @classmethod
     def is_handler(cls):
@@ -47,6 +48,12 @@ class MetaAware(ABC):
         if cls not in cls._endpoints:
             cls._endpoints[cls] = []
         cls._endpoints[cls].append(endpoint)
+
+    @classmethod
+    def add_annotation(cls, annotation: ff.ConfigurationAnnotation):
+        if cls not in cls._annotations:
+            cls._annotations[cls] = []
+        cls._annotations[cls].append(annotation)
 
     @classmethod
     def set_command(cls, command: ff.TypeOfCommand):
@@ -73,6 +80,10 @@ class MetaAware(ABC):
         return cls in cls._endpoints
 
     @classmethod
+    def has_annotations(cls):
+        return cls in cls._annotations
+
+    @classmethod
     def get_events(cls):
         return cls._events[cls]
 
@@ -87,6 +98,10 @@ class MetaAware(ABC):
     @classmethod
     def get_endpoints(cls):
         return cls._endpoints[cls]
+
+    @classmethod
+    def get_annotations(cls):
+        return cls._annotations[cls]
 
     @classmethod
     def is_agent(cls):

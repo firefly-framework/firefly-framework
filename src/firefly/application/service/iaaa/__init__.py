@@ -12,26 +12,6 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations
-
-from typing import Generic, TypeVar
-
-import firefly.domain as ffd
-
-from .application_service import ApplicationService
-from ...value_object.generic_base import GenericBase
-
-T = TypeVar('T')
-
-
-class QueryService(Generic[T], GenericBase, ApplicationService):
-    _registry: ffd.Registry = None
-
-    def __call__(self, **kwargs):
-        try:
-            if 'criteria' in kwargs:
-                return self._registry(self._type()).filter(ffd.BinaryOp.from_dict(kwargs['criteria']))
-            else:
-                return list(self._registry(self._type()))
-        except KeyError:
-            raise ffd.MissingArgument(self._type().id_name())
+from .authenticating_middleware import AuthenticatingMiddleware
+from .authorize_scope import AuthorizeScope
+from .authorizing_middleware import AuthorizingMiddleware

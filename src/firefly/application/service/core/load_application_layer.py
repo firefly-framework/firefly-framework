@@ -145,7 +145,7 @@ class LoadApplicationLayer(ffd.ApplicationService):
                 route = endpoint.route
                 if not route.startswith('/'):
                     route = f'/{route}'
-                if not route.startswith(route_prefix):
+                if not route.startswith(f'{route_prefix}/'):
                     route = f'{route_prefix}{route}'
                 self._rest_router.register(route, endpoint)
 

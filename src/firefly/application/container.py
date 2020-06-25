@@ -59,10 +59,12 @@ class Container(di.Container):
         'text/html': self.build(ffi.HtmlConverter),
     }, self.logger)
     authenticator: ffa.AuthenticatingMiddleware = ffa.AuthenticatingMiddleware
+    authorizer: ffa.AuthorizingMiddleware = ffa.AuthorizingMiddleware
     transaction_handler: ffd.TransactionHandlingMiddleware = ffd.TransactionHandlingMiddleware
     command_bus: ffd.CommandBus = lambda self: self.build(ffd.CommandBus, middleware=[
         self.build(ffd.LoggingMiddleware),
         self.authenticator,
+        self.authorizer,
         self.content_negotiator,
         self.transaction_handler,
         self.build(ffd.EventDispatchingMiddleware),
@@ -71,12 +73,14 @@ class Container(di.Container):
     event_bus: ffd.EventBus = lambda self: self.build(ffd.EventBus, middleware=[
         self.build(ffd.LoggingMiddleware),
         self.authenticator,
+        self.authorizer,
         self.transaction_handler,
         self.event_resolver,
     ])
     query_bus: ffd.QueryBus = lambda self: self.build(ffd.QueryBus, middleware=[
         self.build(ffd.LoggingMiddleware),
         self.authenticator,
+        self.authorizer,
         self.content_negotiator,
         self.transaction_handler,
         self.query_resolver,

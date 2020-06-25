@@ -17,6 +17,7 @@ from __future__ import annotations
 import firefly as ff
 
 
+@ff.rest.crud()
 class User(ff.AggregateRoot):
     id: str = ff.id_()
     name: str = ff.required()

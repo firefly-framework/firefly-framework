@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import Optional
 
 import firefly as ff
@@ -22,16 +23,20 @@ import firefly as ff
 @ff.authenticator()
 class Authenticate(ff.Handler):
     def handle(self, message: ff.Message) -> Optional[bool]:
-        if 'fail_authentication' in message.headers:
+        if hasattr(message, 'fail_authentication'):
             raise ff.UnauthenticatedError()
 
+        if hasattr(message, 'scopes'):
+            message.headers['decoded_token'] = {
+                'scopes': json.loads(message.scopes),
+            }
         return True
 
 
 @ff.authenticator()
 class Authenticate2(ff.Handler):
     def handle(self, message: ff.Message) -> Optional[bool]:
-        if 'fail_authentication2' in message.headers:
+        if hasattr(message, 'fail_authentication2'):
             raise ff.UnauthenticatedError()
 
         return True

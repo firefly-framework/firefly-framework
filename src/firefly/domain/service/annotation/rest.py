@@ -74,7 +74,7 @@ class Rest:
                     gateway=gateway,
                     service=cls,
                     secured=config.get('create', {}).get('secured', True),
-                    scopes=config.get('create', {}).get('scopes', [])
+                    scopes=config.get('create', {}).get('scopes', [f'{context}.{cls.__name__}.write'])
                 ))
 
             if 'update' not in exclude:
@@ -85,7 +85,7 @@ class Rest:
                     gateway=gateway,
                     service=cls,
                     secured=config.get('update', {}).get('secured', True),
-                    scopes=config.get('update', {}).get('scopes', [])
+                    scopes=config.get('update', {}).get('scopes', [f'{context}.{cls.__name__}.write'])
                 ))
 
             if 'delete' not in exclude:
@@ -96,10 +96,20 @@ class Rest:
                     gateway=gateway,
                     service=cls,
                     secured=config.get('delete', {}).get('secured', True),
-                    scopes=config.get('delete', {}).get('scopes', [])
+                    scopes=config.get('delete', {}).get('scopes', [f'{context}.{cls.__name__}.write'])
                 ))
 
             if 'read' not in exclude:
+                cls.add_endpoint(HttpEndpoint(
+                    route=f'/{base}',
+                    method='get',
+                    message=f'{context}.{inflection.pluralize(cls.__name__)}',
+                    gateway=gateway,
+                    service=cls,
+                    secured=config.get('read', {}).get('secured', True),
+                    scopes=config.get('read', {}).get('scopes', [f'{context}.{cls.__name__}.read'])
+                ))
+
                 cls.add_endpoint(HttpEndpoint(
                     route=f'/{base}/{{{cls.id_name()}}}',
                     method='get',
@@ -107,7 +117,7 @@ class Rest:
                     gateway=gateway,
                     service=cls,
                     secured=config.get('read', {}).get('secured', True),
-                    scopes=config.get('read', {}).get('scopes', [])
+                    scopes=config.get('read', {}).get('scopes', [f'{context}.{cls.__name__}.read'])
                 ))
 
             return cls

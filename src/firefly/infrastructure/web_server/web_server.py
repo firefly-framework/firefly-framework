@@ -172,7 +172,7 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
 
             response = None
 
-            await self._marshal_request(message, request)
+            await self._marshal_request(message, request, endpoint)
 
             status_code = None
             try:
@@ -207,18 +207,24 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
         return _handle_request
 
     @staticmethod
-    async def _marshal_request(message: ffd.Message, request: web.Request):
+    async def _marshal_request(message: ffd.Message, request: web.Request, endpoint: ffd.HttpEndpoint):
         # TODO make a class
-        message.headers['http_request'] = {
-            'headers': dict(request.headers),
-            'method': request.method,
-            'path': request.path,
-            'content_type': request.content_type,
-            'content_length': request.content_length,
-            'query': dict(request.query),
-            'post': dict(await request.post()),
-            'url': request._message.url,
+        message.headers = {
+            'http_request': {
+                'headers': dict(request.headers),
+                'method': request.method,
+                'path': request.path,
+                'content_type': request.content_type,
+                'content_length': request.content_length,
+                'query': dict(request.query),
+                'post': dict(await request.post()),
+                'url': request._message.url,
+            }
         }
+
+        if endpoint is not None:
+            message.headers['secured'] = endpoint.secured
+            message.headers['scopes'] = endpoint.scopes
 
     async def _handle_websocket(self, websocket, path):
         id_ = str(uuid.uuid4())

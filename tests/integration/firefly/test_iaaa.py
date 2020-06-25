@@ -14,8 +14,8 @@
 from datetime import datetime, timedelta
 
 
-async def test_fail_one_check(container, client, serializer):
-    response = await client.post(f'/todo-lists/abc123/task', data=serializer.serialize({
+async def test_authenticate_fail_one_check(container, client, serializer):
+    response = await client.post(f'/todo/todo-lists/abc123/task', data=serializer.serialize({
         'headers': {
             'fail_authentication': True,
         },
@@ -27,15 +27,27 @@ async def test_fail_one_check(container, client, serializer):
     assert response.status != 403
 
 
-async def test_fail_both_checks(container, client, serializer):
-    response = await client.post(f'/todo-lists/abc123/task', data=serializer.serialize({
-        'headers': {
-            'fail_authentication': True,
-            'fail_authentication2': True,
-        },
+async def test_authenticate_fail_both_checks(container, client, serializer):
+    response = await client.post(f'/todo/todo-lists/abc123/task', data=serializer.serialize({
+        'fail_authentication': True,
+        'fail_authentication2': True,
         'todo_list': 'abc123',
         'name': 'my new task',
         'due_date': datetime.now() + timedelta(days=1)
     }))
 
     assert response.status == 403
+
+
+async def test_authorize_no_access(container, client, serializer):
+    scopes = serializer.serialize(['something.Else.read'])
+    response = await client.get(f'/iam/users?scopes={scopes}')
+
+    assert response.status == 401
+
+
+async def test_authorize_read_access(container, client, serializer):
+    scopes = serializer.serialize(['iam.User.read'])
+    response = await client.get(f'/iam/users?scopes={scopes}')
+
+    assert response.status == 200

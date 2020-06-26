@@ -35,15 +35,18 @@ class FireflyEncoder(JSONEncoder):
         elif isinstance(o, (datetime, date)):
             return o.isoformat()
         elif not inspect.isclass(o) and isinstance(o, ffd.Message):
-            dic = o.to_dict()
-            dic['_name'] = o.__class__.__name__
-            t = 'event'
-            if isinstance(o, ffd.Command):
-                t = 'command'
-            elif isinstance(o, ffd.Query):
-                t = 'query'
-            dic['_type'] = t
-            return dic
+            try:
+                dic = o.to_dict()
+                dic['_name'] = o.__class__.__name__
+                t = 'event'
+                if isinstance(o, ffd.Command):
+                    t = 'command'
+                elif isinstance(o, ffd.Query):
+                    t = 'query'
+                dic['_type'] = t
+                return dic
+            except AttributeError:
+                pass
 
         return JSONEncoder.default(self, o)
 

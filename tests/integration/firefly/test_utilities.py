@@ -12,30 +12,7 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations
 
-from typing import Generic, TypeVar
-
-import firefly.domain as ffd
-
-from .application_service import ApplicationService
-from ...value_object.generic_base import GenericBase
-
-T = TypeVar('T')
-
-
-class QueryService(Generic[T], GenericBase, ApplicationService):
-    _registry: ffd.Registry = None
-    _serializer: ffd.Serializer = None
-
-    def __call__(self, **kwargs):
-        try:
-            if 'criteria' in kwargs:
-                criteria = kwargs['criteria']
-                if isinstance(criteria, str):
-                    criteria = self._serializer.deserialize(criteria)
-                return self._registry(self._type()).filter(ffd.BinaryOp.from_dict(criteria))
-            else:
-                return list(self._registry(self._type()))
-        except KeyError:
-            raise ffd.MissingArgument(self._type().id_name())
+async def test_get_dto_schema(client):
+    response = await client.get('/todo/dto-schema/firefly_test.todo.TodoList')
+    assert response.status == 200

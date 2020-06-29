@@ -182,7 +182,8 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
                     response = self.invoke(message)
                 elif isinstance(message, ffd.Query):
                     response = self.request(message)
-            except ffd.UnauthenticatedError:
+            except ffd.UnauthenticatedError as e:
+                print(str(e))
                 response = {}
                 status_code = 403
             except ffd.UnauthorizedError:

@@ -68,7 +68,7 @@ class DefaultAgent(ffd.ApplicationService, ffd.LoggerAware):
                 for endpoint in api_gateway.endpoints:
                     route = endpoint.route
                     prefix = f'/{inflection.dasherize(service.name)}'
-                    if not route.startswith(f'{prefix}/'):
+                    if not route.startswith(f'{prefix}/') and route != prefix:
                         route = f'{prefix}{route}'
                     web_server.add_endpoint(endpoint.method, route, endpoint.message)
 

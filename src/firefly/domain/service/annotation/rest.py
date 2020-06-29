@@ -59,13 +59,15 @@ class Rest:
         return on_wrapper
 
     @staticmethod
-    def crud(exclude: list = None, gateway: str = None, config: dict = None):
+    def crud(exclude: list = None, gateway: str = None, config: dict = None, prefix: str = None):
         exclude = exclude or []
         config = config or {}
 
         def on_wrapper(cls):
             context = cls.get_class_context()
             base = inflection.pluralize(inflection.dasherize(inflection.underscore(cls.__name__)))
+            if prefix is not None:
+                base = f'{prefix.strip("/")}/{base}'
             if 'create' not in exclude:
                 cls.add_endpoint(HttpEndpoint(
                     route=f'/{base}',

@@ -61,10 +61,28 @@ class IsType(Validation):
 class HasLength(Validation):
     def __init__(self, length: int, message: str = None):
         super().__init__(message or '{} must have a length of ' + str(length))
-        self._length = length
+        self.length = length
 
     def __call__(self, value: Any, dto: dict) -> bool:
-        return len(value) == self._length
+        return len(value) == self.length
+
+
+class HasMaxLength(Validation):
+    def __init__(self, length: int, message: str = None):
+        super().__init__(message or '{} must have a length of ' + str(length))
+        self.length = length
+
+    def __call__(self, value: Any, dto: dict) -> bool:
+        return len(value) <= self.length
+
+
+class HasMinLength(Validation):
+    def __init__(self, length: int, message: str = None):
+        super().__init__(message or '{} must have a length of ' + str(length))
+        self.length = length
+
+    def __call__(self, value: Any, dto: dict) -> bool:
+        return len(value) >= self.length
 
 
 class Matches(Validation):
@@ -79,10 +97,10 @@ class Matches(Validation):
 class MatchesPattern(Validation):
     def __init__(self, pattern: str, message: str = None):
         super().__init__(message or '{} must match the pattern ' + pattern)
-        self._regex = re.compile(pattern)
+        self.regex = re.compile(pattern)
 
     def __call__(self, value: Any, dto: dict) -> bool:
-        return self._regex.fullmatch(value) is not None
+        return self.regex.fullmatch(value) is not None
 
 
 class IsValidEmail(MatchesPattern):
@@ -106,7 +124,7 @@ class IsInt(MatchesPattern):
         super().__init__(r'^\d+$', message or '{} must be an integer')
 
     def __call__(self, value: Any, dto: dict) -> bool:
-        return isinstance(value, int) or (isinstance(value, str) and self._regex.fullmatch(value) is not None)
+        return isinstance(value, int) or (isinstance(value, str) and self.regex.fullmatch(value) is not None)
 
 
 class IsFloat(MatchesPattern):
@@ -114,7 +132,7 @@ class IsFloat(MatchesPattern):
         super().__init__(r'^\d+\.\d+$', message or '{} must be a float')
 
     def __call__(self, value: Any, dto: dict) -> bool:
-        return isinstance(value, float) or (isinstance(value, str) and self._regex.fullmatch(value) is not None)
+        return isinstance(value, float) or (isinstance(value, str) and self.regex.fullmatch(value) is not None)
 
 
 class IsNumeric(MatchesPattern):
@@ -122,7 +140,42 @@ class IsNumeric(MatchesPattern):
         super().__init__(r'^\d+\.?\d*$', message or '{} must be numeric')
 
     def __call__(self, value: Any, dto: dict) -> bool:
-        return isinstance(value, (int, float)) or (isinstance(value, str) and self._regex.fullmatch(value) is not None)
+        return isinstance(value, (int, float)) or (isinstance(value, str) and self.regex.fullmatch(value) is not None)
+
+
+class NumericValidation(Validation, ABC):
+    def __init__(self, value: float, message: str = None):
+        super().__init__(message)
+        self.value = value
+
+    @abstractmethod
+    def __call__(self, value: Any, dto: dict) -> bool:
+        pass
+
+
+class IsMultipleOf(NumericValidation):
+    def __call__(self, value: Any, dto: dict) -> bool:
+        return value % self.value == 0
+
+
+class IsLessThan(NumericValidation):
+    def __call__(self, value: Any, dto: dict) -> bool:
+        return value < self.value
+
+
+class IsLessThanOrEqualTo(NumericValidation):
+    def __call__(self, value: Any, dto: dict) -> bool:
+        return value <= self.value
+
+
+class IsGreaterThan(NumericValidation):
+    def __call__(self, value: Any, dto: dict) -> bool:
+        return value > self.value
+
+
+class IsGreaterThanOrEqualTo(NumericValidation):
+    def __call__(self, value: Any, dto: dict) -> bool:
+        return value >= self.value
 
 
 class IsDatetime(Validation):

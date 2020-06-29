@@ -38,7 +38,7 @@ class LoadContainers(ffd.ApplicationService):
 
         self.debug('All containers are built. Looping through again to link them all together.')
         for context in self._context_map.contexts:
-            for name, config in context.config.get('extensions', {}).items():
+            for name, config in (context.config.get('extensions', {}) or {}).items():
                 self.debug(f'Registering {name} container with {context.name}')
                 context.container.register_container(self._context_map.get_context(name).container)
             self.debug('Registering root container')

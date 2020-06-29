@@ -14,10 +14,14 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
+import aiohttp
 import firefly.domain as ffd
+import inflection
 from firefly import Query, Command, Event, SystemBus
+
 from ...web_server.web_server import WebServer
 
 
@@ -25,12 +29,31 @@ from ...web_server.web_server import WebServer
 class AsyncioMessageTransport(ffd.MessageTransport, ffd.LoggerAware):
     _web_server: WebServer = None
     _system_bus: SystemBus = None
+    _serializer: ffd.Serializer = None
 
     def dispatch(self, event: Event) -> None:
         pass
 
     def invoke(self, command: Command) -> Any:
-        return self._system_bus.invoke(command)
+        loop = asyncio.get_event_loop()
+        context = inflection.dasherize(command.get_context())
+        loop.run_until_complete(self._async_post(f'http://localhost:9000/{context}', command))
 
     def request(self, query: Query) -> Any:
-        return self._system_bus.request(query)
+        loop = asyncio.get_event_loop()
+        context = inflection.dasherize(query.get_context())
+        loop.run_until_complete(self._async_get(f'http://localhost:9000/{context}', query))
+
+    async def _async_post(self, url: str, command: Command):
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, data=self._serializer.serialize(command)) as resp:
+                print(resp.status)
+                print(await resp.text())
+                exit()
+
+    async def _async_get(self, url: str, query: Query):
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, params={'query': self._serializer.serialize(query)}) as resp:
+                print(resp.status)
+                print(await resp.text())
+                exit()

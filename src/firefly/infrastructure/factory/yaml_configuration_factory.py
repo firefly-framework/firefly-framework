@@ -48,6 +48,14 @@ class YamlConfigurationFactory(ffd.ConfigurationFactory):
                 context_config['contexts'].get(context),
                 configuration.contexts[context] or {},
             )
+
+        env = os.environ['ENV']
+        if env in configuration.environments and isinstance(configuration.environments[env], dict):
+            configuration.contexts = ffd.merge(
+                configuration.contexts,
+                configuration.environments[env]
+            )
+
         return configuration
 
     @staticmethod
@@ -86,7 +94,7 @@ class YamlConfigurationFactory(ffd.ConfigurationFactory):
         dir_ = self._move_to_project_root()
         for path in ('.env', f'.env.{env}'):
             if os.path.exists(path):
-                load_dotenv(dotenv_path=os.path.join(os.getcwd(), path))
+                load_dotenv(dotenv_path=os.path.join(os.getcwd(), path), override=True)
         os.chdir(dir_)
 
     @staticmethod

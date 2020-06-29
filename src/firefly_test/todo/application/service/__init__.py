@@ -13,3 +13,4 @@
 #  <http://www.gnu.org/licenses/>.
 
 from .create_calendar import CreateCalendar
+from .get_dto_schema import GetDtoSchema

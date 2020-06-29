@@ -33,6 +33,10 @@ class Configuration(AggregateRoot):
     def contexts(self):
         return self._config.get('contexts', {})
 
+    @contexts.setter
+    def contexts(self, value):
+        self._config['contexts'] = value
+
     @property
     def environments(self):
         return self._config.get('environments', {})

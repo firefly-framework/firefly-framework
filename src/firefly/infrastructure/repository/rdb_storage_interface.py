@@ -27,7 +27,7 @@ class RdbStorageInterface(ffd.LoggerAware, ABC):
     _serializer: ffd.Serializer = None
     _cache: dict = {}
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         self._tables_checked = []
         self._cache = {
             'sql': {

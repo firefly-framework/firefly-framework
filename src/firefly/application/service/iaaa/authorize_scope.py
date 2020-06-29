@@ -30,12 +30,13 @@ class AuthorizeScope(ffd.Handler):
             ret = False
             user_scopes = message.headers.get('decoded_token', {}).get('scopes') or []
             scopes = message.headers.get('scopes', [])
-
             if len(scopes) > 0:
                 for scope in message.headers.get('scopes', []):
                     for user_scope in user_scopes:
                         if self._has_grant(scope, user_scope):
                             return True
+            else:
+                ret = True
 
         return ret
 
@@ -68,4 +69,4 @@ class AuthorizeScope(ffd.Handler):
             level = parts.pop()
         base = '.'.join(parts)
 
-        return level, base
+        return level, base.lower()

@@ -13,4 +13,5 @@
 #  <http://www.gnu.org/licenses/>.
 
 from .generate_api_spec import GenerateApiSpec
+from .get_dto_schema import GetDtoSchema
 from .initialize_project import InitializeProject

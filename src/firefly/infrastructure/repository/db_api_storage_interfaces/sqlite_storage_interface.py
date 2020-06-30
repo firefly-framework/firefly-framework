@@ -42,6 +42,7 @@ class SqliteStorageInterface(RdbStorageInterface, ffd.LoggerAware):
         cursor = self._connection.cursor()
         cursor.execute(*self._generate_insert(entity))
         self._connection.commit()
+        cursor.close()
 
     def _all(self, entity_type: Type[ffd.Entity], criteria: ffd.BinaryOp = None, limit: int = None):
         cursor = self._connection.cursor()

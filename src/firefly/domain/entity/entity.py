@@ -145,7 +145,9 @@ class Entity(ContextAware, ValueObject):
             if 'hidden' in field_.metadata and field_.metadata['hidden'] is True:
                 continue
 
-            prop = {}
+            prop = {
+                'title': field_.metadata.get('title') or inflection.humanize(field_.name),
+            }
             t = types_[field_.name]
             if t in mappings:
                 if t in mappings:
@@ -165,11 +167,13 @@ class Entity(ContextAware, ValueObject):
                     elif isinstance(validator, IsLessThanOrEqualTo):
                         prop['maximum'] = validator.value
                     elif isinstance(validator, IsLessThan):
-                        prop['exclusiveMaximum'] = validator.value
+                        prop['maximum'] = validator.value
+                        prop['exclusiveMaximum'] = True
                     elif isinstance(validator, IsGreaterThanOrEqualTo):
                         prop['minimum'] = validator.value
                     elif isinstance(validator, IsGreaterThan):
-                        prop['exclusiveMinimum'] = validator.value
+                        prop['minimum'] = validator.value
+                        prop['exclusiveMinimum'] = True
                     elif isinstance(validator, IsMultipleOf):
                         prop['multipleOf'] = validator.value
                     elif isinstance(validator, HasMaxLength):
@@ -181,6 +185,9 @@ class Entity(ContextAware, ValueObject):
                 prop['format'] = 'date-time'
             elif t is date:
                 prop['format'] = 'date'
+
+            if 'format' in field_.metadata:
+                prop['format'] = field_.metadata.get('format')
 
             if 'required' in field_.metadata and field_.metadata['required'] is True:
                 try:

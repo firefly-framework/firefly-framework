@@ -29,6 +29,9 @@ class TransactionHandlingMiddleware(Middleware, LoggerAware):
     def __init__(self):
         self._level = 0
 
+    def reset_level(self):
+        self._level = 0
+
     def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
         try:
             if self._level == 0:

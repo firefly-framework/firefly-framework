@@ -128,7 +128,9 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
                     params.update(request.query)
                     message = self._message_factory.query(message_name, None, params)
                 else:
-                    params.update(self._serializer.deserialize(await request.text()))
+                    text = await request.text()
+                    if text and len(text):
+                        params.update(self._serializer.deserialize(text))
                     message = self._message_factory.command(message_name, params)
             else:
                 if msg is not None:

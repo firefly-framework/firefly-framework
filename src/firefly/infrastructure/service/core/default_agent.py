@@ -33,6 +33,7 @@ class DefaultAgent(ffd.ApplicationService, ffd.LoggerAware):
     _config: ffd.Configuration = None
     _context_map: ffd.ContextMap = None
     _registry: ffd.Registry = None
+    _transaction_handler: ffd.TransactionHandlingMiddleware = None
 
     def __init__(self):
         self._deployment: Optional[ffd.Deployment] = None
@@ -48,6 +49,7 @@ class DefaultAgent(ffd.ApplicationService, ffd.LoggerAware):
             self._start_web_app()
 
         if start_server:
+            self._transaction_handler.reset_level()
             self.info('Starting web server')
             self._web_server.run()
 

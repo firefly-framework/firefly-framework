@@ -23,24 +23,33 @@ import firefly.domain as ffd
 CATEGORIES = ('read', 'write', 'admin')
 
 
-class AuthorizeScope(ffd.Handler):
+class AuthorizeScope(ffd.Handler, ffd.LoggerAware):
     def handle(self, message: ffd.Message) -> Optional[bool]:
         ret = True
         if message.headers.get('secured'):
             ret = False
             user_scopes = message.headers.get('decoded_token', {}).get('scopes') or []
             scopes = message.headers.get('scopes', [])
+            self.info('Required scopes: %s', scopes)
+            self.info('User scopes: %s', user_scopes)
             if len(scopes) > 0:
                 for scope in message.headers.get('scopes', []):
                     for user_scope in user_scopes:
                         if self._has_grant(scope, user_scope):
+                            self.info('User has grant... returning True')
                             return True
             else:
+                self.info('No scopes required... returning True')
                 ret = True
+
+        self.info('Returning %s', str(ret))
 
         return ret
 
     def _has_grant(self, scope: str, user_scope: str):
+        scope = scope.lower()
+        user_scope = user_scope.lower()
+
         if scope == user_scope:
             return True
 
@@ -64,7 +73,7 @@ class AuthorizeScope(ffd.Handler):
     @staticmethod
     def _split_scope(scope: str):
         level = 'write'
-        parts = scope.split('.')
+        parts = scope.replace('/', '.').split('.')
         if parts[-1] in CATEGORIES:
             level = parts.pop()
         base = '.'.join(parts)

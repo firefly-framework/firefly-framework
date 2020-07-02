@@ -17,14 +17,17 @@ from __future__ import annotations
 from typing import Callable
 
 import firefly.domain as ffd
+import firefly_di as di
 
 from .authorize_scope import AuthorizeScope
 
 
 class AuthorizingMiddleware(ffd.Middleware, ffd.ChainOfResponsibility):
+    _container: di.Container = None
+
     def __init__(self):
         super().__init__()
-        self._handlers.append(AuthorizeScope())
+        self._handlers.append(self._container.build(AuthorizeScope))
 
     def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
         if self.handle(message) is not True:

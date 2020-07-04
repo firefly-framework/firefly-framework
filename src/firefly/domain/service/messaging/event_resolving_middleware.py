@@ -26,6 +26,7 @@ from firefly.domain.service.messaging.middleware import Middleware
 class EventResolvingMiddleware(Middleware, LoggerAware):
     _context_map: ffd.ContextMap = None
     _context: str = None
+    _env: str = None
 
     def __init__(self, event_listeners: Dict[Union[Type[Event], str], List[ffd.ApplicationService]] = None):
         self._event_listeners = {}
@@ -51,7 +52,8 @@ class EventResolvingMiddleware(Middleware, LoggerAware):
 
         if message.get_context() != 'firefly' and \
                 message.get_context() == self._context and \
-                not message.headers.get('external', False):
+                not message.headers.get('external', False) and \
+                self._env != 'test':
             self._publish_message(message)
             return next_(message)
 

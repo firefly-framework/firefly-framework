@@ -21,13 +21,15 @@ import firefly.domain as ffd
 from .registry import Registry
 from ..service.logging.logger import LoggerAware
 from ..service.messaging.middleware import Middleware
+from ..service.messaging.system_bus import SystemBusAware
 
 
-class TransactionHandlingMiddleware(Middleware, LoggerAware):
+class TransactionHandlingMiddleware(Middleware, LoggerAware, SystemBusAware):
     _registry: Registry = None
 
     def __init__(self):
         self._level = 0
+        self._event_buffer = []
 
     def reset_level(self):
         self._level = 0
@@ -38,6 +40,11 @@ class TransactionHandlingMiddleware(Middleware, LoggerAware):
                 self.debug('Level 0 - Resetting repositories')
                 self.debug(message)
                 self._reset()
+            elif self._level > 0:
+                if isinstance(message, ffd.Event):
+                    self._event_buffer.append(message)
+                    return next_(message)
+
             self._level += 1
             self.debug('Level incremented: %d', self._level)
             ret = next_(message)
@@ -60,8 +67,11 @@ class TransactionHandlingMiddleware(Middleware, LoggerAware):
     def _reset(self):
         for repository in self._registry.get_repositories():
             repository.reset()
+        self._event_buffer = []
 
     def _commit(self):
         for repository in self._registry.get_repositories():
             self.debug('Committing repository %s', repository)
             repository.commit()
+        self.debug('Dispatching events %s', [e.to_dict() for e in self._event_buffer])
+        map(lambda e: self.dispatch(e), self._event_buffer)

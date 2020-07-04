@@ -14,7 +14,9 @@
 
 from __future__ import annotations
 
+import json
 import os
+from typing import Optional
 
 import pytest
 import firefly as ff
@@ -39,6 +41,20 @@ def container(config):
     Container.__annotations__['asyncio_message_transport'] = ffi.AsyncioMessageTransport
 
     c = Container()
+
+    class Authenticator(ff.Handler):
+        def handle(self, message: ff.Message) -> Optional[bool]:
+            if hasattr(message, 'fail_authentication'):
+                raise ff.UnauthenticatedError()
+
+            if hasattr(message, 'scopes'):
+                message.headers['decoded_token'] = {
+                    'scopes': message.scopes,
+                }
+            return True
+
+    c.authenticator.add(Authenticator())
+
     c.kernel.boot()
 
     return c

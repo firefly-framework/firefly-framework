@@ -37,7 +37,10 @@ class CreateEntity(Generic[T], ApplicationService, GenericBase, CrudOperation, S
         if method is not None:
             entity = method(type_, **kwargs)
         else:
-            entity = type_(**ffd.build_argument_list(kwargs, type_))
+            try:
+                entity = type_(**ffd.build_argument_list(kwargs, type_))
+            except ffd.MissingArgument as e:
+                raise ffd.MissingArgument(f'In CreateEntity[{self._type()}]: {str(e)}')
         self._registry(type_).append(entity)
         self.dispatch(self._build_event(type_, 'create', asdict(entity), kwargs['_context']))
 

@@ -48,8 +48,11 @@ def container(config):
                 raise ff.UnauthenticatedError()
 
             if hasattr(message, 'scopes'):
+                scopes = message.scopes
+                if isinstance(scopes, str):
+                    scopes = json.loads(scopes)
                 message.headers['decoded_token'] = {
-                    'scopes': message.scopes,
+                    'scopes': scopes,
                 }
             return True
 

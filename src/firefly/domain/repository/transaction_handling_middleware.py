@@ -42,8 +42,9 @@ class TransactionHandlingMiddleware(Middleware, LoggerAware, SystemBusAware):
                 self._reset()
             elif self._level > 0:
                 if isinstance(message, ffd.Event):
+                    self.debug('Buffering message')
                     self._event_buffer.append(message)
-                    return next_(message)
+                    return message
 
             self._level += 1
             self.debug('Level incremented: %d', self._level)
@@ -73,5 +74,5 @@ class TransactionHandlingMiddleware(Middleware, LoggerAware, SystemBusAware):
         for repository in self._registry.get_repositories():
             self.debug('Committing repository %s', repository)
             repository.commit()
-        self.debug('Dispatching events %s', [e.to_dict() for e in self._event_buffer])
-        map(lambda e: self.dispatch(e), self._event_buffer)
+        self.debug('Dispatching events %s', [{e: e.to_dict() for e in self._event_buffer}])
+        list(map(lambda e: self.dispatch(e), self._event_buffer))

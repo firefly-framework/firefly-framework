@@ -76,7 +76,11 @@ class RdbStorageInterface(ffd.LoggerAware, ABC):
 
     def remove(self, entity: ffd.Entity):
         self._check_prerequisites(entity.__class__)
-        self._remove(entity)
+        if hasattr(entity, 'deleted_on'):
+            entity.deleted_on = datetime.now()
+            self._update(entity)
+        else:
+            self._remove(entity)
 
     @abstractmethod
     def _remove(self, entity: ffd.Entity):
@@ -84,6 +88,8 @@ class RdbStorageInterface(ffd.LoggerAware, ABC):
 
     def update(self, entity: ffd.Entity):
         self._check_prerequisites(entity.__class__)
+        if hasattr(entity, 'updated_on'):
+            entity.updated_on = datetime.now()
         self._update(entity)
 
     @abstractmethod
@@ -113,8 +119,6 @@ class RdbStorageInterface(ffd.LoggerAware, ABC):
     def _generate_insert(self, entity: ffd.Entity):
         t = entity.__class__
         sql = f"insert into {self._fqtn(t)} ({self._generate_column_list(t)}) values ({self._generate_value_list(t)})"
-        print(sql)
-        print(self._generate_parameters(entity))
         return sql, self._generate_parameters(entity)
 
     def _generate_update(self, entity: ffd.Entity):

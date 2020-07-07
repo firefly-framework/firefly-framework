@@ -34,9 +34,16 @@ class ValueObject(metaclass=EntityMeta):
     def __init__(self, **kwargs):
         pass
 
-    def to_dict(self):
+    def to_dict(self, skip: list = None):
         # noinspection PyDataclass
-        return asdict(self)
+        ret = asdict(self)
+        if skip is not None:
+            d = ret.copy()
+            for k in ret.keys():
+                if k in skip:
+                    del d[k]
+            return d
+        return ret
 
     def debug(self, *args, **kwargs):
         return self._logger.debug(*args, **kwargs)
@@ -51,11 +58,19 @@ class ValueObject(metaclass=EntityMeta):
         return self._logger.error(*args, **kwargs)
 
     @classmethod
-    def from_dict(cls, data: dict, map_: dict = None):
-        d = None
+    def from_dict(cls, data: dict, map_: dict = None, skip: list = None):
         if map_ is not None:
             d = data.copy()
             for source, target in map_.items():
                 d[target] = d[source]
-        return cls(**build_argument_list(d or data, cls))
+            data = d
+
+        if skip is not None:
+            d = data.copy()
+            for k in data.keys():
+                if k in skip:
+                    del d[k]
+            data = d
+
+        return cls(**build_argument_list(data, cls))
     # __pragma__('noskip')

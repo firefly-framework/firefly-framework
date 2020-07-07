@@ -35,19 +35,19 @@ class Repository(Generic[T], GenericBase, LoggerAware, ABC):
         self._deletions = []
 
     @abstractmethod
-    def append(self, entity: T):
+    def append(self, entity: T, **kwargs):
         pass
 
     @abstractmethod
-    def remove(self, entity: T):
+    def remove(self, entity: T, **kwargs):
         pass
 
     @abstractmethod
-    def find(self, exp: Union[str, Callable]) -> Optional[T]:
+    def find(self, exp: Union[str, Callable], **kwargs) -> Optional[T]:
         pass
 
     @abstractmethod
-    def filter(self, cb: Callable) -> List[T]:
+    def filter(self, cb: Callable, **kwargs) -> List[T]:
         pass
 
     @abstractmethod
@@ -106,7 +106,7 @@ class Repository(Generic[T], GenericBase, LoggerAware, ABC):
         return ret
 
     @abstractmethod
-    def commit(self):
+    def commit(self, **kwargs):
         pass
 
     @abstractmethod

@@ -35,18 +35,18 @@ class RdbRepository(ffd.Repository[T]):
     def execute_ddl(self):
         self._interface.execute_ddl(self._type())
 
-    def append(self, entity: T):
+    def append(self, entity: T, **kwargs):
         self.debug('Entity added to repository: %s', str(entity))
         if entity not in self._entities:
             self._entities.append(entity)
         self._state = 'partial'
 
-    def remove(self, entity: T):
+    def remove(self, entity: T, **kwargs):
         self.debug('Entity removed from repository: %s', str(entity))
         self._deletions.append(entity)
         self._entities.remove(entity)
 
-    def find(self, exp: Union[str, Callable]) -> T:
+    def find(self, exp: Union[str, Callable], **kwargs) -> T:
         ret = None
         if isinstance(exp, str):
             entity = self._find_checked_out_entity(exp)
@@ -71,7 +71,7 @@ class RdbRepository(ffd.Repository[T]):
             criteria = self._get_search_criteria(cb)
         return self._interface.raw(self._entity_type, criteria, limit)
 
-    def filter(self, cb: Union[Callable, ffd.BinaryOp]) -> List[T]:
+    def filter(self, cb: Union[Callable, ffd.BinaryOp], **kwargs) -> List[T]:
         if self._state == 'full':
             criteria = self._get_search_criteria(cb)
             entities = list(filter(lambda e: criteria.matches(e), self._entities))
@@ -110,11 +110,11 @@ class RdbRepository(ffd.Repository[T]):
                     self._register_entity(entity)
             self._state = 'full'
 
-    def commit(self):
+    def commit(self, force_delete: bool = False):
         self.debug('commit() called in %s', str(self))
         for entity in self._deletions:
             self.debug('Deleting %s', entity)
-            self._interface.remove(entity)
+            self._interface.remove(entity, force=force_delete)
 
         for entity in self._new_entities():
             self.debug('Adding %s', entity)

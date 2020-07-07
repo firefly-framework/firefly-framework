@@ -108,9 +108,8 @@ def registry(container, request) -> ff.Registry:
                 if issubclass(entity, ff.AggregateRoot) and entity is not ff.AggregateRoot:
                     try:
                         for e in registry(entity):
-                        # for e in registry(entity)._entities:
                             registry(entity).remove(e)
-                        registry(entity).commit()
+                        registry(entity).commit(force_delete=True)
                     except ff.FrameworkError:
                         pass
 
@@ -132,4 +131,5 @@ async def client(container, system_bus, loop, aiohttp_client):
     agent = container.agent_factory('default')
     agent(deployment, start_server=False)
     container.web_server.initialize()
+    container.transaction_handler.reset_level()
     return await aiohttp_client(container.web_server.app)

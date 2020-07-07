@@ -95,6 +95,7 @@ class SqliteStorageInterface(RdbStorageInterface, ffd.LoggerAware):
         cursor = self._connection.cursor()
         cursor.execute(*self._generate_update(entity))
         self._connection.commit()
+        cursor.close()
 
     def _ensure_connected(self):
         if self._connection is not None:

@@ -74,9 +74,9 @@ class RdbStorageInterface(ffd.LoggerAware, ABC):
     def _find(self, uuid: str, entity_type: Type[ffd.Entity]):
         pass
 
-    def remove(self, entity: ffd.Entity):
+    def remove(self, entity: ffd.Entity, force: bool = False):
         self._check_prerequisites(entity.__class__)
-        if hasattr(entity, 'deleted_on'):
+        if hasattr(entity, 'deleted_on') and not force:
             entity.deleted_on = datetime.now()
             self._update(entity)
         else:

@@ -61,7 +61,7 @@ class Attr:
             raise ffd.InvalidOperand(f"Use of '{item}' is not currently supported.")
 
     def is_none(self):
-        return BinaryOp(self.attr, 'is', 'None')
+        return BinaryOp(self.attr, 'is', 'null')
 
     def is_false(self):
         return BinaryOp(self.attr, 'is', False)
@@ -197,7 +197,7 @@ class BinaryOp:
         if bop.op == '<=':
             return lhv <= rhv
         if bop.op == 'is':
-            return lhv is rhv if rhv != 'None' else lhv is None
+            return lhv is rhv if rhv != 'null' else lhv is None
         if bop.op == 'in':
             return lhv in rhv
         if bop.op == 'contains':
@@ -262,7 +262,10 @@ class BinaryOp:
         counter = counter or 1
         params = params or {}
         lhv, params, counter = self._process_op(self.lhv, params, counter)
-        rhv, params, counter = self._process_op(self.rhv, params, counter)
+        if self.op == 'is' and (self.rhv == 'null' or self.rhv is None):
+            rhv = 'null'
+        else:
+            rhv, params, counter = self._process_op(self.rhv, params, counter)
 
         return f'({lhv} {self.op.replace("==", "=")} {rhv})', params, counter
 

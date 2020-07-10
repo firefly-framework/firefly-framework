@@ -35,25 +35,7 @@ class AsyncioMessageTransport(ffd.MessageTransport, ffd.LoggerAware):
         pass
 
     def invoke(self, command: Command) -> Any:
-        loop = asyncio.get_event_loop()
-        context = inflection.dasherize(command.get_context())
-        loop.run_until_complete(self._async_post(f'http://localhost:9000/{context}', command))
+        return self._system_bus.invoke(command)
 
     def request(self, query: Query) -> Any:
-        loop = asyncio.get_event_loop()
-        context = inflection.dasherize(query.get_context())
-        loop.run_until_complete(self._async_get(f'http://localhost:9000/{context}', query))
-
-    async def _async_post(self, url: str, command: Command):
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url, data=self._serializer.serialize(command)) as resp:
-                print(resp.status)
-                print(await resp.text())
-                exit()
-
-    async def _async_get(self, url: str, query: Query):
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, params={'query': self._serializer.serialize(query)}) as resp:
-                print(resp.status)
-                print(await resp.text())
-                exit()
+        return self._system_bus.request(query)

@@ -44,7 +44,8 @@ class RdbRepository(ffd.Repository[T]):
     def remove(self, entity: T, **kwargs):
         self.debug('Entity removed from repository: %s', str(entity))
         self._deletions.append(entity)
-        self._entities.remove(entity)
+        if entity in self._entities:
+            self._entities.remove(entity)
 
     def find(self, exp: Union[str, Callable], **kwargs) -> T:
         ret = None

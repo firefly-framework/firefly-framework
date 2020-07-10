@@ -47,8 +47,7 @@ class CommandResolvingMiddleware(Middleware, LoggerAware):
         if not self._initialized:
             self._initialize()
 
-        # TODO Fix the local dev server to work with multiple contexts
-        if self._context is not None and message.get_context() != 'firefly' and message.get_context() != self._context:
+        if message.get_context() != 'firefly' and self._context_map.get_context(message.get_context()) is None:
             return self._transfer_message(message)
 
         args = message.to_dict()

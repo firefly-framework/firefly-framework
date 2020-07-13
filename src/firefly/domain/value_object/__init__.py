@@ -16,7 +16,7 @@
 from __future__ import annotations
 
 import typing
-from dataclasses import asdict
+from dataclasses import asdict, fields
 from typing import List
 
 from firefly.domain.meta.build_argument_list import build_argument_list
@@ -28,21 +28,27 @@ from .parameter import Parameter
 from firefly.domain.meta.entity_meta import EntityMeta
 
 
+# noinspection PyDataclass
 class ValueObject(metaclass=EntityMeta):
     _logger = None
 
     def __init__(self, **kwargs):
         pass
 
-    def to_dict(self, skip: list = None):
-        # noinspection PyDataclass
-        ret = asdict(self)
+    def to_dict(self, skip: list = None, force_all: bool = False):
+        ret = {}
+        for field_ in fields(self):
+            if field_.metadata.get('internal') is True and force_all is False:
+                continue
+            ret[field_.name] = getattr(self, field_.name)
+
         if skip is not None:
             d = ret.copy()
             for k in ret.keys():
                 if k in skip:
                     del d[k]
             return d
+
         return ret
 
     def debug(self, *args, **kwargs):

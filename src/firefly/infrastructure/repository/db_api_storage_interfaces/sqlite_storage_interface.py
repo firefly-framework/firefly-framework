@@ -161,7 +161,7 @@ class SqliteStorageInterface(RdbStorageInterface, ffd.LoggerAware):
         return ','.join(placeholders)
 
     def _generate_parameters(self, entity: ffd.Entity, part: str = None):
-        obj = self._serializer.serialize(entity)
+        obj = self._serializer.serialize(entity.to_dict(force_all=True))
         params = {'id': entity.id_value(), 'obj': obj}
         for field_ in self.get_indexes(entity.__class__):
             params[field_.name] = getattr(entity, field_.name)

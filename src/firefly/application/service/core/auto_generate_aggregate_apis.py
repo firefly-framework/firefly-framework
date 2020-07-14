@@ -98,6 +98,7 @@ class AutoGenerateAggregateApis(ApplicationService, LoggerAware):
 
         name = f'{name_prefix}{entity.__name__}'
         fqn = f'{context.name}.{name}'
+
         if not self._command_resolving_middleware.has_command_handler(fqn):
             Action.__name__ = name
             self._command_resolving_middleware.add_command_handler(self._container.build(Action), fqn)
@@ -106,15 +107,15 @@ class AutoGenerateAggregateApis(ApplicationService, LoggerAware):
     def _register_entity_level_event_listeners(self, entity: Type[ff.AggregateRoot], context: ff.Context):
         if entity.get_create_on() is not None:
             self._register_crud_event_listener(
-                entity.get_create_on(), f'{context.name}.Create{entity.__name__}', context
+                entity.get_create_on(), f'{entity.get_class_context()}.Create{entity.__name__}', context
             )
         if entity.get_delete_on() is not None:
             self._register_crud_event_listener(
-                entity.get_delete_on(), f'{context.name}.Delete{entity.__name__}', context
+                entity.get_delete_on(), f'{entity.get_class_context()}.Delete{entity.__name__}', context
             )
         if entity.get_update_on() is not None:
             self._register_crud_event_listener(
-                entity.get_update_on(), f'{context.name}.Update{entity.__name__}', context
+                entity.get_update_on(), f'{entity.get_class_context()}.Update{entity.__name__}', context
             )
 
     def _register_crud_event_listener(self, event: ff.TypeOfEvent, command: str, context: ff.Context):
@@ -126,4 +127,5 @@ class AutoGenerateAggregateApis(ApplicationService, LoggerAware):
         )
         if DoInvokeOn not in context.event_listeners:
             context.event_listeners[DoInvokeOn] = []
+
         context.event_listeners[DoInvokeOn].append(event)

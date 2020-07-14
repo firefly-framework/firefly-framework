@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+from dataclasses import asdict
 from typing import TypeVar, Generic, Optional, Union
 
 import firefly.domain as ffd
@@ -36,6 +37,6 @@ class UpdateEntity(Generic[T], ApplicationService, GenericBase, CrudOperation, S
         for k, v in kwargs.items():
             if hasattr(entity, k):
                 setattr(entity, k, v)
-        self.dispatch(self._build_event(type_, 'update'))
+        self.dispatch(self._build_event(type_, 'update', asdict(entity), entity.get_class_context()))
 
         return True

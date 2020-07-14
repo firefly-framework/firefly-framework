@@ -79,13 +79,16 @@ def test_search_criteria():
         Widget(name='widget1', value=1),
         Widget(name='widget2', value=2),
         Widget(name='widget3', value=3),
+        Widget(name='WIDGET4', value=4),
     ])
 
     assert len(widgets.filter(lambda w: w.name == 'widget2')) == 1
     assert len(widgets.filter(lambda w: w.name.startswith('widget'))) == 3
     assert len(widgets.filter(lambda w: w.name.startswith('widget') and w.value == 2)) == 1
+    assert len(widgets.filter(lambda w: w.name.lower().startswith('widget'))) == 4
+    assert len(widgets.filter(lambda w: w.name.lower() == 'widget4')) == 1
 
     lst = []
     for widget in widgets:
         lst.append(widget)
-    assert len(lst) == 3
+    assert len(lst) == 4

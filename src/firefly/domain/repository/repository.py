@@ -80,7 +80,7 @@ class Repository(Generic[T], GenericBase, LoggerAware, ABC):
         return cb(ffd.EntityAttributeSpy(self._type()))
 
     def _get_hash(self, entity: ffd.Entity):
-        return hashlib.md5(self._serializer.serialize(entity).encode('utf-8')).hexdigest()
+        return hashlib.md5(self._serializer.serialize(entity.to_dict(force_all=True)).encode('utf-8')).hexdigest()
 
     def _register_entity(self, entity: ffd.Entity):
         self._entity_hashes[id(entity)] = self._get_hash(entity)

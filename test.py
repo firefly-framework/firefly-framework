@@ -18,42 +18,10 @@ from datetime import datetime
 from pprint import pprint
 
 import firefly as ff
+import regex
 
 
-class Coordinates(ff.ValueObject):
-    latitude: float = ff.required()
-    longitude: float = ff.required()
+# r = regex.findall(r'(([^\(]+)\(((?R))\))|([^\)]*)', 'UPPER(LOWER(foo))')
+r = regex.findall(r'((\w)\((?R)\))|(\w+)', 'UPPER(LOWER(foo))')
 
-
-class Activity(ff.AggregateRoot):
-    id: str = ff.id_()
-    email: str = ff.optional(validators=[ff.IsValidEmail()])
-    registrant: str = ff.optional(index=True)
-    member_id: str = ff.optional(index=True)
-    manually_created: bool = ff.optional(default=False, index=True)
-    local_start_time: datetime = ff.required(index=True)
-    distance: float = ff.required()
-    duration: float = ff.required()
-    elevation_gain: float = ff.optional(float)
-    starting_coordinates: Coordinates = ff.optional()
-    ending_coordinates: Coordinates = ff.optional()
-
-    distributed_event: str = ff.optional(index=True)
-    course: str = ff.optional(index=True)
-    segment: str = ff.optional()
-    created_on: datetime = ff.now(index=True)
-
-
-a = Activity(
-    email='jd@pwrlab.com',
-    registrant='registrant-id',
-    member_id='member-id',
-    manually_created=True,
-    local_start_time=datetime.now(),
-    distance=5000,
-    duration=3600,
-    distributed_event='de-id',
-    course='course-id'
-)
-
-pprint(Activity.get_dto_schema())
+print(list(map(lambda rr: rr[2], r)))

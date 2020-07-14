@@ -71,10 +71,6 @@ class MessageFactory:
         return self._build_message_class(name, fields_, (ffd.Command,))
 
     def _build(self, name: str, data: dict, bases: tuple):
-        if '.' in name:
-            context, name = name.split('.')
-            data['_context'] = context
-
         # __pragma__ ('ecom')
         """?
         return make_dataclass(name, data, bases=bases)(**data)

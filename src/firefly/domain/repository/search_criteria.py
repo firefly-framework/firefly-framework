@@ -19,6 +19,7 @@ from datetime import datetime, date
 from typing import Union, List, Type
 
 import firefly.domain as ffd
+import regex
 
 
 class EntityAttributeSpy:
@@ -77,6 +78,14 @@ class Attr:
 
     def startswith(self, value):
         return BinaryOp(self.attr, 'startswith', value)
+
+    def lower(self):
+        self.attr = AttributeString(f'LOWER({self.attr})')
+        return self
+
+    def upper(self):
+        self.attr = AttributeString(f'UPPER({self.attr})')
+        return self
 
     def endswith(self, value):
         return BinaryOp(self.attr, 'endswith', value)
@@ -161,7 +170,7 @@ class BinaryOp:
 
     def matches(self, data: Union[ffd.Entity, dict]) -> bool:
         if isinstance(data, ffd.Entity):
-            data = data.to_dict()
+            data = data.to_dict(force_all=True)
 
         return self._do_match(self, data)
 
@@ -169,18 +178,30 @@ class BinaryOp:
         if isinstance(bop.lhv, BinaryOp):
             lhv = self._do_match(bop.lhv, data)
         elif isinstance(bop.lhv, AttributeString):
-            lhv = data[bop.lhv]
+            if '(' in bop.lhv:
+                lhv = self._parse_attribute_string(bop.lhv, data)
+            else:
+                lhv = data[bop.lhv]
         elif isinstance(bop.lhv, Attr):
-            lhv = data[bop.lhv.attr]
+            if '(' in bop.lhv.attr:
+                lhv = self._parse_attribute_string(bop.lhv.attr, data)
+            else:
+                lhv = data[bop.lhv.attr]
         else:
             lhv = bop.lhv
 
         if isinstance(bop.rhv, BinaryOp):
             rhv = self._do_match(bop.rhv, data)
         elif isinstance(bop.rhv, AttributeString):
-            rhv = data[bop.rhv]
+            if '(' in bop.rhv:
+                rhv = self._parse_attribute_string(bop.rhv, data)
+            else:
+                rhv = data[bop.rhv]
         elif isinstance(bop.rhv, Attr):
-            rhv = data[bop.rhv.attr]
+            if '(' in bop.rhv.attr:
+                rhv = self._parse_attribute_string(bop.rhv.attr, data)
+            else:
+                rhv = data[bop.rhv.attr]
         else:
             rhv = bop.rhv
 
@@ -212,6 +233,20 @@ class BinaryOp:
             return lhv or rhv
 
         raise ffd.LogicError(f"Don't know how to handle op: {bop.op}")
+
+    @staticmethod
+    def _parse_attribute_string(attr: str, data: dict):
+        matches = list(map(lambda rr: rr[2], regex.findall(r'((\w)\((?R)\))|(\w+)', attr)))
+        attribute = matches.pop()
+        value = data[attribute]
+
+        for func in reversed(matches):
+            if func == 'LOWER':
+                value = value.lower()
+            elif func == 'UPPER':
+                value = value.upper()
+
+        return value
 
     def __and__(self, other):
         return BinaryOp(self, 'and', other)
@@ -267,7 +302,15 @@ class BinaryOp:
         else:
             rhv, params, counter = self._process_op(self.rhv, params, counter)
 
-        return f'({lhv} {self.op.replace("==", "=")} {rhv})', params, counter
+        ret_op = self.op
+        if ret_op == 'startswith':
+            ret_op = 'like'
+            rhv = f"CONCAT({rhv}, '%')"
+        elif ret_op == 'endswith':
+            ret_op = 'like'
+            rhv = f"CONCAT('%', {rhv})"
+
+        return f'({lhv} {ret_op.replace("==", "=")} {rhv})', params, counter
 
     @staticmethod
     def _process_op(v, params: dict, counter: int):

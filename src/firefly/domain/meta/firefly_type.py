@@ -32,8 +32,15 @@ class FireflyType(ContextAware, ABC):
     _context: str = None
 
     def __str__(self):
-        return f'{self._context}.{self.__class__.__name__}' \
-            if self._context is not None else self.__class__.__name__
+        try:
+            context = self.__class__._context
+            if context is None:
+                context = self._context
+        except AttributeError:
+            context = self._context
+
+        return f'{context}.{self.__class__.__name__}' \
+            if context is not None else self.__class__.__name__
 
     def __repr__(self):
         return str(self)

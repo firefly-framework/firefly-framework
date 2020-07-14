@@ -36,6 +36,6 @@ class DeleteEntity(Generic[T], ApplicationService, GenericBase, CrudOperation, S
         entity = self._registry(type_).find(list(id_arg.values()).pop())
         if entity:
             self._registry(type_).remove(entity)
-            self.dispatch(self._build_event(type_, 'delete', asdict(entity), kwargs['_context']))
+            self.dispatch(self._build_event(type_, 'delete', asdict(entity), entity.get_class_context()))
 
         return True

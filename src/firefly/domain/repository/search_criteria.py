@@ -235,6 +235,10 @@ class BinaryOp:
         raise ffd.LogicError(f"Don't know how to handle op: {bop.op}")
 
     @staticmethod
+    def _remove_function_calls(attr: str):
+        return list(map(lambda rr: rr[2], regex.findall(r'((\w)\((?R)\))|(\w+)', attr))).pop()
+
+    @staticmethod
     def _parse_attribute_string(attr: str, data: dict):
         matches = list(map(lambda rr: rr[2], regex.findall(r'((\w)\((?R)\))|(\w+)', attr)))
         attribute = matches.pop()
@@ -268,9 +272,12 @@ class BinaryOp:
                     data['l'] = {'l': 1, 'o': '==', 'r': 1}
                 else:
                     data['l'] = {'l': 1, 'o': '!=', 'r': 1}
-        elif isinstance(data['l'], str) and len(data['l']) > 2 and \
-                data['l'].startswith('a:') and data['l'][2:] not in fields:
-            return INVALID
+        elif isinstance(data['l'], str) and len(data['l']) > 2:
+            prop = data['l']
+            if '(' in prop:
+                prop = self._remove_function_calls(prop)
+            if prop.startswith('a:') and prop[2:] not in fields:
+                return INVALID
 
         if isinstance(data['r'], dict):
             result = self._prune(fields, data['r'])
@@ -279,9 +286,12 @@ class BinaryOp:
                     data['r'] = {'l': 1, 'o': '==', 'r': 1}
                 else:
                     data['r'] = {'l': 1, 'o': '!=', 'r': 1}
-        elif isinstance(data['r'], str) and len(data['r']) > 2 and \
-                data['r'].startswith('a:') and data['r'][2:] not in fields:
-            return INVALID
+        elif isinstance(data['r'], str) and len(data['r']) > 2:
+            prop = data['r']
+            if '(' in prop:
+                prop = self._remove_function_calls(prop)
+            if prop.startswith('a:') and prop[2:] not in fields:
+                return INVALID
 
         if isinstance(data['r'], dict) and isinstance(data['l'], dict):
             if data['l']['l'] == 1 and data['l']['r'] == 1 and data['r']['l'] == 1 and data['r']['r'] == 1:

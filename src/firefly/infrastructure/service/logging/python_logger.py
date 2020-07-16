@@ -38,6 +38,9 @@ class PythonLogger(ffd.Logger):
     def error(self, message: str, *args, **kwargs):
         self.log.error(message, *args, **kwargs)
 
+    def exception(self, message: str, *args, **kwargs):
+        self.log.exception(message, *args, **kwargs)
+
     def set_level_to_fatal(self):
         self.log.getLogger().setLevel(logging.FATAL)
 

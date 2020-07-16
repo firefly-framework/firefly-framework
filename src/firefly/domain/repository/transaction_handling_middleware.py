@@ -56,14 +56,12 @@ class TransactionHandlingMiddleware(Middleware, LoggerAware, SystemBusAware):
                 self._commit()
             return ret
         except Exception as e:
-            self.debug('Caught an exception during transaction')
-            self.info(e)
+            self.exception(str(e))
             self._level -= 1
             self.debug('Level decremented: %d', self._level)
             if self._level == 0:
                 self.debug('Level 0 - Resetting repositories')
                 self._reset()
-            raise e
 
     def _reset(self):
         for repository in self._registry.get_repositories():

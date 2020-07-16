@@ -33,6 +33,10 @@ class Logger(ABC):
         pass
 
     @abstractmethod
+    def exception(self, *args, **kwargs):
+        pass
+
+    @abstractmethod
     def set_level_to_fatal(self):
         pass
 
@@ -79,3 +83,6 @@ class LoggerAware:
 
     def error(self, *args, **kwargs):
         return self._logger.error(*args, **kwargs)
+
+    def exception(self, *args, **kwargs):
+        return self._logger.exception(*args, **kwargs)

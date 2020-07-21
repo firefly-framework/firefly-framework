@@ -70,6 +70,12 @@ class Entity(ContextAware, ValueObject):
             if 'id' in field_.metadata:
                 return getattr(self, field_.name)
 
+    @classmethod
+    def id_column(cls):
+        for field_ in fields(cls):
+            if 'id' in field_.metadata:
+                return field_.name
+
     def load_dict(self, data: dict):
         data = self._process_data(self.__class__, data)
         t = typing.get_type_hints(self.__class__)

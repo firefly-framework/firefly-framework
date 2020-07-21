@@ -38,6 +38,8 @@ class ValueObject(metaclass=EntityMeta):
     def to_dict(self, skip: list = None, force_all: bool = False):
         ret = {}
         for field_ in fields(self):
+            if field_.name.startswith('_'):
+                continue
             if field_.metadata.get('internal') is True and force_all is False:
                 continue
             ret[field_.name] = getattr(self, field_.name)

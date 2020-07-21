@@ -17,12 +17,13 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import fields
 from datetime import datetime
-from typing import Type
+from typing import Type, get_type_hints, List
 
 import firefly.domain as ffd
 import inflection
 
 
+# noinspection PyDataclass
 class RdbStorageInterface(ffd.LoggerAware, ABC):
     _serializer: ffd.Serializer = None
     _cache: dict = {}
@@ -40,7 +41,7 @@ class RdbStorageInterface(ffd.LoggerAware, ABC):
                 'values': {},
                 'update': {},
                 'select': {},
-            }
+            },
         }
 
     def disconnect(self):
@@ -107,11 +108,13 @@ class RdbStorageInterface(ffd.LoggerAware, ABC):
     def _check_prerequisites(self, entity: Type[ffd.Entity]):
         self._ensure_connected()
 
-    def get_indexes(self, entity: Type[ffd.Entity]):
+    def get_indexes(self, entity: Type[ffd.Entity], include_ids: bool = False):
         if entity not in self._cache['indexes']:
             self._cache['indexes'][entity] = []
             for field_ in fields(entity):
                 if 'index' in field_.metadata and field_.metadata['index'] is True:
+                    self._cache['indexes'][entity].append(field_)
+                elif 'id' in field_.metadata and include_ids:
                     self._cache['indexes'][entity].append(field_)
 
         return self._cache['indexes'][entity]
@@ -193,3 +196,53 @@ class RdbStorageInterface(ffd.LoggerAware, ABC):
     @abstractmethod
     def raw(self, entity: Type[ffd.Entity], criteria: ffd.BinaryOp = None, limit: int = None):
         pass
+
+    def _get_relationships(self, entity: Type[ffd.Entity]):
+        cache = self._get_cache_entry(entity)
+        if 'relationships' not in cache:
+            relationships = {}
+            annotations_ = get_type_hints(entity)
+            for k, v in annotations_.items():
+                if k.startswith('_'):
+                    continue
+                if isinstance(v, type) and issubclass(v, ffd.AggregateRoot):
+                    relationships[k] = {
+                        'field_name': k,
+                        'target': v,
+                        'this_side': 'one',
+                    }
+                elif isinstance(v, type(List)) and issubclass(v.__args__[0], ffd.AggregateRoot):
+                    relationships[k] = {
+                        'field_name': k,
+                        'target': v.__args__[0],
+                        'this_side': 'many',
+                    }
+            cache['relationships'] = relationships
+
+        return cache['relationships']
+    #
+    # def _get_relationship(self, entity: Type[ffd.Entity], inverse_entity: Type[ffd.Entity]):
+    #     relationships = self._get_relationships(entity)
+    #     for k, v in relationships.items():
+    #         if v['target'] == inverse_entity:
+    #             return v
+
+    def _serialize_entity(self, entity: ffd.Entity):
+        relationships = self._get_relationships(entity.__class__)
+        if len(relationships.keys()) > 0:
+            obj = entity.to_dict(force_all=True, skip=relationships.keys())
+            for k, v in relationships.items():
+                if v['this_side'] == 'one':
+                    obj[k] = getattr(entity, k).id_value()
+                elif v['this_side'] == 'many':
+                    obj[k] = list(map(lambda kk: kk.id_value(), getattr(entity, k)))
+        else:
+            obj = entity.to_dict(force_all=True)
+
+        return self._serializer.serialize(obj)
+
+    def _get_cache_entry(self, entity: Type[ffd.Entity]):
+        return self._cache[entity] if entity in self._cache else {}
+
+    def _set_cache_entry(self, entity: Type[ffd.Entity], data: dict):
+        self._cache[entity] = data

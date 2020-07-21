@@ -20,6 +20,7 @@ import re
 from pprint import pprint
 
 import firefly.domain as ffd
+import inflection
 import yaml
 from dotenv import load_dotenv
 from firefly.domain.entity.core.configuration import Configuration
@@ -37,15 +38,17 @@ class YamlConfigurationFactory(ffd.ConfigurationFactory):
                 target_dir = f'{context}_config'
                 if 'VIRTUAL_ENV' in os.environ:
                     target_dir = f'{os.environ["VIRTUAL_ENV"]}/{context}_config'
+                    if not os.path.isfile(f'{target_dir}/firefly.yml'):
+                        target_dir = self._resolve_egg_link(context)
                 os.chdir(target_dir)
                 with open(f'firefly.yml', 'r') as fp:
                     context_config = self._parse(fp.read())
                 os.chdir(original_dir)
             except FileNotFoundError:
-                continue
+                pass
 
             configuration.contexts[context] = ffd.merge(
-                context_config['contexts'].get(context),
+                context_config['contexts'].get(context) or {},
                 configuration.contexts[context] or {},
             )
 
@@ -57,6 +60,24 @@ class YamlConfigurationFactory(ffd.ConfigurationFactory):
             )
 
         return configuration
+
+    @staticmethod
+    def _resolve_egg_link(context: str):
+        if context == 'firefly':
+            file = 'firefly-framework.egg-link'
+        else:
+            file = f'{inflection.dasherize(context)}.egg-link'
+
+        path = f'{os.environ["VIRTUAL_ENV"]}/lib/python3.7/site-packages/{file}'
+        if os.path.isfile(path):
+            parts = []
+            with open(path, 'r') as fp:
+                while True:
+                    line = fp.readline()
+                    if not line:
+                        break
+                    parts.append(line.strip())
+            return os.sep.join(parts)
 
     @staticmethod
     def _parse(data: str):

@@ -19,17 +19,22 @@ import os
 import firefly.domain as ffd
 
 
-@ffd.cli('firefly deploy')
+@ffd.cli('firefly deploy', alias={'requirements_file': 'r'})
 @ffd.command_handler('firefly.Deploy')
 class Deploy(ffd.ApplicationService):
     _config: ffd.Configuration = None
     _agent_factory: ffd.AgentFactory = None
 
-    def __call__(self, env: str = 'local', **kwargs):
+    def __call__(self, env: str = 'local', requirements_file: str = None, **kwargs):
         provider = self._config.all.get('provider', 'default')
         if env == 'local':
             provider = 'default'
-        deployment = ffd.Deployment(environment=env, provider=provider, project=self._config.all.get('project'))
+        deployment = ffd.Deployment(
+            environment=env,
+            provider=provider,
+            project=self._config.all.get('project'),
+            requirements_file=requirements_file
+        )
         self.dispatch(ffd.DeploymentCreated(deployment=deployment))
         self.dispatch(ffd.DeploymentInitialized(deployment=deployment))
 

@@ -18,11 +18,12 @@ from typing import List
 
 import firefly.domain as ffd
 from ..aggregate_root import AggregateRoot
-from ..entity import list_, required
+from ..entity import list_, required, optional
 
 
 class Deployment(AggregateRoot):
     environment: str = required()
     provider: str = required()
     project: str = required()
+    requirements_file: str = optional()
     services: List[ffd.Service] = list_()

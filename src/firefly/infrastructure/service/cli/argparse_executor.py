@@ -113,7 +113,7 @@ class ArgparseExecutor(CliAppExecutor, SystemBusAware):
 
     @staticmethod
     def _add_argument(parser, arg: CliArgument):
-        params = [f'--{inflection.dasherize(arg.name)}'] + [a for a in arg.alias or []]
+        params = [f'--{inflection.dasherize(arg.name)}'] + [f'-{a}' for a in arg.alias or []]
         kwargs = {
             'default': arg.default,
             'required': arg.required,

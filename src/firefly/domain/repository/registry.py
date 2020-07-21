@@ -40,6 +40,9 @@ class Registry(LoggerAware):
                 if issubclass(entity, k):
                     self._cache[entity] = v(entity)
                     break
+                elif issubclass(k, entity):
+                    self._cache[entity] = v(k)
+                    break
 
             context = entity.get_class_context()
             if context in self._default_factory and self._default_factory[context] is not None:

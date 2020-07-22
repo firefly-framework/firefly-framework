@@ -62,6 +62,7 @@ class TransactionHandlingMiddleware(Middleware, LoggerAware, SystemBusAware):
             if self._level == 0:
                 self.debug('Level 0 - Resetting repositories')
                 self._reset()
+            raise
 
     def _reset(self):
         for repository in self._registry.get_repositories():

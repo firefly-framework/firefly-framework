@@ -29,6 +29,14 @@ from aiohttp import web
 from firefly import TypeOfMessage
 from firefly.domain.entity.messaging.http_response import HttpResponse
 
+STATUS_CODES = {
+    'BadRequest': 400,
+    'Unauthorized': 401,
+    'Forbidden': 403,
+    'NotFound': 404,
+    'ApiError': 500,
+}
+
 
 class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
     _serializer: ffd.Serializer = None
@@ -191,6 +199,9 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
             except ffd.UnauthorizedError:
                 response = {}
                 status_code = 401
+            except ffd.ApiError as e:
+                response = str(e)
+                status_code = STATUS_CODES[e.__class__.__name__]
 
             self.debug(f'Response: {response}')
 

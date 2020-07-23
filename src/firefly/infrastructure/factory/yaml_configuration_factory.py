@@ -47,7 +47,7 @@ class YamlConfigurationFactory(ffd.ConfigurationFactory):
                     context_config = self._parse(fp.read())
                 os.chdir(original_dir)
             except FileNotFoundError:
-                pass
+                continue
 
             configuration.contexts[context] = ffd.merge(
                 context_config['contexts'].get(context) or {},

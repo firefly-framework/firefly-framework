@@ -109,15 +109,16 @@ class RdbStorageInterface(ffd.LoggerAware, ABC):
         self._ensure_connected()
 
     def get_indexes(self, entity: Type[ffd.Entity], include_ids: bool = False):
-        if entity not in self._cache['indexes']:
-            self._cache['indexes'][entity] = []
+        key = str(entity) + str(include_ids)
+        if key not in self._cache['indexes']:
+            self._cache['indexes'][key] = []
             for field_ in fields(entity):
                 if 'index' in field_.metadata and field_.metadata['index'] is True:
-                    self._cache['indexes'][entity].append(field_)
-                elif 'id' in field_.metadata and include_ids:
-                    self._cache['indexes'][entity].append(field_)
+                    self._cache['indexes'][key].append(field_)
+                elif 'id' in field_.metadata and include_ids is True:
+                    self._cache['indexes'][key].append(field_)
 
-        return self._cache['indexes'][entity]
+        return self._cache['indexes'][key]
 
     def _generate_insert(self, entity: ffd.Entity):
         t = entity.__class__

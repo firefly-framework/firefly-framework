@@ -38,8 +38,10 @@ class YamlConfigurationFactory(ffd.ConfigurationFactory):
                 target_dir = f'{context}_config'
                 if 'VIRTUAL_ENV' in os.environ:
                     target_dir = f'{os.environ["VIRTUAL_ENV"]}/{context}_config'
-                    if not os.path.isfile(f'{target_dir}/firefly.yml'):
+                    if not os.path.exists(f'{target_dir}/firefly.yml'):
                         target_dir = self._resolve_egg_link(context)
+                        if target_dir is None:
+                            raise FileNotFoundError()
                 os.chdir(target_dir)
                 with open(f'firefly.yml', 'r') as fp:
                     context_config = self._parse(fp.read())

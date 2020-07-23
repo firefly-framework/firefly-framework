@@ -70,7 +70,8 @@ class ValueObject(metaclass=EntityMeta):
         if map_ is not None:
             d = data.copy()
             for source, target in map_.items():
-                d[target] = d[source]
+                if source in d:
+                    d[target] = d[source]
             data = d
 
         if skip is not None:

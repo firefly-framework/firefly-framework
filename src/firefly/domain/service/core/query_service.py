@@ -30,6 +30,9 @@ class QueryService(Generic[T], GenericBase, ApplicationService):
 
     def __call__(self, **kwargs):
         try:
+            if self._type().id_column() in kwargs:
+                return self._registry(self._type()).find(kwargs[self._type().id_column()])
+
             if 'criteria' in kwargs:
                 criteria = kwargs['criteria']
                 if isinstance(criteria, str):

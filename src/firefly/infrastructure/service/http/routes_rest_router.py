@@ -33,10 +33,15 @@ class RoutesRestRouter(ffd.RestRouter):
 
     def match(self, route: str, method: str = 'get') -> Union[Tuple[ffd.HttpEndpoint, dict], Tuple[None, None]]:
         result = None
+        map_ = None
         if method.lower() in self._maps:
-            result = self._maps[method.lower()].match(route)
+            map_ = self._maps[method.lower()]
         if result is None and 'any' in self._maps:
-            result = self._maps['any'].match(route)
+            map_ = self._maps['any']
+
+        if map_:
+            map_.matchlist.sort(key=lambda rr: rr.routepath)
+            result = map_.match(route)
 
         if result is None:
             return None, None

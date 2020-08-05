@@ -46,36 +46,29 @@ class AuthorizeScope(ffd.Handler, ffd.LoggerAware):
 
         return ret
 
-    def _has_grant(self, scope: str, user_scope: str):
-        scope = scope.lower()
-        user_scope = user_scope.lower()
-
-        if scope == user_scope:
-            return True
-
-        level, base = self._split_scope(scope)
-        user_level, user_base = self._split_scope(user_scope)
-
-        if base != user_base:
-            return False
-
-        if user_level == 'admin':
-            return True
-
-        if user_level == 'write':
-            return level in ('read', 'write')
-
-        if user_level == 'read':
-            return level == 'read'
-
-        return False
-
     @staticmethod
-    def _split_scope(scope: str):
-        level = 'write'
-        parts = scope.replace('/', '.').split('.')
-        if parts[-1] in CATEGORIES:
-            level = parts.pop()
-        base = '.'.join(parts)
+    def _has_grant(scope: str, user_scope: str):
+        parts = scope.lower().split('.')
+        user = user_scope.lower().split('.')
 
-        return level, base.lower()
+        for i, part in enumerate(parts):
+            if i >= len(user):
+                return False
+
+            if user[i] == 'admin':
+                return True
+
+            if part not in CATEGORIES and part != user[i]:
+                return False
+
+            if part in CATEGORIES:
+                if user[i] not in CATEGORIES:
+                    return False
+                if part == 'admin':
+                    return False
+                if part == 'write':
+                    return user[i] == 'write'
+                if part == 'read':
+                    return user[i] in ('read', 'write')
+
+        return True

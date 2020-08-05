@@ -26,7 +26,7 @@ import firefly_di as di
 
 class FireflyEncoder(JSONEncoder):
     def default(self, o):
-        if isinstance(o, ffd.Entity):
+        if isinstance(o, ffd.ValueObject):
             return o.to_dict()
         elif inspect.isclass(o) and issubclass(o, ffd.Entity):
             return f'{o.get_class_context()}.{o.__name__}'

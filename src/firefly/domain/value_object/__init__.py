@@ -15,16 +15,18 @@
 # __pragma__('skip')
 from __future__ import annotations
 
+import inspect
 import typing
 from dataclasses import fields
 from datetime import datetime, date
-from typing import List
+from typing import List, Union, Dict
 
 import inflection
 from firefly.domain.entity.validation import IsValidEmail, HasLength, MatchesPattern, IsValidUrl, IsLessThanOrEqualTo, \
     IsLessThan, IsGreaterThanOrEqualTo, IsGreaterThan, IsMultipleOf, HasMaxLength, HasMinLength
 from firefly.domain.meta.build_argument_list import build_argument_list
 from firefly.domain.meta.entity_meta import EntityMeta
+from firefly.domain.utils import is_type_hint, get_origin, get_args
 
 from .event_buffer import EventBuffer
 from .generic_base import GenericBase
@@ -35,9 +37,20 @@ class Empty:
     pass
 
 
+_defs = {}
+
+
 # noinspection PyDataclass
 class ValueObject(metaclass=EntityMeta):
     _logger = None
+    _mappings = {
+        str: 'string',
+        int: 'integer',
+        float: 'number',
+        bool: 'boolean',
+        datetime: 'string',
+        date: 'string',
+    }
 
     def __init__(self, **kwargs):
         pass
@@ -61,20 +74,24 @@ class ValueObject(metaclass=EntityMeta):
         return ret
 
     @classmethod
-    def get_dto_schema(cls):
+    def get_dto_schema(cls, stack: List[type] = None):
+        global _defs
+
+        stack = stack or []
+        if len(stack) == 0:
+            _defs = {}
+
+        if cls in stack or cls.__name__ in _defs:
+            if cls.__name__ not in _defs:
+                _defs[cls.__name__] = {}
+            return _defs[cls.__name__]
+
+        stack.append(cls)
+
         ret = {
             '$schema': 'http://json-schema.org/draft-07/schema#',
             'title': cls.__name__,
             'type': 'object',
-        }
-
-        mappings = {
-            str: 'string',
-            int: 'integer',
-            float: 'number',
-            bool: 'boolean',
-            datetime: 'string',
-            date: 'string',
         }
 
         types_ = typing.get_type_hints(cls)
@@ -91,26 +108,23 @@ class ValueObject(metaclass=EntityMeta):
                 'title': field_.metadata.get('title') or inflection.humanize(field_.name),
             }
             t = types_[field_.name]
-            if t in mappings:
-                if t in mappings:
-                    prop['type'] = mappings[t]
+            if t in cls._mappings:
+                if t in cls._mappings:
+                    prop['type'] = cls._mappings[t]
 
-            if isinstance(t, type(List)):
-                prop['type'] = 'array'
-                if issubclass(t.__args__[0], ValueObject):
-                    prop['items'] = t.__args__[0].get_dto_schema()
-                elif t.__args__[0] in mappings:
-                    prop['items'] = {
-                        'type': mappings[t.__args__[0]]
-                    }
-
-            try:
-                if issubclass(t, ValueObject):
-                    s = t.get_dto_schema()
-                    prop['type'] = 'object'
-                    prop['properties'] = s['properties']
-            except TypeError:
-                pass
+            if is_type_hint(t):
+                prop = cls._process_type_hint(t, prop, stack)
+            elif inspect.isclass(t) and issubclass(t, ValueObject):
+                prop['type'] = 'object'
+                subclasses = t.__subclasses__()
+                if len(subclasses):
+                    prop['items'] = {'oneOf': []}
+                    for subclass in subclasses:
+                        subclass.get_dto_schema(stack.copy())
+                        prop['items']['oneOf'].append({'$ref': f'#/definitions/{subclass.__name__}'})
+                else:
+                    t.get_dto_schema(stack.copy())
+                    prop = {'$ref': f'#/definitions/{t.__name__}'}
 
             if 'validators' in field_.metadata:
                 for validator in field_.metadata['validators']:
@@ -154,18 +168,9 @@ class ValueObject(metaclass=EntityMeta):
                         required_fields.append(field_.name)
                 except TypeError:
                     required_fields.append(field_.name)
-                # props[field_.name] = prop
 
             else:
                 prop['default'] = None
-            #     if prop['type'] not in ('array',):
-            #         prop['type'] = [prop['type'], 'null']
-                # nested = prop.copy()
-                # del nested['title']
-                # props[field_.name] = {
-                #     'title': prop['title'],
-                #     'oneOf': [nested, {'type': 'null'}]
-                # }
 
             props[field_.name] = prop
 
@@ -173,7 +178,72 @@ class ValueObject(metaclass=EntityMeta):
         if len(required_fields) > 0:
             ret['required'] = required_fields
 
+        if len(stack) == 1:
+            ret['definitions'] = _defs
+        else:
+            _defs[cls.__name__] = ret
+            return {'$ref': f'#/definitions/{cls.__name__}'}
+
         return ret
+
+    @classmethod
+    def _process_type_hint(cls, obj, config: dict, stack: list):
+        if not is_type_hint(obj):
+            return config
+
+        if get_origin(obj) is List:
+            config['type'] = 'array'
+            args = get_args(obj)
+            if inspect.isclass(args[0]) and issubclass(args[0], ValueObject):
+                subclasses = args[0].__subclasses__()
+                if len(subclasses):
+                    config['items'] = {'oneOf': []}
+                    for subclass in subclasses:
+                        subclass.get_dto_schema(stack.copy())
+                        config['items']['oneOf'].append({'$ref': f'#/definitions/{subclass.__name__}'})
+                else:
+                    args[0].get_dto_schema(stack.copy())
+                    config['items'] = {'$ref': f'#/definitions/{args[0].__name__}'}
+
+            elif is_type_hint(args[0]):
+                config['items'] = cls._process_type_hint(args[0], {}, stack)['items']
+
+            elif args[0] in cls._mappings:
+                config['items'] = {
+                    'type': cls._mappings[args[0]]
+                }
+
+        elif get_origin(obj) is Dict:
+            args = get_args(obj)
+            config['type'] = 'object'
+            if 'properties' in config:
+                del config['properties']
+
+            if is_type_hint(args[1]):
+                options = cls._process_type_hint(args[1], {}, stack)
+            elif inspect.isclass(args[1]) and issubclass(args[1], ValueObject):
+                args[1].get_dto_schema(stack.copy())
+                options = {'$ref': f'#/definitions/{args[1].__name__}'}
+            else:
+                options = {'type': cls._mappings[args[1]]}
+
+            config['patternProperties'] = {
+                r'.*': options
+            }
+
+        elif get_origin(obj) is Union:
+            args = get_args(obj)
+            config['items'] = {'oneOf': []}
+            for arg in args:
+                if is_type_hint(arg):
+                    raise NotImplementedError()
+                elif inspect.isclass(arg) and issubclass(arg, ValueObject):
+                    arg.get_dto_schema(stack.copy())
+                    config['items']['oneOf'].append({'$ref': f'#/definitions/{arg.__name__}'})
+                elif arg in cls._mappings:
+                    config['items']['oneOf'].append({'type': cls._mappings[arg]})
+
+        return config
 
     def debug(self, *args, **kwargs):
         return self._logger.debug(*args, **kwargs)

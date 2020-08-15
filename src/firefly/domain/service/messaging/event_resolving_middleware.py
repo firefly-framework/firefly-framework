@@ -68,6 +68,7 @@ class EventResolvingMiddleware(Middleware, LoggerAware):
                     self.info('Calling service with arguments: %s', parsed_args)
                     service(**parsed_args)
                 except TypeError as e:
+                    self.exception(e)
                     raise ffd.FrameworkError(f'Error calling {service.__class__.__name__}:\n\n{str(e)}')
 
         return next_(message)

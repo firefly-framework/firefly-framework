@@ -20,6 +20,7 @@ from dataclasses import dataclass
 from time import sleep
 
 import firefly as ff
+import typing
 
 
 def retry(cb, valid_cb=None, wait: int = 1, backoff: bool = True, retries: int = 5, catch=Exception, should_retry=None):
@@ -79,6 +80,24 @@ def generate_dc(base: type, _cls, **kwargs):
         return wrapper
 
     return wrapper(_cls)
+
+
+# Python 3.7
+if sys.version_info[1] == 7:
+    def is_type_hint(obj):
+        return isinstance(obj, (typing._GenericAlias, typing._SpecialForm))
+
+    def get_origin(obj):
+        try:
+            ret = obj.__origin__
+            if hasattr(ret, '__name__') and ret.__name__ in typing._normalize_alias:
+                return getattr(typing, typing._normalize_alias[ret.__name__])
+            return ret
+        except AttributeError:
+            return None
+
+    def get_args(obj):
+        return obj.__args__
 
 
 class ValueMeta(type):

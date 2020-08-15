@@ -107,21 +107,21 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type]):
             try:
                 nested = False
                 if name in params and isinstance(params[name], dict):
-                    entity_args = build_argument_list(params[name], type_)
+                    e = _generate_model(params[name], type_)
                     nested = True
                 else:
-                    entity_args = build_argument_list(params, type_)
+                    e = _generate_model(params, type_)
             except ffd.MissingArgument:
                 if required is False:
                     continue
                 raise
             # TODO use factories where appropriate
-            args[name] = type_(**entity_args)
+            args[name] = e
             if nested:
                 del params[name]
             else:
-                for key in entity_args.keys():
-                    if not hasattr(type_, 'id_name') or key != type_.id_name():
+                for key in e.to_dict().keys():
+                    if (not hasattr(type_, 'id_name') or key != type_.id_name()) and key in params:
                         del params[key]
                         if key in args:
                             del args[key]
@@ -133,12 +133,14 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type]):
                         args[name].append(d)
                     else:
                         try:
-                            entity_args = build_argument_list(d, type_.__args__[0])
+                            e = _generate_model(d, type_.__args__[0])
                         except ffd.MissingArgument:
                             if required is False:
                                 continue
                             raise
-                        args[name].append(type_.__args__[0](**entity_args))
+                        args[name].append(e)
+                        if e is False and required is True:
+                            raise ffd.MissingArgument()
 
         elif isinstance(type_, type(typing.Dict)) and len(type_.__args__) == 2 and \
                 issubclass(type_.__args__[1], ffd.ValueObject):
@@ -160,3 +162,21 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type]):
             raise ffd.MissingArgument(f'Argument: {name} is required')
 
     return args
+
+
+def _generate_model(args: dict, model_type: type, strict: bool = False):
+    subclasses = model_type.__subclasses__()
+    if len(subclasses):
+        for subclass in subclasses:
+            try:
+                return _generate_model(args, subclass, strict=True)
+            except RuntimeError:
+                continue
+
+    entity_args = build_argument_list(args, model_type)
+    if strict:
+        for k in args.keys():
+            if k not in entity_args:
+                raise RuntimeError()
+
+    return model_type(**entity_args)

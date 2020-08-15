@@ -42,7 +42,7 @@ class CreateEntity(Generic[T], ApplicationService, GenericBase, CrudOperation, S
             except ffd.MissingArgument as e:
                 raise ffd.MissingArgument(f'In CreateEntity[{self._type()}]: {str(e)}')
         self._registry(type_).append(entity)
-        self.dispatch(self._build_event(type_, 'create', asdict(entity), entity.get_class_context()))
+        self.dispatch(self._build_event(type_, 'create', entity.to_dict(), entity.get_class_context()))
 
         return entity
 

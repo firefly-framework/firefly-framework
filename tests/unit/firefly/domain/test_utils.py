@@ -12,13 +12,24 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from firefly import build_argument_list
+import firefly as ff
+import typing
 
 
-def test_reserved_words():
-    def foo(id_: str):
-        pass
+def test_is_type_hint():
+    assert ff.is_type_hint(typing.List[str])
+    assert ff.is_type_hint(typing.Dict[str, str])
+    assert ff.is_type_hint(typing.Union[typing.List[str], str])
+    assert ff.is_type_hint(ff.get_args(typing.Union[typing.List[str], str])[0])
 
-    args = build_argument_list({'id': 'bar'}, foo)
 
-    assert 'id_' in args and args['id_'] == 'bar'
+def test_get_origin():
+    assert ff.get_origin(typing.List[str]) == typing.List
+    assert ff.get_origin(typing.Dict[str, str]) is typing.Dict
+    assert ff.get_origin(typing.Union[typing.List[str], str]) is typing.Union
+
+
+def test_get_args():
+    assert ff.get_args(typing.List[str]) == (str,)
+    assert ff.get_args(typing.Dict[str, str]) == (str, str)
+    assert ff.get_args(typing.Union[typing.List[str], str]) == (typing.List[str], str)

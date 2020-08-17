@@ -50,6 +50,8 @@ class TransactionHandlingMiddleware(Middleware, LoggerAware, SystemBusAware):
             self.debug('Level incremented: %d', self._level)
             ret = next_(message)
             self._level -= 1
+            if self._level < 0:
+                self._level = 0
             self.debug('Level decremented: %d', self._level)
             if self._level == 0:
                 self.debug('Level 0 - Committing changes')
@@ -58,6 +60,8 @@ class TransactionHandlingMiddleware(Middleware, LoggerAware, SystemBusAware):
         except Exception as e:
             self.exception(str(e))
             self._level -= 1
+            if self._level < 0:
+                self._level = 0
             self.debug('Level decremented: %d', self._level)
             if self._level == 0:
                 self.debug('Level 0 - Resetting repositories')

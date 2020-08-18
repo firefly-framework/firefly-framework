@@ -97,6 +97,8 @@ if sys.version_info[1] == 7:
             return None
 
     def get_args(obj):
+        if not is_type_hint(obj):
+            return None
         return obj.__args__
 
 

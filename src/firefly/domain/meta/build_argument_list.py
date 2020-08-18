@@ -48,6 +48,108 @@ def _fix_keywords(params: dict):
     return params
 
 
+def _handle_type_hint(params: typing.Any, t: type, key: str = None, required: bool = False):
+    ret = {}
+
+    origin = ffd.get_origin(t)
+    args = ffd.get_args(t)
+
+    if origin is typing.List:
+        if key not in params:
+            if required:
+                raise ffd.MissingArgument()
+            return []
+
+        if ffd.is_type_hint(args[0]):
+            if key is not None:
+                ret[key] = list(map(lambda a: _handle_type_hint(a, args[0]), params[key]))
+            else:
+                ret = list(map(lambda a: _handle_type_hint(a, args[0]), params[key]))
+        elif inspect.isclass(args[0]) and issubclass(args[0], ffd.ValueObject):
+            try:
+                if key is not None:
+                    ret[key] = list(map(lambda a: _build_value_object(a, args[0], required), params[key]))
+                else:
+                    ret = list(map(lambda a: _build_value_object(a, args[0], required), params[key]))
+            except TypeError:
+                return
+        else:
+            ret[key] = params[key]
+
+    elif origin is typing.Dict:
+        if key not in params:
+            if required:
+                raise ffd.MissingArgument()
+            return {}
+
+        if ffd.is_type_hint(args[1]):
+            ret[key] = {k: _handle_type_hint(v, args[1]) for k, v in params[key].items()}
+        elif inspect.isclass(args[1]) and issubclass(args[1], ffd.ValueObject):
+            ret[key] = {k: _build_value_object(v, args[1], required) for k, v in params[key].items()}
+        else:
+            ret[key] = params[key]
+
+    elif origin is typing.Union:
+        for arg in args:
+            r = _handle_type_hint(params, arg, key, required)
+            if r:
+                if key is not None:
+                    ret[key] = r
+                else:
+                    ret = r
+                break
+
+    else:
+        if inspect.isclass(t) and issubclass(t, ffd.ValueObject):
+            return _build_value_object(params, t, required)
+
+        try:
+            if key is not None and t(params[key]) == params[key]:
+                return params[key]
+            elif key is None and t(params) == params:
+                return params
+        except (TypeError, KeyError):
+            pass
+
+    return ret
+
+
+def _build_value_object(obj, type_, required):
+    try:
+        if isinstance(obj, type_):
+            return obj
+    except TypeError:
+        pass
+
+    try:
+        e = _generate_model(obj, type_)
+        if e is False and required is True:
+            raise ffd.MissingArgument()
+        return e
+    except ffd.MissingArgument:
+        if required is False:
+            return
+        raise
+
+
+def _generate_model(args: dict, model_type: type, strict: bool = False):
+    subclasses = model_type.__subclasses__()
+    if len(subclasses):
+        for subclass in subclasses:
+            try:
+                return _generate_model(args, subclass, strict=True)
+            except RuntimeError:
+                continue
+
+    entity_args = build_argument_list(args, model_type)
+    if strict:
+        for k in args.keys():
+            if k not in entity_args:
+                raise RuntimeError()
+
+    return model_type(**entity_args)
+
+
 def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type]):
     args = {}
     field_dict = {}
@@ -125,35 +227,12 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type]):
                         del params[key]
                         if key in args:
                             del args[key]
-        elif isinstance(type_, type(typing.List)) and issubclass(type_.__args__[0], ffd.ValueObject):
-            args[name] = []
-            if isinstance(params, dict) and name in params:
-                for d in params[name]:
-                    if isinstance(d, type_.__args__[0]):
-                        args[name].append(d)
-                    else:
-                        try:
-                            e = _generate_model(d, type_.__args__[0])
-                        except ffd.MissingArgument:
-                            if required is False:
-                                continue
-                            raise
-                        args[name].append(e)
-                        if e is False and required is True:
-                            raise ffd.MissingArgument()
 
-        elif isinstance(type_, type(typing.Dict)) and len(type_.__args__) == 2 and \
-                issubclass(type_.__args__[1], ffd.ValueObject):
-            args[name] = {}
-            if isinstance(params, dict) and name in params:
-                for k, d in params[name].items():
-                    try:
-                        entity_args = build_argument_list(d, type_.__args__[1])
-                    except ffd.MissingArgument:
-                        if required is False:
-                            continue
-                        raise
-                    args[name][k] = type_.__args__[1](**entity_args)
+        elif ffd.is_type_hint(type_):
+            parameter_args = _handle_type_hint(params, type_, key=name, required=required)
+            if parameter_args:
+                args.update(parameter_args)
+
         elif isinstance(params, dict) and name in params:
             args[name] = params[name]
         elif name.endswith('_') and name.rstrip('_') in params:
@@ -162,21 +241,3 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type]):
             raise ffd.MissingArgument(f'Argument: {name} is required')
 
     return args
-
-
-def _generate_model(args: dict, model_type: type, strict: bool = False):
-    subclasses = model_type.__subclasses__()
-    if len(subclasses):
-        for subclass in subclasses:
-            try:
-                return _generate_model(args, subclass, strict=True)
-            except RuntimeError:
-                continue
-
-    entity_args = build_argument_list(args, model_type)
-    if strict:
-        for k in args.keys():
-            if k not in entity_args:
-                raise RuntimeError()
-
-    return model_type(**entity_args)

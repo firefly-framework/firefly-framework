@@ -48,6 +48,13 @@ def _fix_keywords(params: dict):
     return params
 
 
+class Void:
+    pass
+
+
+void = Void()
+
+
 def _handle_type_hint(params: typing.Any, t: type, key: str = None, required: bool = False):
     ret = {}
 
@@ -92,7 +99,7 @@ def _handle_type_hint(params: typing.Any, t: type, key: str = None, required: bo
     elif origin is typing.Union:
         for arg in args:
             r = _handle_type_hint(params, arg, key, required)
-            if r:
+            if r is not void:
                 if key is not None:
                     ret[key] = r
                 else:
@@ -104,12 +111,18 @@ def _handle_type_hint(params: typing.Any, t: type, key: str = None, required: bo
             return _build_value_object(params, t, required)
 
         try:
-            if key is not None and t(params[key]) == params[key]:
-                return params[key]
+            if key is not None:
+                if t(params[key]) == params[key]:
+                    return params[key]
+                if key in params and params[key] is None:
+                    return None
             elif key is None and t(params) == params:
                 return params
         except (TypeError, KeyError):
             pass
+
+    if ret == {}:
+        return void
 
     return ret
 

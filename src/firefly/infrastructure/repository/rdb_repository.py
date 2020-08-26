@@ -80,10 +80,16 @@ class RdbRepository(ffd.Repository[T]):
             criteria = self._get_search_criteria(cb)
             entities = self._interface.all(self._entity_type, criteria=criteria)
 
+            merged = []
             for entity in entities:
-                self._register_entity(entity)
+                if entity in self._entities:
+                    merged.append(next(e for e in self._entities if e == entity))
+                else:
+                    merged.append(entity)
+                    self._register_entity(entity)
             if self._state == 'empty':
                 self._state = 'partial'
+            entities = merged
         return entities
 
     def reduce(self, cb: Callable) -> Optional[T]:

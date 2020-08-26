@@ -307,8 +307,11 @@ class BinaryOp:
         counter = counter or 1
         params = params or {}
         lhv, params, counter = self._process_op(self.lhv, params, counter)
-        if self.op == 'is' and (self.rhv == 'null' or self.rhv is None):
-            rhv = 'null'
+        if self.op == 'is':
+            if self.rhv == 'null' or self.rhv is None:
+                rhv = 'null'
+            elif self.rhv is False or self.rhv is True:
+                rhv = str(self.rhv).lower()
         else:
             rhv, params, counter = self._process_op(self.rhv, params, counter)
 

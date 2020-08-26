@@ -61,6 +61,7 @@ class SqliteStorageInterface(RdbStorageInterface, ffd.LoggerAware):
         ret = []
         row = cursor.fetchone()
         while row is not None:
+            self.debug('Result row: %s', dict(row))
             data = self._serializer.deserialize(row['obj'])
             e = entity_type.from_dict(data)
             ret.append(e)

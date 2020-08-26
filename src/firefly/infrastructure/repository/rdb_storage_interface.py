@@ -158,7 +158,18 @@ class RdbStorageInterface(ffd.LoggerAware, ABC):
     def _generate_where_clause(criteria: ffd.BinaryOp):
         if criteria is None:
             return '', {}
-        return criteria.to_sql()
+        sql, params = criteria.to_sql()
+
+        # TODO Find a better way to handle non-standard SQL dialects.
+        for find, replace in {
+            ' is true': ' = 1',
+            ' is false': ' = 0',
+            ' is not true': ' <> 1',
+            ' is not false': ' <> 0',
+        }.items():
+            sql = sql.replace(find, replace)
+
+        return sql, params
 
     @staticmethod
     def _generate_index(name: str):

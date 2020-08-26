@@ -92,18 +92,10 @@ class Repository(Generic[T], GenericBase, LoggerAware, ABC):
         return self._get_hash(entity) != self._entity_hashes[id(entity)]
 
     def _new_entities(self):
-        ret = []
-        for entity in self._entities:
-            if id(entity) not in self._entity_hashes:
-                ret.append(entity)
-        return ret
+        return [e for e in self._entities if id(e) not in self._entity_hashes]
 
     def _changed_entities(self):
-        ret = []
-        for entity in self._entities:
-            if self._has_changed(entity):
-                ret.append(entity)
-        return ret
+        return [e for e in self._entities if self._has_changed(e)]
 
     @abstractmethod
     def commit(self, **kwargs):

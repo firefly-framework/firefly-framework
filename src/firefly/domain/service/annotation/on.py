@@ -24,16 +24,24 @@ import firefly.domain.error as error
 class On:
     def __call__(self, event: Union[str, type, List[Union[str, type]]]):
         def on_wrapper(cls):
-            try:
-                cls.add_event(event)
-            except AttributeError:
-                if inspect.isfunction(cls):
-                    ff.add_event(cls, event)
-                else:
-                    raise error.FrameworkError('@on used on invalid target')
+            if isinstance(event, (list, tuple)):
+                for e in event:
+                    self._apply_event(cls, e)
+            else:
+                self._apply_event(cls, event)
             return cls
 
         return on_wrapper
+
+    @staticmethod
+    def _apply_event(cls, event: Union[str, type]):
+        try:
+            cls.add_event(event)
+        except AttributeError:
+            if inspect.isfunction(cls):
+                ff.add_event(cls, event)
+            else:
+                raise error.FrameworkError('@on used on invalid target')
 
 
 on = On()

@@ -32,16 +32,16 @@ class WidgetRepository(ff.Repository[Widget]):
         self._foos = foos
         self._index = 0
 
-    def append(self, entity: T):
+    def append(self, entity: T, **kwargs):
         pass
 
-    def remove(self, entity: T):
+    def remove(self, entity: T, **kwargs):
         pass
 
-    def find(self, exp: Union[str, Callable]) -> Optional[T]:
+    def find(self, exp: Union[str, Callable], **kwargs) -> Optional[T]:
         pass
 
-    def filter(self, cb: Callable) -> List[T]:
+    def filter(self, cb: Callable, **kwargs) -> List[T]:
         criteria = self._get_search_criteria(cb)
         return list(filter(lambda i: criteria.matches(i), self._foos))
 

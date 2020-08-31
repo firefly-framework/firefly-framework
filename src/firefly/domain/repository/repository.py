@@ -50,20 +50,12 @@ class Repository(Generic[T], GenericBase, LoggerAware, ABC):
     def filter(self, cb: Callable, **kwargs) -> List[T]:
         pass
 
-    @abstractmethod
-    def reduce(self, cb: Callable) -> Optional[T]:
-        pass
-
     def touch(self, entity: ffd.Entity):
         if id(entity) in self._entity_hashes:
             self._entity_hashes[id(entity)] = ''
 
     @abstractmethod
     def __iter__(self):
-        pass
-
-    @abstractmethod
-    def __next__(self):
         pass
 
     @abstractmethod
@@ -99,10 +91,6 @@ class Repository(Generic[T], GenericBase, LoggerAware, ABC):
 
     @abstractmethod
     def commit(self, **kwargs):
-        pass
-
-    @abstractmethod
-    def execute_ddl(self):
         pass
 
     def reset(self):

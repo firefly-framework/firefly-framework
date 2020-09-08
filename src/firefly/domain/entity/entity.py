@@ -14,21 +14,22 @@
 
 from __future__ import annotations
 
+import inspect
 import typing
 from datetime import datetime, date
 
 import inflection
 
 from .validation import *
-from firefly.domain.meta.entity_meta import EntityMeta
 from firefly.domain.value_object import ValueObject, Empty
 from firefly.domain.meta.context_aware import ContextAware
 from firefly.domain.meta.build_argument_list import build_argument_list
+from firefly.domain.utils import is_type_hint, get_origin, get_args
 
 # __pragma__('skip')
 import uuid
 
-from dataclasses import is_dataclass, fields, field, MISSING, asdict
+from dataclasses import is_dataclass, fields, field, MISSING
 from typing import List, Callable
 from abc import ABC
 # __pragma__('noskip')
@@ -77,39 +78,17 @@ class Entity(ContextAware, ValueObject):
                 return field_.name
 
     def load_dict(self, data: dict):
-        data = self._process_data(self.__class__, data)
+        data = build_argument_list(data, self.__class__, strict=False)
         t = typing.get_type_hints(self.__class__)
         for name, type_ in t.items():
             if name in data:
-                if issubclass(type_, (datetime, date)) and isinstance(data[name], str):
+                if inspect.isclass(type_) and issubclass(type_, (datetime, date)) and isinstance(data[name], str):
                     setattr(self, name, parse(data[name], ignoretz=True))
                 else:
                     try:
                         setattr(self, name, type_(data[name]))
                     except TypeError:
                         setattr(self, name, data[name])
-
-    @staticmethod
-    def _process_data(cls, data: dict):
-        t = typing.get_type_hints(cls)
-        for name, type_ in t.items():
-            if name.startswith('_'):
-                continue
-
-            if isinstance(type_, type(List)) and len(type_.__args__) == 1:
-                new_list = []
-                for item in data[name]:
-                    nested_data = Entity._process_data(type_.__args__[0], item)
-                    new_list.append(type_.__args__[0](**build_argument_list(nested_data, type_.__args__[0])))
-                data[name] = new_list
-            else:
-                try:
-                    if issubclass(type_, Entity):
-                        data[name] = type_(**build_argument_list(data[name], type_))
-                except TypeError:
-                    pass
-
-        return data
 
     @classmethod
     def id_name(cls):

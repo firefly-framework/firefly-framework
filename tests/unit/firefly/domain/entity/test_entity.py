@@ -14,6 +14,7 @@
 
 from dataclasses import dataclass
 from datetime import datetime, date, timedelta
+from typing import List
 
 import firefly.domain as ffd
 import pytest
@@ -48,6 +49,24 @@ def test_load_dict_type_coercion(sut):
     assert isinstance(s.now, datetime)
 
 
+def test_dict_properties(sut):
+    s = sut(required_field='foo')
+    s.load_dict({
+        'dictionary': {'foo': 'bar'}
+    })
+
+    assert s.dictionary == {'foo': 'bar'}
+
+
+def test_list_typing(sut):
+    s = sut(required_field='foo')
+    s.load_dict({
+        'list_of_ints': [1, 2, 3]
+    })
+
+    assert s.list_of_ints == [1, 2, 3]
+
+
 def test_default_values(sut):
     s = sut(required_field='foo')
     assert isinstance(s.now, datetime)
@@ -63,5 +82,7 @@ def sut():
         now: datetime = ffd.now()
         today: date = ffd.today()
         required_field: str = ffd.required()
+        dictionary: dict = ffd.dict_()
+        list_of_ints: List[int] = ffd.list_()
 
     return ConcreteEntity

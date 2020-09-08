@@ -163,7 +163,7 @@ def _generate_model(args: dict, model_type: type, strict: bool = False):
     return model_type(**entity_args)
 
 
-def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type]):
+def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], strict: bool = True):
     args = {}
     field_dict = {}
     is_dc = False
@@ -250,7 +250,7 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type]):
             args[name] = params[name]
         elif name.endswith('_') and name.rstrip('_') in params:
             args[name] = params[name.rstrip('_')]
-        elif required is True:
+        elif required is True and strict:
             raise ffd.MissingArgument(f'Argument: {name} is required')
 
     return args

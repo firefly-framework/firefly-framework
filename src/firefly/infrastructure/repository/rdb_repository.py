@@ -32,8 +32,8 @@ class RdbRepository(ffd.Repository[T]):
         self._index = 0
         self._state = 'empty'
 
-    def execute_ddl(self):
-        self._interface.execute_ddl(self._type())
+    def execute(self):
+        self._interface.execute(self._type())
 
     def append(self, entity: T, **kwargs):
         self.debug('Entity added to repository: %s', str(entity))
@@ -41,21 +41,23 @@ class RdbRepository(ffd.Repository[T]):
             self._entities.append(entity)
         self._state = 'partial'
 
-    def remove(self, entity: T, **kwargs):
-        self.debug('Entity removed from repository: %s', str(entity))
-        self._deletions.append(entity)
-        if entity in self._entities:
-            self._entities.remove(entity)
+    def remove(self, x: Union[T, Callable, ffd.BinaryOp], **kwargs):
+        self.debug('Entity removed from repository: %s', str(x))
+        self._deletions.append(x)
+        if isinstance(x, ffd.Entity) and x in self._entities:
+            self._entities.remove(x)
 
-    def find(self, exp: Union[str, Callable], **kwargs) -> T:
+    def find(self, x: Union[str, Callable, ffd.BinaryOp], **kwargs) -> T:
         ret = None
-        if isinstance(exp, str):
-            entity = self._find_checked_out_entity(exp)
+        if isinstance(x, str):
+            entity = self._find_checked_out_entity(x)
             if entity is not None:
                 return entity
-            ret = self._interface.find(exp, self._entity_type)
+            ret = self._interface.find(x, self._entity_type)
         else:
-            results = self._interface.all(self._entity_type, self._get_search_criteria(exp))
+            if not isinstance(x, ffd.BinaryOp):
+                x = self._get_search_criteria(x)
+            results = self._interface.all(self._entity_type, x)
             if len(results) > 0:
                 ret = results[0]
 
@@ -66,18 +68,11 @@ class RdbRepository(ffd.Repository[T]):
 
         return ret
 
-    def raw(self, cb: Union[Callable, ffd.BinaryOp] = None, limit: int = None):
-        criteria = None
-        if cb is not None:
-            criteria = self._get_search_criteria(cb)
-        return self._interface.raw(self._entity_type, criteria, limit)
-
-    def filter(self, cb: Union[Callable, ffd.BinaryOp], **kwargs) -> List[T]:
+    def filter(self, x: Union[Callable, ffd.BinaryOp], **kwargs) -> List[T]:
+        criteria = self._get_search_criteria(x) if not isinstance(x, ffd.BinaryOp) else x
         if self._state == 'full':
-            criteria = self._get_search_criteria(cb)
             entities = list(filter(lambda e: criteria.matches(e), self._entities))
         else:
-            criteria = self._get_search_criteria(cb)
             entities = self._interface.all(self._entity_type, criteria=criteria)
 
             merged = []
@@ -92,15 +87,9 @@ class RdbRepository(ffd.Repository[T]):
             entities = merged
         return entities
 
-    def reduce(self, cb: Callable) -> Optional[T]:
-        pass
-
     def __iter__(self):
         self._load_all()
         return iter(list(self._entities))
-
-    def __next__(self):
-        pass
 
     def __len__(self):
         self._load_all()
@@ -127,6 +116,7 @@ class RdbRepository(ffd.Repository[T]):
             self.debug('Adding %s', entity)
             self._interface.add(entity)
 
+        print(f'Changed entities: {self._changed_entities()}')
         for entity in self._changed_entities():
             self.debug('Updating %s', entity)
             self._interface.update(entity)
@@ -143,3 +133,20 @@ class RdbRepository(ffd.Repository[T]):
     def reset(self):
         super().reset()
         self._state = 'empty'
+
+
+class ResultSet:
+    def __init__(self, interface: ffi.RdbStorageInterface):
+        self._interface = interface
+
+    def __iter__(self):
+        self._load_all()
+        return iter(list(self._entities))
+
+    def __len__(self):
+        self._load_all()
+        return len(self._entities)
+
+    def __getitem__(self, item):
+        self._load_all()
+        return self._entities[item]

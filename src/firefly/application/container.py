@@ -14,10 +14,25 @@
 
 from __future__ import annotations
 
+import os
+from dataclasses import fields
+
 import firefly.application as ffa
 import firefly.domain as ffd
 import firefly.infrastructure as ffi
+import firefly.infrastructure.repository.rdb_storage_interfaces as rsi
 import firefly_di as di
+from firefly.infrastructure.jinja2 import is_attribute, is_criteria, id_field
+from jinja2 import Environment, FileSystemLoader
+from jinjasql import JinjaSql
+
+
+def build_jinja(self):
+    env = self.jinjasql_environment
+    env.tests['attribute'] = is_attribute
+    env.tests['criteria'] = is_criteria
+    env.filters['id_field'] = id_field
+    return JinjaSql(env=env, param_style='named')
 
 
 class Container(di.Container):
@@ -102,3 +117,12 @@ class Container(di.Container):
     agent_factory: ffd.AgentFactory = lambda self: self.build(ffd.AgentFactory, agents={
         'default': self.build(ffi.DefaultAgent)
     })
+
+    # Templating
+    jinjasql_environment: Environment = lambda self: Environment(
+        loader=FileSystemLoader([f'{os.path.abspath(os.path.dirname(rsi.__file__))}/templates']),
+        autoescape=True,
+        trim_blocks=True,
+        lstrip_blocks=True,
+    )
+    jinjasql: JinjaSql = lambda self: build_jinja(self)

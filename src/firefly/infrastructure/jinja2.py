@@ -11,12 +11,20 @@
 #
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
+from dataclasses import fields
 
-from .rdb_connection_factory import RdbConnectionFactory
-from .rdb_repository import RdbRepository
-from .rdb_repository_factory import RdbRepositoryFactory
-from .rdb_storage_interface import RdbStorageInterface
-from .rdb_storage_interface_registry import RdbStorageInterfaceRegistry
-from .rdb_storage_interfaces import *
-from .memory_repository import MemoryRepository
-from .memory_repository_factory import MemoryRepositoryFactory
+import firefly.domain as ffd
+
+
+def is_attribute(x):
+    return isinstance(x, (ffd.Attr, ffd.AttributeString))
+
+
+def is_criteria(x):
+    return isinstance(x, ffd.BinaryOp)
+
+
+def id_field(x):
+    for field_ in fields(x):
+        if 'id' in field_.metadata:
+            return field_

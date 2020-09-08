@@ -39,14 +39,16 @@ class SqliteStorageInterface(RdbStorageInterface, ffd.LoggerAware):
             self._tables_checked = []
 
     def _add(self, entity: ffd.Entity):
-        cursor = self._connection.cursor()
-        cursor.execute(*self._generate_insert(entity))
-        self._connection.commit()
-        cursor.close()
+        self._execute(*self._generate_query(entity, 'sqlite/insert.sql', {
+            'data': {
+                'id': entity.id_value(),
+                'document': self._serializer.serialize(entity),
+            }
+        }))
 
     def _all(self, entity_type: Type[ffd.Entity], criteria: ffd.BinaryOp = None, limit: int = None):
         cursor = self._connection.cursor()
-        sql = f"select obj from {self._fqtn(entity_type)}"
+        sql = f"select document from {self._fqtn(entity_type)}"
         params = {}
 
         pruned_criteria = None
@@ -62,7 +64,7 @@ class SqliteStorageInterface(RdbStorageInterface, ffd.LoggerAware):
         row = cursor.fetchone()
         while row is not None:
             self.debug('Result row: %s', dict(row))
-            data = self._serializer.deserialize(row['obj'])
+            data = self._serializer.deserialize(row['document'])
             e = entity_type.from_dict(data)
             ret.append(e)
             if limit is not None and len(ret) >= limit:
@@ -79,11 +81,11 @@ class SqliteStorageInterface(RdbStorageInterface, ffd.LoggerAware):
 
     def _find(self, uuid: str, entity_type: Type[ffd.Entity]):
         cursor = self._connection.cursor()
-        sql = f"select obj from {self._fqtn(entity_type)} where id = ?"
+        sql = f"select document from {self._fqtn(entity_type)} where id = ?"
         cursor.execute(sql, (uuid,))
         row = cursor.fetchone()
         if row is not None:
-            return entity_type.from_dict(self._serializer.deserialize(row['obj']))
+            return entity_type.from_dict(self._serializer.deserialize(row['document']))
 
     def _remove(self, entity: ffd.Entity):
         cursor = self._connection.cursor()
@@ -110,24 +112,9 @@ class SqliteStorageInterface(RdbStorageInterface, ffd.LoggerAware):
         self._connection = sqlite3.connect(host, detect_types=sqlite3.PARSE_DECLTYPES)
         self._connection.row_factory = sqlite3.Row
 
-    def _execute_ddl(self, entity: Type[ffd.Entity]):
-        self._ensure_connected()
-        cursor = self._connection.cursor()
-        self.debug(self._generate_create_table(entity))
-        cursor.execute(self._generate_create_table(entity))
-
     @staticmethod
     def _fqtn(entity: Type[ffd.Entity]):
         return inflection.tableize(entity.get_fqn()).replace('.', '_')
-
-    def _get(self, entity: ffd.Entity):
-        if entity.__class__ in self._cache and entity.id_value() in self._cache[entity.__class__]:
-            return self._cache[entity.__class__][entity.id_value()]
-
-    def _set(self, entity: ffd.Entity):
-        if entity.__class__ not in self._cache:
-            self._cache[entity.__class__] = {}
-        self._cache[entity.__class__][entity.id_value()] = entity
 
     def _remove_from_cache(self, entity: ffd.Entity):
         if entity.__class__ in self._cache and entity.id_value() in self._cache[entity.__class__]:
@@ -138,7 +125,7 @@ class SqliteStorageInterface(RdbStorageInterface, ffd.LoggerAware):
         return f"`{name}` timestamp"
 
     def _generate_update_list(self, entity: Type[ffd.Entity]):
-        values = ['obj=:obj']
+        values = ['document=:document']
         for index in self.get_indexes(entity):
             values.append(f'`{index.name}`=:{index.name}')
         return ','.join(values)
@@ -147,23 +134,23 @@ class SqliteStorageInterface(RdbStorageInterface, ffd.LoggerAware):
         return entity.from_dict(self._serializer.deserialize(data[0]['stringValue']))
 
     def _generate_select_list(self, entity: Type[ffd.Entity]):
-        return 'obj'
+        return 'document'
 
     def _generate_column_list(self, entity: Type[ffd.Entity]):
-        values = ['id', 'obj']
+        values = ['id', 'document']
         for index in self.get_indexes(entity):
             values.append(index.name)
         return ','.join(values)
 
     def _generate_value_list(self, entity: Type[ffd.Entity]):
-        placeholders = [':id', ':obj']
+        placeholders = [':id', ':document']
         for index in self.get_indexes(entity):
             placeholders.append(f':{index.name}')
         return ','.join(placeholders)
 
     def _generate_parameters(self, entity: ffd.Entity, part: str = None):
-        obj = self._serializer.serialize(entity.to_dict(force_all=True))
-        params = {'id': entity.id_value(), 'obj': obj}
+        document = self._serializer.serialize(entity.to_dict(force_all=True))
+        params = {'id': entity.id_value(), 'document': document}
         for field_ in self.get_indexes(entity.__class__):
             params[field_.name] = getattr(entity, field_.name)
         return params
@@ -190,12 +177,24 @@ class SqliteStorageInterface(RdbStorageInterface, ffd.LoggerAware):
         sql = f"""
             create table if not exists {self._fqtn(entity)} (
                 id varchar(40)
-                , obj longtext not null
+                , document longtext not null
                 {extra}
                 , primary key(id)
             )
         """
         return sql
 
-    def raw(self, entity: Type[ffd.Entity], criteria: ffd.BinaryOp = None, limit: int = None):
-        pass
+    def _execute(self, sql: str, params: dict = None):
+        cursor = self._connection.cursor()
+        self.info(sql)
+        ret = cursor.execute(sql, params)
+        self._connection.commit()
+        cursor.close()
+
+        return ret
+
+    def _migrate_table(self, entity: Type[ffd.Entity]):
+        self._ensure_connected()
+        cursor = self._connection.cursor()
+        self.debug(self._generate_create_table(entity))
+        cursor.execute(self._generate_create_table(entity))

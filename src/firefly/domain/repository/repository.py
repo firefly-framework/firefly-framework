@@ -39,16 +39,25 @@ class Repository(Generic[T], GenericBase, LoggerAware, ABC):
         pass
 
     @abstractmethod
-    def remove(self, entity: T, **kwargs):
+    def remove(self, x: Union[T, Callable, ffd.BinaryOp], **kwargs):
         pass
 
     @abstractmethod
-    def find(self, exp: Union[str, Callable], **kwargs) -> Optional[T]:
+    def find(self, x: Union[str, Callable, ffd.BinaryOp], **kwargs) -> Optional[T]:
         pass
 
     @abstractmethod
-    def filter(self, cb: Callable, **kwargs) -> List[T]:
+    def filter(self, x: Union[Callable, ffd.BinaryOp], **kwargs) -> List[T]:
         pass
+
+    @abstractmethod
+    def commit(self, **kwargs):
+        pass
+
+    def reset(self):
+        self._deletions = []
+        self._entities = []
+        self._entity_hashes = {}
 
     def touch(self, entity: ffd.Entity):
         if id(entity) in self._entity_hashes:
@@ -88,15 +97,3 @@ class Repository(Generic[T], GenericBase, LoggerAware, ABC):
 
     def _changed_entities(self):
         return [e for e in self._entities if self._has_changed(e)]
-
-    @abstractmethod
-    def commit(self, **kwargs):
-        pass
-
-    def reset(self):
-        self._deletions = []
-        self._entities = []
-        self._entity_hashes = {}
-
-    def raw(self, cb: Union[Callable, ffd.BinaryOp] = None, limit: int = None):
-        raise NotImplementedError()

@@ -1,0 +1,1 @@
+{% extends 'sql/insert.sql' %}

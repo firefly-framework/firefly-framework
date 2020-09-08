@@ -13,7 +13,7 @@
 #  <http://www.gnu.org/licenses/>.
 
 from dataclasses import dataclass
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 
 import firefly.domain as ffd
 import pytest
@@ -25,6 +25,21 @@ def test_constructor(sut):
         sut()
 
     sut(required_field='foo')
+
+
+def test_load_dict_type_coercion(sut):
+    dt = datetime.now() - timedelta(days=1)
+    d = dt.date()
+    data = {
+        'now': dt.isoformat(),
+        'today': d.isoformat(),
+    }
+
+    s = sut(required_field='foo')
+    s.load_dict(data)
+
+    assert isinstance(s.now, datetime)
+    assert isinstance(s.today, date)
 
 
 def test_default_values(sut):

@@ -81,7 +81,13 @@ class Entity(ContextAware, ValueObject):
         t = typing.get_type_hints(self.__class__)
         for name, type_ in t.items():
             if name in data:
-                setattr(self, name, data[name])
+                if issubclass(type_, (datetime, date)):
+                    setattr(self, name, parse(data[name], ignoretz=True))
+                else:
+                    try:
+                        setattr(self, name, type_(data[name]))
+                    except TypeError:
+                        setattr(self, name, data[name])
 
     @staticmethod
     def _process_data(cls, data: dict):

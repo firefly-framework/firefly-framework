@@ -81,7 +81,7 @@ class Entity(ContextAware, ValueObject):
         t = typing.get_type_hints(self.__class__)
         for name, type_ in t.items():
             if name in data:
-                if issubclass(type_, (datetime, date)):
+                if issubclass(type_, (datetime, date)) and isinstance(data[name], str):
                     setattr(self, name, parse(data[name], ignoretz=True))
                 else:
                     try:

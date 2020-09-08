@@ -41,6 +41,12 @@ def test_load_dict_type_coercion(sut):
     assert isinstance(s.now, datetime)
     assert isinstance(s.today, date)
 
+    s.load_dict({
+        'now': datetime.now()
+    })
+
+    assert isinstance(s.now, datetime)
+
 
 def test_default_values(sut):
     s = sut(required_field='foo')

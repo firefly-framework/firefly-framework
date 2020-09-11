@@ -27,6 +27,9 @@ from firefly.presentation.web.polyfills import ABC
 class ContextAware(ABC):
     @classmethod
     def get_class_context(cls):
+        if hasattr(cls, '_context') and cls._context is not None:
+            return cls._context
+
         parts = cls.__module__.split('.')
         # KLUDGE For integration / acceptance testing
         return parts[0] if parts[0] != 'firefly_test' else parts[1]

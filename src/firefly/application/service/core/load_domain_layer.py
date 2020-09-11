@@ -28,12 +28,17 @@ class LoadDomainLayer(ffd.ApplicationService):
     def __call__(self, **kwargs):
         for context in self._context_map.contexts:
             self._load_module(context)
+            if 'extends' in context.config:
+                base_context = self._context_map.get_context(context.config['extends'])
+                self._load_module(
+                    context, base_context.config.get('entity_module', '{}.domain').format(base_context.name)
+                )
         self.dispatch(ffd.DomainEntitiesLoaded())
 
-    def _load_module(self, context: ffd.Context):
-        module_name = context.config.get('entity_module', '{}.domain')
+    def _load_module(self, context: ffd.Context, module_name: str = None):
+        module_name = module_name or context.config.get('entity_module', '{}.domain').format(context.name)
         try:
-            module = importlib.import_module(module_name.format(context.name))
+            module = importlib.import_module(module_name)
         except (ModuleNotFoundError, KeyError):
             return
 

@@ -39,6 +39,11 @@ class AutoGenerateAggregateApis(ApplicationService, LoggerAware):
         for context in self._context_map.contexts:
             for entity in context.entities:
                 self._process_entity(context, entity)
+            if 'extends' in context.config:
+                base_context = self._context_map.get_context(context.config['extends'])
+                for entity in base_context.entities:
+                    entity._context = context.name
+                    self._process_entity(context, entity)
 
     def _process_entity(self, context: ff.Context, entity: type):
         if not issubclass(entity, ff.AggregateRoot) or entity == ff.AggregateRoot:

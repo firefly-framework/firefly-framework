@@ -16,6 +16,8 @@
 from .aggregate_root import *
 from .core import *
 from .entity import *
+from .json_schema import JsonSchema
 from .messaging import *
+from .meta_aggregate import MetaAggregate
 from .validation import *
 # __pragma__('noskip')

@@ -14,27 +14,10 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict
-from typing import TypeVar, Generic, Optional, Union
-
-import firefly.domain as ffd
-
-from .crud_operation import CrudOperation
-from ..core.application_service import ApplicationService
-from ..messaging.system_bus import SystemBusAware
-from ...value_object.generic_base import GenericBase
-
-T = TypeVar('T')
+from .entity import id_, required
+from .aggregate_root import AggregateRoot
 
 
-class UpdateEntity(Generic[T], ApplicationService, GenericBase, CrudOperation, SystemBusAware):
-    _registry: ffd.Registry = None
-
-    def __call__(self, **kwargs) -> bool:
-        type_ = self._type()
-        id_arg = type_.match_id_from_argument_list(kwargs)
-        entity = self._registry(type_).find(list(id_arg.values()).pop())
-        entity.load_dict(kwargs)
-        self.dispatch(self._build_event(type_, 'update', asdict(entity), entity.get_class_context()))
-
-        return True
+class JsonSchema(AggregateRoot):
+    id: str = id_()
+    schema: dict = required()

@@ -13,7 +13,8 @@
 #  <http://www.gnu.org/licenses/>.
 
 from dataclasses import dataclass
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
+from typing import List
 
 import firefly.domain as ffd
 import pytest
@@ -25,6 +26,45 @@ def test_constructor(sut):
         sut()
 
     sut(required_field='foo')
+
+
+def test_load_dict_type_coercion(sut):
+    dt = datetime.now() - timedelta(days=1)
+    d = dt.date()
+    data = {
+        'now': dt.isoformat(),
+        'today': d.isoformat(),
+    }
+
+    s = sut(required_field='foo')
+    s.load_dict(data)
+
+    assert isinstance(s.now, datetime)
+    assert isinstance(s.today, date)
+
+    s.load_dict({
+        'now': datetime.now()
+    })
+
+    assert isinstance(s.now, datetime)
+
+
+def test_dict_properties(sut):
+    s = sut(required_field='foo')
+    s.load_dict({
+        'dictionary': {'foo': 'bar'}
+    })
+
+    assert s.dictionary == {'foo': 'bar'}
+
+
+def test_list_typing(sut):
+    s = sut(required_field='foo')
+    s.load_dict({
+        'list_of_ints': [1, 2, 3]
+    })
+
+    assert s.list_of_ints == [1, 2, 3]
 
 
 def test_default_values(sut):
@@ -42,5 +82,7 @@ def sut():
         now: datetime = ffd.now()
         today: date = ffd.today()
         required_field: str = ffd.required()
+        dictionary: dict = ffd.dict_()
+        list_of_ints: List[int] = ffd.list_()
 
     return ConcreteEntity

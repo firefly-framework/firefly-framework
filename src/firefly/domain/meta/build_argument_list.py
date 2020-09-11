@@ -242,9 +242,13 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], 
                             del args[key]
 
         elif ffd.is_type_hint(type_):
-            parameter_args = _handle_type_hint(params, type_, key=name, required=required)
-            if parameter_args:
-                args.update(parameter_args)
+            if type_ is typing.Any:
+                if name in params:
+                    args[name] = params[name]
+            else:
+                parameter_args = _handle_type_hint(params, type_, key=name, required=required)
+                if parameter_args and not isinstance(parameter_args, Void):
+                    args.update(parameter_args)
 
         elif isinstance(params, dict) and name in params:
             args[name] = params[name]

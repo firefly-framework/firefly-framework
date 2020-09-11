@@ -14,14 +14,66 @@
 
 from __future__ import annotations
 
+from dataclasses import fields
+
+from firefly.application import Container
 from datetime import datetime
 from pprint import pprint
 
 import firefly as ff
 import regex
 
+container = Container()
 
-# r = regex.findall(r'(([^\(]+)\(((?R))\))|([^\)]*)', 'UPPER(LOWER(foo))')
-r = regex.findall(r'((\w)\((?R)\))|(\w+)', 'UPPER(LOWER(foo))')
+schema = {
+    "title": "Example Schema",
+    "type": "object",
+    "properties": {
+        "firstName": {
+            "type": "string"
+        },
+        "lastName": {
+            "type": "string"
+        },
+        "age": {
+            "description": "Age in years",
+            "type": "integer",
+            "minimum": 0
+        },
+        "dogs": {
+            "type": "array",
+            "items": {"type": "string"},
+            "maxItems": 4
+        },
+        "address": {
+            "type": "object",
+            "properties": {
+                "street": {"type": "string"},
+                "city": {"type": "string"},
+                "state": {"type": "string"}
+                },
+            "required":["street", "city"]
+            },
+        "gender": {
+            "type": "string",
+            "enum": ["male", "female"]
+        },
+        "deceased": {
+            "enum": ["yes", "no", 1, 0, "true", "false"]
+            }
+    },
+    "required": ["firstName", "lastName"]
+}
 
-print(list(map(lambda rr: rr[2], r)))
+cls = container.entity_factory.from_json_schema(schema)
+
+c = cls.from_dict({
+    'first_name': 'foo',
+    'last_name': 'bar',
+    'address': {
+        'city': 'Foo',
+        'street': 'bar',
+    }
+})
+
+pprint(c)

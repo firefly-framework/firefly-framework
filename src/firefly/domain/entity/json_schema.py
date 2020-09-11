@@ -12,12 +12,12 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-# __pragma__('skip')
-from .aggregate_root import *
-from .core import *
-from .entity import *
-from .json_schema import JsonSchema
-from .messaging import *
-from .meta_aggregate import MetaAggregate
-from .validation import *
-# __pragma__('noskip')
+from __future__ import annotations
+
+from .entity import id_, required
+from .aggregate_root import AggregateRoot
+
+
+class JsonSchema(AggregateRoot):
+    id: str = id_()
+    schema: dict = required()

@@ -99,7 +99,10 @@ if sys.version_info[1] == 7:
     def get_args(obj):
         if not is_type_hint(obj):
             return None
-        return obj.__args__
+        try:
+            return obj.__args__
+        except AttributeError:
+            return None
 
 
 class ValueMeta(type):

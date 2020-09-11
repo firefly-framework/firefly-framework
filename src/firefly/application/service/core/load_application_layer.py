@@ -37,18 +37,10 @@ class LoadApplicationLayer(ffd.ApplicationService):
     def __call__(self, **kwargs):
         self._deferred = []
         for context in self._context_map.contexts:
-            for cls in self._load_module(context):
-                if cls.has_annotations():
-                    for annotation in cls.get_annotations():
-                        annotation.configure(cls, context.container)
-                if issubclass(cls, ffd.ApplicationService):
-                    self._register_service(cls, context)
-                    self._add_endpoints(cls, context)
-                elif issubclass(cls, ffd.Middleware):
-                    self._add_middleware(cls, context)
-            for entity in context.entities:
-                if issubclass(entity, ffd.AggregateRoot):
-                    self._add_endpoints(entity, context)
+            self._process_classes(self._load_module(context), context)
+            if 'extends' in context.config:
+                base_context = self._context_map.get_context(context.config['extends'])
+                self._process_classes(self._load_module(base_context), context)
 
         for deferred in self._deferred:
             if deferred[0] == 'event':
@@ -59,6 +51,20 @@ class LoadApplicationLayer(ffd.ApplicationService):
                 self._system_bus.add_query_handler(deferred[1], **deferred[2])
 
         self.dispatch(ffd.ApplicationLayerLoaded())
+
+    def _process_classes(self, classes: list, context: ffd.Context):
+        for cls in classes:
+            if cls.has_annotations():
+                for annotation in cls.get_annotations():
+                    annotation.configure(cls, context.container)
+            if issubclass(cls, ffd.ApplicationService):
+                self._register_service(cls, context)
+                self._add_endpoints(cls, context)
+            elif issubclass(cls, ffd.Middleware):
+                self._add_middleware(cls, context)
+        for entity in context.entities:
+            if issubclass(entity, ffd.AggregateRoot):
+                self._add_endpoints(entity, context)
 
     def _add_middleware(self, cls: Type[ffd.Middleware], context: ffd.Context):
         if not cls.is_middleware():
@@ -137,6 +143,18 @@ class LoadApplicationLayer(ffd.ApplicationService):
                     cls.set_command(self._generate_message(cls, 'command'))
                     endpoint.message = cls.get_command()
                     self._register_service(cls, context)
+
+            if isinstance(endpoint.message, str):
+                if not endpoint.message.startswith(context.name):
+                    endpoint.message = '.'.join((context.name, endpoint.message.split('.')[1]))
+            else:
+                if endpoint.message.get_class_context() != context.name:
+                    endpoint.message._context = context.name
+
+            if hasattr(endpoint, 'scopes'):
+                for i, scope in enumerate(endpoint.scopes):
+                    if not scope.startswith(context.name):
+                        endpoint.scopes[i] = '.'.join([context.name] + scope.split('.')[1:])
 
             context.endpoints.append(endpoint)
             if isinstance(endpoint, ffd.HttpEndpoint):

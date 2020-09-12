@@ -48,5 +48,5 @@
 {% endmacro %}
 
 {% macro default_attribute_macro(c) %}
-    "{{ c | sqlsafe }}"
+    {{ _q | sqlsafe }}{{ c | sqlsafe }}{{ _q | sqlsafe }}
 {% endmacro %}

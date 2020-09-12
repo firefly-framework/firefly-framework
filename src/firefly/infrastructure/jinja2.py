@@ -14,6 +14,7 @@
 from dataclasses import fields
 
 import firefly.domain as ffd
+from firefly.infrastructure.repository.rdb_repository import Index
 
 
 def is_attribute(x):
@@ -28,3 +29,22 @@ def id_field(x):
     for field_ in fields(x):
         if 'id' in field_.metadata:
             return field_
+
+
+def indexes(entity):
+    ret = []
+    for field_ in fields(entity):
+        if 'index' in field_.metadata:
+            if field_.metadata['index'] is True:
+                ret.append(Index(columns=[field_.name], unique=field_.metadata.get('unique', False) is True))
+            elif isinstance(field_.metadata['index'], str):
+                name = field_.metadata['index']
+                idx = next(filter(lambda i: i.name == name, ret))
+                if not idx:
+                    ret.append(Index(columns=[field_.name], unique=field_.metadata.get('unique', False) is True))
+                else:
+                    idx.columns.append(field_.name)
+                    if field_.metadata.get('unique', False) is True and idx.unique is False:
+                        idx.unique = True
+
+    return ret

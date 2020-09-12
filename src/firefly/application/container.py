@@ -22,7 +22,7 @@ import firefly.domain as ffd
 import firefly.infrastructure as ffi
 import firefly.infrastructure.repository.rdb_storage_interfaces as rsi
 import firefly_di as di
-from firefly.infrastructure.jinja2 import is_attribute, is_criteria, id_field
+from firefly.infrastructure.jinja2 import is_attribute, is_criteria, id_field, indexes
 from jinja2 import Environment, FileSystemLoader
 from jinjasql import JinjaSql
 
@@ -32,6 +32,13 @@ def build_jinja(self):
     env.tests['attribute'] = is_attribute
     env.tests['criteria'] = is_criteria
     env.filters['id_field'] = id_field
+    env.filters['indexes'] = indexes
+    env.filters['fields'] = fields
+
+    def serialized(entity):
+        return self.serializer.serialize(entity)
+    env.filters['serialized'] = serialized
+
     return JinjaSql(env=env, param_style='named')
 
 

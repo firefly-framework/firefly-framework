@@ -98,7 +98,7 @@ def registry(container, request) -> ff.Registry:
                 try:
                     repository = registry(entity)
                     if isinstance(repository, ffi.RdbRepository):
-                        repository.execute()
+                        repository.migrate_schema()
                 except ff.FrameworkError:
                     pass
 

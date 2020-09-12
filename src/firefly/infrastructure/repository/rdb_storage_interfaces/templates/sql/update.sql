@@ -3,7 +3,7 @@
 
     {% block columns %}
         {%- for k, v in data.items() -%}
-            "{{ k | sqlsafe }}"={{ v }}{% if not loop.last %},{% endif %}
+            {{ _q | sqlsafe }}{{ k | sqlsafe }}{{ _q | sqlsafe }}={{ v }}{% if not loop.last %},{% endif %}
         {%- endfor -%}
     {% endblock %}
 

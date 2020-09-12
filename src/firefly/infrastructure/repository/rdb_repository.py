@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from typing import List, Callable, Optional, Union
+from typing import List, Callable, Union
 
 import firefly.domain as ffd
 import firefly.infrastructure as ffi
@@ -116,7 +116,6 @@ class RdbRepository(ffd.Repository[T]):
             self.debug('Adding %s', entity)
             self._interface.add(entity)
 
-        print(f'Changed entities: {self._changed_entities()}')
         for entity in self._changed_entities():
             self.debug('Updating %s', entity)
             self._interface.update(entity)
@@ -134,6 +133,30 @@ class RdbRepository(ffd.Repository[T]):
         super().reset()
         self._state = 'empty'
 
+    def migrate_schema(self):
+        self._interface.create_database(self._entity_type)
+        self._interface.create_table(self._entity_type)
+
+        entity_columns = self._interface.get_entity_columns(self._entity_type)
+        table_columns = self._interface.get_table_columns(self._entity_type)
+
+        for ec in entity_columns:
+            if ec not in table_columns:
+                self._interface.add_column(self._entity_type, ec)
+        for tc in table_columns:
+            if tc not in entity_columns:
+                self._interface.drop_column(self._entity_type, tc)
+
+        entity_indexes = self._interface.get_entity_indexes(self._entity_type)
+        table_indexes = self._interface.get_table_indexes(self._entity_type)
+
+        for ei in entity_indexes:
+            if ei not in table_indexes:
+                self._interface.create_index(self._entity_type, ei)
+        for ti in table_indexes:
+            if ti not in entity_indexes:
+                self._interface.drop_index(self._entity_type, ti)
+
 
 class ResultSet:
     def __init__(self, interface: ffi.RdbStorageInterface):
@@ -150,3 +173,30 @@ class ResultSet:
     def __getitem__(self, item):
         self._load_all()
         return self._entities[item]
+
+
+class Index(ffd.ValueObject):
+    name: str = ffd.optional()
+    columns: List[str] = ffd.list_()
+    unique: bool = ffd.optional(default=False)
+
+    def __post_init__(self):
+        if self.name is None:
+            self.name = f'idx_{"_".join(self.columns)}'
+
+    def __eq__(self, other):
+        return self.name == other.name
+
+
+class Column(ffd.ValueObject):
+    name: str = ffd.required()
+    type: str = ffd.required()
+    length: int = ffd.optional()
+    is_id: bool = ffd.optional(default=False)
+
+    @property
+    def string_type(self):
+        return str(self.type)
+
+    def __eq__(self, other):
+        return self.name == other.name

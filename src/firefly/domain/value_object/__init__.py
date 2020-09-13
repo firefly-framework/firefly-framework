@@ -57,12 +57,36 @@ class ValueObject(metaclass=EntityMeta):
 
     def to_dict(self, skip: list = None, force_all: bool = False):
         ret = {}
+        annotations_ = typing.get_type_hints(self.__class__)
         for field_ in fields(self):
             if field_.name.startswith('_'):
                 continue
             if field_.metadata.get('internal') is True and force_all is False:
                 continue
-            ret[field_.name] = getattr(self, field_.name)
+
+            type_ = annotations_[field_.name]
+            if inspect.isclass(type_) and issubclass(type_, ValueObject):
+                ret[field_.name] = getattr(self, field_.name).to_dict()
+            elif is_type_hint(annotations_[field_.name]):
+                origin = get_origin(type_)
+                args = get_args(type_)
+                if origin is List and issubclass(args[0], ValueObject):
+                    if getattr(self, field_.name) is None:
+                        ret[field_.name] = None
+                    else:
+                        ret[field_.name] = list(map(
+                            lambda v: v.to_dict() if isinstance(v, ValueObject) else None,
+                            getattr(self, field_.name)
+                        ))
+                elif origin is Dict and issubclass(args[1], ValueObject):
+                    if getattr(self, field_.name) is None:
+                        ret[field_.name] = None
+                    else:
+                        ret[field_.name] = {k: v.to_dict() for k, v in getattr(self, field_.name).items()}
+                else:
+                    ret[field_.name] = getattr(self, field_.name)
+            else:
+                ret[field_.name] = getattr(self, field_.name)
 
         if skip is not None:
             d = ret.copy()

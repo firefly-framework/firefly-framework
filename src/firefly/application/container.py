@@ -110,7 +110,7 @@ class Container(di.Container):
     system_bus: ffd.SystemBus = ffd.SystemBus
 
     # Storage
-    db_api_storage_interface_registry: ffi.RdbStorageInterfaceRegistry = ffi.RdbStorageInterfaceRegistry
+    rdb_storage_interface_registry: ffi.RdbStorageInterfaceRegistry = ffi.RdbStorageInterfaceRegistry
 
     # Messaging
     message_transport: ffd.MessageTransport = ffi.AsyncioMessageTransport

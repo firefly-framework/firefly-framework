@@ -14,17 +14,14 @@
 
 from __future__ import annotations
 
-import firefly.domain as ffd
-import firefly_di as di
+from typing import List
 
-from .rdb_storage_interface_registry import RdbStorageInterfaceRegistry
+import firefly as ff
+
+from .scope import Scope
 
 
-class RdbConnectionFactory(ffd.ConnectionFactory):
-    _container: di.Container = None
-    _rdb_storage_interface_registry: RdbStorageInterfaceRegistry = None
-
-    def __call__(self, **kwargs):
-        driver = kwargs['driver']
-        del kwargs['driver']
-        return self._container.build(self._rdb_storage_interface_registry.get(driver), **kwargs)
+class Role(ff.AggregateRoot):
+    id: str = ff.id_()
+    name: str = ff.required(length=256, index=True)
+    scopes: List[Scope] = ff.list_()

@@ -42,7 +42,10 @@ class SqliteStorageInterface(RdbStorageInterface, ffd.LoggerAware):
 
     def _add(self, entity: ffd.Entity):
         self._execute(*self._generate_query(entity, 'sqlite/insert.sql', {
-            'entity': entity,
+            'data': {
+                entity.id_name(): entity.id_value(),
+                'document': self._serializer.serialize(entity)
+            }
         }))
 
     def _all(self, entity_type: Type[ffd.Entity], criteria: ffd.BinaryOp = None, limit: int = None, offset: int = None):

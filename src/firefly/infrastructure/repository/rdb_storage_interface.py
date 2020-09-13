@@ -18,7 +18,7 @@ import inspect
 from abc import ABC, abstractmethod
 from dataclasses import fields
 from datetime import datetime
-from typing import Type, get_type_hints, List, Union, Callable
+from typing import Type, get_type_hints, List, Union, Callable, Dict
 from uuid import UUID
 
 from firefly.infrastructure.jinja2 import indexes
@@ -111,12 +111,16 @@ class RdbStorageInterface(ffd.LoggerAware, ABC):
 
     def get_entity_columns(self, entity: Type[ffd.Entity]):
         ret = []
+        annotations_ = get_type_hints(entity)
         for f in fields(entity):
             if f.name.startswith('_'):
                 continue
 
             c = Column(
-                name=f.name, type=f.type, length=f.metadata.get('length', None), is_id=f.metadata.get('id', False)
+                name=f.name,
+                type=annotations_[f.name],
+                length=f.metadata.get('length', None),
+                is_id=f.metadata.get('id', False)
             )
             if self._map_all is True:
                 ret.append(c)
@@ -225,9 +229,30 @@ class RdbStorageInterface(ffd.LoggerAware, ABC):
         ret = {}
         for f in self.get_entity_columns(entity.__class__):
             if f.name == 'document' and not hasattr(entity, 'document'):
-                ret[f.name] = self._serializer.serialize(entity)
+                ret[f.name] = self._serialize_entity(entity)
+            elif inspect.isclass(f.type) and issubclass(f.type, ffd.AggregateRoot):
+                ret[f.name] = getattr(entity, f.name).id_value()
+            elif ffd.is_type_hint(f.type):
+                origin = ffd.get_origin(f.type)
+                args = ffd.get_args(f.type)
+                if origin is List:
+                    if issubclass(args[0], ffd.AggregateRoot):
+                        ret[f.name] = self._serializer.serialize(
+                            list(map(lambda e: e.id_value(), getattr(entity, f.name)))
+                        )
+                    else:
+                        ret[f.name] = self._serializer.serialize(getattr(entity, f.name))
+                elif origin is Dict:
+                    if issubclass(args[1], ffd.AggregateRoot):
+                        ret[f.name] = {k: v.id_value() for k, v in getattr(entity, f.name).items()}
+                    else:
+                        ret[f.name] = self._serializer.serialize(getattr(entity, f.name))
+            elif f.type is list or f.type is dict:
+                ret[f.name] = self._serializer.serialize(getattr(entity, f.name))
             else:
                 ret[f.name] = getattr(entity, f.name)
+                if isinstance(ret[f.name], ffd.ValueObject):
+                    ret[f.name] = self._serializer.serialize(ret[f.name])
         return ret
 
     def _select_list(self, entity: Type[ffd.Entity]):
@@ -247,12 +272,15 @@ class RdbStorageInterface(ffd.LoggerAware, ABC):
                     'target': v,
                     'this_side': 'one',
                 }
-            elif isinstance(v, type(List)) and issubclass(v.__args__[0], ffd.AggregateRoot):
-                relationships[k] = {
-                    'field_name': k,
-                    'target': v.__args__[0],
-                    'this_side': 'many',
-                }
+            elif ffd.is_type_hint(v):
+                origin = ffd.get_origin(v)
+                args = ffd.get_args(v)
+                if origin is List and issubclass(args[0], ffd.AggregateRoot):
+                    relationships[k] = {
+                        'field_name': k,
+                        'target': args[0],
+                        'this_side': 'many',
+                    }
         return relationships
 
     def _get_relationship(self, entity: Type[ffd.Entity], inverse_entity: Type[ffd.Entity]):
@@ -264,7 +292,7 @@ class RdbStorageInterface(ffd.LoggerAware, ABC):
     def _serialize_entity(self, entity: ffd.Entity):
         relationships = self._get_relationships(entity.__class__)
         if len(relationships.keys()) > 0:
-            obj = entity.to_dict(force_all=True, skip=relationships.keys())
+            obj = entity.to_dict(force_all=True, skip=list(relationships.keys()))
             for k, v in relationships.items():
                 if v['this_side'] == 'one':
                     obj[k] = getattr(entity, k).id_value()

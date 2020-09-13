@@ -21,8 +21,8 @@ create table {% block create_condition %}if not exists{% endblock %} {% block fq
             {% elif f.type == 'datetime' %}
                 {% block datetime_type scoped %}datetime{% endblock %}
             {% else %}
-                {% if 'length' in f.metadata %}
-                    {% block varchar_type scoped %}varchar({{ f.metadata['length'] | sqlsafe }}){% endblock %}
+                {% if f.length %}
+                    {% block varchar_type scoped %}varchar({{ f.length | sqlsafe }}){% endblock %}
                 {% else %}
                     {% block text_type scoped %}text{% endblock %}
                 {% endif %}

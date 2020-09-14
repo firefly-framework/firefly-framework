@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from typing import Callable, Optional, List, Union
+from typing import Callable, Optional, List, Union, Tuple
 
 import firefly as ff
 from firefly import domain as ffd
@@ -70,7 +70,7 @@ class WidgetRepository(ff.Repository[Widget]):
     def execute_ddl(self):
         pass
 
-    def raw(self, cb: Union[Callable, ffd.BinaryOp] = None, limit: int = None):
+    def sort(self, cb: Union[Callable, Tuple[Union[str, Tuple[str, bool]]]]):
         pass
 
 

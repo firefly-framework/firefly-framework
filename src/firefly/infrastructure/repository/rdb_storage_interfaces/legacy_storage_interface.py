@@ -15,49 +15,135 @@
 from __future__ import annotations
 
 from abc import abstractmethod, ABC
-from typing import Type
+from dataclasses import fields
+from typing import Type, Tuple, Union
 
 import firefly.domain as ffd
 
 from ..rdb_storage_interface import RdbStorageInterface
 
 
+# noinspection PyDataclass
 class LegacyStorageInterface(RdbStorageInterface, ffd.LoggerAware, ABC):
-    _template_prefix = 'sql'
-
     def _add(self, entity: ffd.Entity):
-        return self._execute(*self._generate_query(entity, f'{self._template_prefix}/insert.sql', {
-            'data': {
-                entity.id_name(): entity.id_value(),
-                'document': self._serializer.serialize(entity),
-            }
-        }))
-
-    def _all(self, entity_type: Type[ffd.Entity], criteria: ffd.BinaryOp = None, limit: int = None, offset: int = None):
-        return self._execute(*self._generate_query(entity_type, f'{self._template_prefix}/select.sql', {
-            'columns': ('document',),
-            'criteria': criteria,
-        }))
+        return self._execute(*self._generate_query(
+            entity,
+            f'{self._sql_prefix}/insert.sql',
+            {'data': self._data_fields(entity)}
+        ))
 
     def _find(self, uuid: str, entity_type: Type[ffd.Entity]):
-        return self._execute(*self._generate_query(entity_type, f'{self._template_prefix}/select.sql', {
-            'columns': ('document',),
-            'criteria': ffd.Attr(entity_type.id_name()) == uuid,
-        }))
+        results = self._execute(*self._generate_query(
+            entity_type,
+            f'{self._sql_prefix}/select.sql',
+            {
+                'columns': ['document'],
+                'criteria': ffd.Attr(entity_type.id_name()) == uuid
+            }
+        ))
+        if len(results) > 0:
+            return self._build_entity(entity_type, results[0])
 
-    def _remove(self, entity: ffd.Entity):
-        return self._execute(*self._generate_query(entity, f'{self._template_prefix}/delete.sql', {
-            'columns': ('document',),
-            'criteria': ffd.Attr(entity.id_name()) == entity.id_value(),
+    def _remove(self, entity: Union[ffd.Entity, ffd.BinaryOp]):
+        self._execute(*self._generate_query(entity, f'{self._sql_prefix}/delete.sql', {
+            'criteria': entity if isinstance(entity, ffd.BinaryOp) else ffd.Attr(entity.id_name()) == entity.id_value()
         }))
 
     def _update(self, entity: ffd.Entity):
-        return self._execute(*self._generate_query(entity, f'{self._template_prefix}/update.sql', {
-            'data': {
-                entity.id_name(): entity.id_value(),
-                'document': self._serializer.serialize(entity),
+        return self._execute(*self._generate_query(
+            entity,
+            f'{self._sql_prefix}/update.sql',
+            {
+                'data': self._data_fields(entity),
+                'criteria': ffd.Attr(entity.id_name()) == entity.id_value()
             }
-        }))
+        ))
+
+    def _generate_select(self, entity_type: Type[ffd.Entity], criteria: ffd.BinaryOp = None, limit: int = None,
+                         offset: int = None, sort: Tuple[Union[str, Tuple[str, bool]]] = None, count: bool = False):
+        pruned_criteria = None
+        indexes = [f.name for f in fields(entity_type) if f.metadata.get('index') is True]
+        if criteria is not None:
+            pruned_criteria = criteria.prune(indexes)
+            data = {
+                'columns': ['document'],
+                'criteria': pruned_criteria,
+                'count': count and (pruned_criteria == criteria),
+            }
+        else:
+            data = {
+                'columns': ['document'],
+                'count': count,
+            }
+
+        sorted_in_db = False
+        if sort is not None:
+            sort_fields = []
+            for s in sort:
+                if s[0] in indexes:
+                    sort_fields.append(s)
+            data['sort'] = sort_fields
+            sorted_in_db = len(sort_fields) == len(sort)
+
+        if not sort or sorted_in_db:
+            if limit is not None:
+                data['limit'] = limit
+
+            if offset is not None:
+                data['offset'] = offset
+
+        sql, params = self._generate_query(entity_type, f'{self._sql_prefix}/select.sql', data)
+
+        return sql, params, pruned_criteria
+
+    def _all(self, entity_type: Type[ffd.Entity], criteria: ffd.BinaryOp = None, limit: int = None, offset: int = None,
+             sort: Tuple[Union[str, Tuple[str, bool]]] = None, raw: bool = False, count: bool = False):
+        sql, params, pruned_criteria = self._generate_select(
+            entity_type, criteria, limit=limit, offset=offset, sort=sort, count=count
+        )
+
+        results = self._execute(sql, params)
+
+        ret = []
+        if count and criteria == pruned_criteria:
+            return results[0]['c']
+
+        for row in results:
+            self.debug('Result row: %s', dict(row))
+            ret.append(self._build_entity(entity_type, row, raw=raw))
+
+        if criteria != pruned_criteria:
+            if limit is not None and offset is not None and sort is not None:
+                self.warning('Paging being performed with non-indexed columns. This may lead to undesirable behavior.')
+            ret = list(filter(lambda ee: criteria.matches(ee), ret))
+            if count:
+                ret = len(ret)
+
+        indexes = [f.name for f in fields(entity_type) if f.metadata.get('index') is True]
+        sorted_in_db = False
+        if sort is not None:
+            sort_fields = []
+            for s in sort:
+                if s[0] in indexes:
+                    sort_fields.append(s)
+            sorted_in_db = len(sort_fields) == len(sort)
+
+        if sort is not None and not sorted_in_db:
+            def sort_keys(x):
+                keys = []
+                for ss in sort:
+                    if len(ss) == 2 and ss[1]:
+                        keys.append(-(getattr(x, str(ss[0]))))
+                    else:
+                        keys.append(getattr(x, str(ss[0])))
+                return keys
+
+            ret.sort(key=sort_keys)
+
+        if (sort is not None and not sorted_in_db) and offset is not None and limit is not None:
+            return ret[offset:(offset + limit)]
+
+        return ret
 
     def _migrate_table(self, entity: Type[ffd.Entity]):
         pass

@@ -59,6 +59,9 @@ class Attr:
         try:
             return object.__getattribute__(self, item)
         except AttributeError:
+            if not item.startswith('_'):
+                self.attr = AttributeString(f'{self.attr}.{item}')
+                return self
             raise ffd.InvalidOperand(f"Use of '{item}' is not currently supported.")
 
     def is_none(self):
@@ -89,6 +92,9 @@ class Attr:
 
     def endswith(self, value):
         return BinaryOp(self.attr, 'endswith', value)
+
+    def reversed(self):
+        return self.attr, True
 
     def __eq__(self, other):
         return BinaryOp(self.attr, '==', other)

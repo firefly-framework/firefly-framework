@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import hashlib
 from abc import ABC, abstractmethod
-from typing import List, TypeVar, Generic, Union, Callable, Optional
+from typing import List, TypeVar, Generic, Union, Callable, Optional, Tuple
 
 import firefly.domain as ffd
 
@@ -47,11 +47,15 @@ class Repository(Generic[T], GenericBase, LoggerAware, ABC):
         pass
 
     @abstractmethod
-    def filter(self, x: Union[Callable, ffd.BinaryOp], **kwargs) -> List[T]:
+    def filter(self, x: Union[Callable, ffd.BinaryOp], **kwargs) -> Repository:
         pass
 
     @abstractmethod
     def commit(self, **kwargs):
+        pass
+
+    @abstractmethod
+    def sort(self, cb: Union[Callable, Tuple[Union[str, Tuple[str, bool]]]]):
         pass
 
     def reset(self):

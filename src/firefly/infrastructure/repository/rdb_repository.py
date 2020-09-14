@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from typing import List, Callable, Union
+from typing import List, Callable, Union, Tuple
 
 import firefly.domain as ffd
 import firefly.infrastructure as ffi
@@ -31,9 +31,10 @@ class RdbRepository(ffd.Repository[T]):
         self._interface = interface
         self._index = 0
         self._state = 'empty'
+        self._page_details = {}
 
-    def execute(self):
-        self._interface.execute(self._type())
+    def execute(self, sql: str, params: dict = None):
+        self._interface.execute(sql, params)
 
     def append(self, entity: T, **kwargs):
         self.debug('Entity added to repository: %s', str(entity))
@@ -68,12 +69,22 @@ class RdbRepository(ffd.Repository[T]):
 
         return ret
 
-    def filter(self, x: Union[Callable, ffd.BinaryOp], **kwargs) -> List[T]:
-        criteria = self._get_search_criteria(x) if not isinstance(x, ffd.BinaryOp) else x
+    def filter(self, x: Union[Callable, ffd.BinaryOp], **kwargs) -> RdbRepository:
+        self._page_details.update(kwargs)
+        self._page_details['criteria'] = x
+
+        return self
+
+    def _do_filter(self, criteria: Union[Callable, ffd.BinaryOp], limit: int = None, offset: int = None,
+                   raw: bool = False, sort: tuple = None) -> List[T]:
+        if criteria is not None:
+            criteria = self._get_search_criteria(criteria) if not isinstance(criteria, ffd.BinaryOp) else criteria
         if self._state == 'full':
             entities = list(filter(lambda e: criteria.matches(e), self._entities))
         else:
-            entities = self._interface.all(self._entity_type, criteria=criteria)
+            entities = self._interface.all(
+                self._entity_type, criteria=criteria, limit=limit, offset=offset, raw=raw, sort=sort
+            )
 
             merged = []
             for entity in entities:
@@ -87,24 +98,50 @@ class RdbRepository(ffd.Repository[T]):
             entities = merged
         return entities
 
+    def sort(self, cb: Union[Callable, Tuple[Union[str, Tuple[str, bool]]]]):
+        if not isinstance(cb, tuple):
+            cb = cb(ffd.EntityAttributeSpy(self._entity_type))
+            if not isinstance(cb, tuple):
+                cb = [(cb,)]
+        self._page_details['sort'] = cb
+
+        return self
+
     def __iter__(self):
-        self._load_all()
+        self._load_data()
         return iter(list(self._entities))
 
     def __len__(self):
-        self._load_all()
-        return len(self._entities)
+        return self._interface.all(self._entity_type, count=True, **self._page_details)
 
     def __getitem__(self, item):
-        self._load_all()
-        return self._entities[item]
+        if isinstance(item, slice):
+            self._page_details['offset'] = item.start
+            self._page_details['limit'] = (item.stop - item.start) + 1
+        else:
+            self._page_details['offset'] = item
+            self._page_details['limit'] = 1
 
-    def _load_all(self):
-        if self._state != 'full':
-            for entity in self._interface.all(self._entity_type):
+        self._load_data()
+
+        if isinstance(item, slice):
+            return self._entities
+        elif len(self._entities) > 0:
+            return self._entities[0]
+
+    def _load_data(self):
+        page_details = self._page_details
+        self.reset()
+
+        if 'criteria' not in page_details:
+            page_details['criteria'] = None
+
+        results = self._do_filter(**page_details)
+
+        if isinstance(results, list):
+            for entity in results:
                 if entity not in self._entities:
                     self._register_entity(entity)
-            self._state = 'full'
 
     def commit(self, force_delete: bool = False):
         self.debug('commit() called in %s', str(self))
@@ -122,7 +159,7 @@ class RdbRepository(ffd.Repository[T]):
         self.debug('Done in commit()')
 
     def __repr__(self):
-        return f'DbApiRepository[{self._entity_type}]'
+        return f'RdbRepository[{self._entity_type}]'
 
     def _find_checked_out_entity(self, id_: str):
         for entity in self._entities:
@@ -131,6 +168,7 @@ class RdbRepository(ffd.Repository[T]):
 
     def reset(self):
         super().reset()
+        self._page_details = {}
         self._state = 'empty'
 
     def migrate_schema(self):
@@ -158,31 +196,15 @@ class RdbRepository(ffd.Repository[T]):
                 self._interface.drop_index(self._entity_type, ti)
 
 
-class ResultSet:
-    def __init__(self, interface: ffi.RdbStorageInterface):
-        self._interface = interface
-
-    def __iter__(self):
-        self._load_all()
-        return iter(list(self._entities))
-
-    def __len__(self):
-        self._load_all()
-        return len(self._entities)
-
-    def __getitem__(self, item):
-        self._load_all()
-        return self._entities[item]
-
-
 class Index(ffd.ValueObject):
     name: str = ffd.optional()
+    table: str = ffd.optional()
     columns: List[str] = ffd.list_()
     unique: bool = ffd.optional(default=False)
 
     def __post_init__(self):
         if self.name is None:
-            self.name = f'idx_{"_".join(self.columns)}'
+            self.name = f'idx_{self.table}_{"_".join(self.columns)}'
 
     def __eq__(self, other):
         return self.name == other.name

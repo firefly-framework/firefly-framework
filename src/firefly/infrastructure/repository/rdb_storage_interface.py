@@ -18,19 +18,14 @@ import inspect
 from abc import ABC, abstractmethod
 from dataclasses import fields
 from datetime import datetime
-from typing import Type, get_type_hints, List, Union, Callable, Dict
-from uuid import UUID
-
-from firefly.infrastructure.jinja2 import indexes
-
-from .rdb_repository import Index, Column
+from typing import Type, get_type_hints, List, Union, Callable, Dict, Tuple
 
 import firefly.domain as ffd
 import inflection
-
-
 # noinspection PyDataclass
 from jinjasql import JinjaSql
+
+from .rdb_repository import Index, Column
 
 
 # noinspection PyDataclass
@@ -60,12 +55,14 @@ class RdbStorageInterface(ffd.LoggerAware, ABC):
     def _add(self, entity: ffd.Entity):
         pass
 
-    def all(self, entity_type: Type[ffd.Entity], criteria: ffd.BinaryOp = None, limit: int = None, offset: int = None):
+    def all(self, entity_type: Type[ffd.Entity], criteria: ffd.BinaryOp = None, limit: int = None, offset: int = None,
+            sort: Tuple[Union[str, Tuple[str, bool]]] = None, raw: bool = False, count: bool = False):
         self._check_prerequisites(entity_type)
-        return self._all(entity_type, criteria, limit, offset)
+        return self._all(entity_type, criteria, limit, offset, raw=raw, count=count, sort=sort)
 
     @abstractmethod
-    def _all(self, entity_type: Type[ffd.Entity], criteria: ffd.BinaryOp = None, limit: int = None, offset: int = None):
+    def _all(self, entity_type: Type[ffd.Entity], criteria: ffd.BinaryOp = None, limit: int = None, offset: int = None,
+             sort: Tuple[Union[str, Tuple[str, bool]]] = None, raw: bool = False, count: bool = False):
         pass
 
     def find(self, uuid: str, entity_type: Type[ffd.Entity]):
@@ -152,7 +149,26 @@ class RdbStorageInterface(ffd.LoggerAware, ABC):
         )
 
     def get_entity_indexes(self, entity: Type[ffd.Entity]):
-        return indexes(entity)
+        ret = []
+        table = self._fqtn(entity).replace('.', '_')
+        for field_ in fields(entity):
+            if 'index' in field_.metadata:
+                if field_.metadata['index'] is True:
+                    ret.append(
+                        Index(table=table, columns=[field_.name], unique=field_.metadata.get('unique', False) is True)
+                    )
+                elif isinstance(field_.metadata['index'], str):
+                    name = field_.metadata['index']
+                    idx = next(filter(lambda i: i.name == name, ret))
+                    if not idx:
+                        ret.append(Index(table=table, columns=[field_.name],
+                                         unique=field_.metadata.get('unique', False) is True))
+                    else:
+                        idx.columns.append(field_.name)
+                        if field_.metadata.get('unique', False) is True and idx.unique is False:
+                            idx.unique = True
+
+        return ret
 
     def get_table_indexes(self, entity: Type[ffd.Entity]):
         return self._get_table_indexes(entity)

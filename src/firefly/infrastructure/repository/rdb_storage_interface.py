@@ -99,6 +99,12 @@ class RdbStorageInterface(ffd.LoggerAware, ABC):
     def _ensure_connected(self):
         pass
 
+    def clear(self, entity: Type[ffd.Entity]):
+        self.execute(*self._generate_query(entity, f'{self._sql_prefix}/truncate_table.sql'))
+
+    def destroy(self, entity: Type[ffd.Entity]):
+        self.execute(*self._generate_query(entity, f'{self._sql_prefix}/drop_table.sql'))
+
     @staticmethod
     def _fqtn(entity: Type[ffd.Entity]):
         return inflection.tableize(entity.get_fqn())

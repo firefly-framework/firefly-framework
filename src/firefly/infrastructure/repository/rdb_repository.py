@@ -107,6 +107,12 @@ class RdbRepository(ffd.Repository[T]):
 
         return self
 
+    def clear(self):
+        self._interface.clear(self._entity_type)
+
+    def destroy(self):
+        self._interface.destroy(self._entity_type)
+
     def __iter__(self):
         self._load_data()
         return iter(list(self._entities))

@@ -58,6 +58,14 @@ class Repository(Generic[T], GenericBase, LoggerAware, ABC):
     def sort(self, cb: Union[Callable, Tuple[Union[str, Tuple[str, bool]]]]):
         pass
 
+    @abstractmethod
+    def clear(self):
+        pass
+
+    @abstractmethod
+    def destroy(self):
+        pass
+
     def reset(self):
         self._deletions = []
         self._entities = []

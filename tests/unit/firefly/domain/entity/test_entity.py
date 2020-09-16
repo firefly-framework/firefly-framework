@@ -74,6 +74,19 @@ def test_default_values(sut):
     assert s.strings == []
 
 
+def test_none_values(sut):
+    s = sut.from_dict({
+        'id': 'foo',
+        'required_field': 'field'
+    })
+
+    s.load_dict({
+        'required_field': None
+    })
+
+    assert s.required_field is None
+
+
 @pytest.fixture()
 def sut():
     class ConcreteEntity(Entity):

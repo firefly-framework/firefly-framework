@@ -86,7 +86,10 @@ class Entity(ContextAware, ValueObject):
                     setattr(self, name, parse(data[name], ignoretz=True))
                 else:
                     try:
-                        setattr(self, name, type_(data[name]))
+                        if data[name] is not None:
+                            setattr(self, name, type_(data[name]))
+                        else:
+                            setattr(self, name, data[name])
                     except TypeError:
                         setattr(self, name, data[name])
 

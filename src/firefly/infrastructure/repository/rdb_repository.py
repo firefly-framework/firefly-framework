@@ -14,12 +14,15 @@
 
 from __future__ import annotations
 
-from typing import List, Callable, Union, Tuple
+from pprint import pprint
+from typing import List, Callable, Union, Tuple, Optional
 
 import firefly.domain as ffd
 import firefly.infrastructure as ffi
 import inflection
 from firefly.domain.repository.repository import T
+
+DEFAULT_LIMIT = 999999999999999999
 
 
 class RdbRepository(ffd.Repository[T]):
@@ -29,24 +32,37 @@ class RdbRepository(ffd.Repository[T]):
         self._entity_type = self._type()
         self._table = table_name or inflection.tableize(self._entity_type.get_fqn())
         self._interface = interface
+        self._interface._repository = self
         self._index = 0
         self._state = 'empty'
-        self._page_details = {}
+        self._query_details = {}
 
     def execute(self, sql: str, params: dict = None):
         self._interface.execute(sql, params)
 
-    def append(self, entity: T, **kwargs):
-        self.debug('Entity added to repository: %s', str(entity))
-        if entity not in self._entities:
-            self._entities.append(entity)
+    def append(self, entity: Union[T, List[T], Tuple[T]], **kwargs):
+        if not isinstance(entity, (list, tuple)):
+            entity = [entity]
+
+        for e in entity:
+            self.debug('Entity added to repository: %s', str(e))
+            if e not in self._entities:
+                self._entities.append(e)
         self._state = 'partial'
 
-    def remove(self, x: Union[T, Callable, ffd.BinaryOp], **kwargs):
-        self.debug('Entity removed from repository: %s', str(x))
-        self._deletions.append(x)
-        if isinstance(x, ffd.Entity) and x in self._entities:
-            self._entities.remove(x)
+    def remove(self, x: Union[T, List[T], Tuple[T], Callable, ffd.BinaryOp], **kwargs):
+        if self._parent is not None:
+            self._parent.remove(x)
+
+        xs = x
+        if not isinstance(x, (list, tuple)):
+            xs = [x]
+
+        for x in xs:
+            self.debug('Entity removed from repository: %s', str(x))
+            self._deletions.append(x)
+            if isinstance(x, ffd.Entity) and x in self._entities:
+                self._entities.remove(x)
 
     def find(self, x: Union[str, Callable, ffd.BinaryOp], **kwargs) -> T:
         ret = None
@@ -63,17 +79,17 @@ class RdbRepository(ffd.Repository[T]):
                 ret = results[0]
 
         if ret:
-            self._register_entity(ret)
+            self.register_entity(ret)
             if self._state == 'empty':
                 self._state = 'partial'
 
         return ret
 
     def filter(self, x: Union[Callable, ffd.BinaryOp], **kwargs) -> RdbRepository:
-        self._page_details.update(kwargs)
-        self._page_details['criteria'] = x
+        self._query_details.update(kwargs)
+        self._query_details['criteria'] = x
 
-        return self
+        return self.copy()
 
     def _do_filter(self, criteria: Union[Callable, ffd.BinaryOp], limit: int = None, offset: int = None,
                    raw: bool = False, sort: tuple = None) -> List[T]:
@@ -92,20 +108,23 @@ class RdbRepository(ffd.Repository[T]):
                     merged.append(next(e for e in self._entities if e == entity))
                 else:
                     merged.append(entity)
-                    self._register_entity(entity)
+                    self.register_entity(entity)
             if self._state == 'empty':
                 self._state = 'partial'
             entities = merged
         return entities
 
-    def sort(self, cb: Union[Callable, Tuple[Union[str, Tuple[str, bool]]]]):
+    def sort(self, cb: Optional[Union[Callable, Tuple[Union[str, Tuple[str, bool]]]]] = None, **kwargs):
+        if cb is None and 'key' in kwargs:
+            return list(self).sort(**kwargs)
+
         if not isinstance(cb, tuple):
             cb = cb(ffd.EntityAttributeSpy(self._entity_type))
             if not isinstance(cb, tuple):
                 cb = [(cb,)]
-        self._page_details['sort'] = cb
+        self._query_details['sort'] = cb
 
-        return self
+        return self.copy()
 
     def clear(self):
         self._interface.clear(self._entity_type)
@@ -113,20 +132,43 @@ class RdbRepository(ffd.Repository[T]):
     def destroy(self):
         self._interface.destroy(self._entity_type)
 
+    def copy(self):
+        ret = self.__class__()
+        ret._query_details = self._query_details.copy()
+        ret._entities = []
+        ret._entity_hashes = {}
+        ret._deletions = []
+        ret._parent = self
+
+        deletions = self._deletions
+        self.reset()
+        self._deletions = deletions
+
+        return ret
+
     def __iter__(self):
         self._load_data()
         return iter(list(self._entities))
 
     def __len__(self):
-        return self._interface.all(self._entity_type, count=True, **self._page_details)
+        params = self._query_details.copy()
+        if 'criteria' in params and not isinstance(params['criteria'], ffd.BinaryOp):
+            params['criteria'] = self._get_search_criteria(params['criteria'])
+        return self._interface.all(self._entity_type, count=True, **params)
 
     def __getitem__(self, item):
         if isinstance(item, slice):
-            self._page_details['offset'] = item.start
-            self._page_details['limit'] = (item.stop - item.start) + 1
+            if item.start is not None:
+                self._query_details['offset'] = item.start
+            if item.stop is not None:
+                self._query_details['limit'] = (item.stop - item.start) + 1
+            else:
+                self._query_details['limit'] = DEFAULT_LIMIT
         else:
-            self._page_details['offset'] = item
-            self._page_details['limit'] = 1
+            if len(self._entities) > item:
+                return self._entities[item]
+            self._query_details['offset'] = item
+            self._query_details['limit'] = 1
 
         self._load_data()
 
@@ -136,28 +178,29 @@ class RdbRepository(ffd.Repository[T]):
             return self._entities[0]
 
     def _load_data(self):
-        page_details = self._page_details
-        self.reset()
+        query_details = self._query_details
 
-        if 'criteria' not in page_details:
-            page_details['criteria'] = None
+        if 'criteria' not in query_details:
+            query_details['criteria'] = None
 
-        results = self._do_filter(**page_details)
+        results = self._do_filter(**query_details)
 
         if isinstance(results, list):
             for entity in results:
                 if entity not in self._entities:
-                    self._register_entity(entity)
+                    self.register_entity(entity)
 
     def commit(self, force_delete: bool = False):
         self.debug('commit() called in %s', str(self))
-        for entity in self._deletions:
-            self.debug('Deleting %s', entity)
-            self._interface.remove(entity, force=force_delete)
 
-        for entity in self._new_entities():
-            self.debug('Adding %s', entity)
-            self._interface.add(entity)
+        if len(self._deletions) > 0:
+            self.debug('Deleting %s', self._deletions)
+            self._interface.remove(self._deletions, force=force_delete)
+
+        new_entities = self._new_entities()
+        if len(new_entities) > 0:
+            self.debug('Adding %s', new_entities)
+            self._interface.add(new_entities)
 
         for entity in self._changed_entities():
             self.debug('Updating %s', entity)
@@ -174,7 +217,7 @@ class RdbRepository(ffd.Repository[T]):
 
     def reset(self):
         super().reset()
-        self._page_details = {}
+        self._query_details = {}
         self._state = 'empty'
 
     def migrate_schema(self):
@@ -221,10 +264,14 @@ class Column(ffd.ValueObject):
     type: str = ffd.required()
     length: int = ffd.optional()
     is_id: bool = ffd.optional(default=False)
+    is_indexed: bool = ffd.optional(default=False)
 
     @property
     def string_type(self):
         return str(self.type)
+
+    def index(self):
+        return self.is_id or (self.is_indexed and self.type is str)
 
     def __eq__(self, other):
         return self.name == other.name

@@ -15,6 +15,7 @@
 from typing import List
 
 import firefly as ff
+from firefly_test.todo import TodoList
 
 
 class BaseClass(ff.ValueObject):
@@ -59,3 +60,15 @@ def test_reserved_words():
     args = ff.build_argument_list({'id': 'bar'}, foo)
 
     assert 'id_' in args and args['id_'] == 'bar'
+
+
+def test_todos():
+    todo = TodoList.from_dict({
+        'id': 'abc123',
+        'user': {"id": "cf130627-c5d9-4ccf-bee3-2fe96a675b53", "name": "Bob"},
+        'name': "Bob's TODO List",
+        'tasks': []
+    })
+
+    assert todo.name == "Bob's TODO List"
+    assert todo.tasks == []

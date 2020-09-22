@@ -28,6 +28,12 @@ class Widget(ff.AggregateRoot):
 
 
 class WidgetRepository(ff.Repository[Widget]):
+    def clear(self):
+        pass
+
+    def destroy(self):
+        pass
+
     def __init__(self, foos):
         self._foos = foos
         self._index = 0

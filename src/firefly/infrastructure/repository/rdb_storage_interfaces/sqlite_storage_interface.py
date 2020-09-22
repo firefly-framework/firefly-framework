@@ -27,9 +27,10 @@ from .legacy_storage_interface import LegacyStorageInterface
 class SqliteStorageInterface(LegacyStorageInterface, ffd.LoggerAware):
     _serializer: ffd.Serializer = None
     _sql_prefix = 'sqlite'
+    _map_indexes = True
 
     def __init__(self, **kwargs):
-        super().__init__()
+        super().__init__(**kwargs)
         self._config = kwargs
         self._connection: Optional[sqlite3.Connection] = None
 
@@ -58,7 +59,7 @@ class SqliteStorageInterface(LegacyStorageInterface, ffd.LoggerAware):
     def _build_entity(self, entity: Type[ffd.Entity], data, raw: bool = False):
         if raw:
             return self._serializer.deserialize(data['document'])
-        return entity.from_dict(self._serializer.deserialize(data['document']))
+        return entity.from_dict(self._load_relationships(entity, self._serializer.deserialize(data['document'])))
 
     def _get_table_columns(self, entity: Type[ffd.Entity]):
         ret = []
@@ -86,6 +87,7 @@ class SqliteStorageInterface(LegacyStorageInterface, ffd.LoggerAware):
         self._ensure_connected()
         cursor = self._connection.cursor()
         self.info(sql)
+        self.info(params)
         cursor.execute(sql, params)
         self._connection.commit()
 

@@ -106,7 +106,10 @@ def registry(container, request) -> ff.Registry:
         for context in container.context_map.contexts:
             for entity in context.entities:
                 if issubclass(entity, ff.AggregateRoot) and entity is not ff.AggregateRoot:
-                    registry(entity).destroy()
+                    try:
+                        registry(entity).destroy()
+                    except ff.FrameworkError:
+                        pass
 
     request.addfinalizer(teardown)
     registry.clear_cache()

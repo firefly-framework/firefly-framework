@@ -12,18 +12,3 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations
-
-from typing import List
-
-import firefly as ff
-
-from .role import Role
-
-
-@ff.rest.crud()
-class User(ff.AggregateRoot):
-    id: str = ff.id_()
-    name: str = ff.required()
-    email: str = ff.required(index=True)
-    roles: List[Role] = ff.list_()

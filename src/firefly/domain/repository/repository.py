@@ -33,13 +33,14 @@ class Repository(Generic[T], GenericBase, LoggerAware, ABC):
         self._entity_hashes = {}
         self._entities = []
         self._deletions = []
+        self._parent = None
 
     @abstractmethod
-    def append(self, entity: T, **kwargs):
+    def append(self, entity: Union[T, List[T], Tuple[T]], **kwargs):
         pass
 
     @abstractmethod
-    def remove(self, x: Union[T, Callable, ffd.BinaryOp], **kwargs):
+    def remove(self, x: Union[T, List[T], Tuple[T], Callable, ffd.BinaryOp], **kwargs):
         pass
 
     @abstractmethod
@@ -55,7 +56,7 @@ class Repository(Generic[T], GenericBase, LoggerAware, ABC):
         pass
 
     @abstractmethod
-    def sort(self, cb: Union[Callable, Tuple[Union[str, Tuple[str, bool]]]]):
+    def sort(self, cb: Optional[Union[Callable, Tuple[Union[str, Tuple[str, bool]]]]], **kwargs):
         pass
 
     @abstractmethod
@@ -95,9 +96,11 @@ class Repository(Generic[T], GenericBase, LoggerAware, ABC):
     def _get_hash(self, entity: ffd.Entity):
         return hashlib.md5(self._serializer.serialize(entity.to_dict(force_all=True)).encode('utf-8')).hexdigest()
 
-    def _register_entity(self, entity: ffd.Entity):
+    def register_entity(self, entity: ffd.Entity):
         self._entity_hashes[id(entity)] = self._get_hash(entity)
         self._entities.append(entity)
+        if self._parent is not None:
+            self._parent.register_entity(entity)
 
     def _has_changed(self, entity: ffd.Entity):
         if id(entity) not in self._entity_hashes:

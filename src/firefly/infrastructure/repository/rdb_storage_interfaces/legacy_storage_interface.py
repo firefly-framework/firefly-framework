@@ -16,20 +16,26 @@ from __future__ import annotations
 
 from abc import abstractmethod, ABC
 from dataclasses import fields
-from typing import Type, Tuple, Union
+from pprint import pprint
+from typing import Type, Tuple, Union, List, get_type_hints, Dict
 
 import firefly.domain as ffd
+from firefly.infrastructure.repository.rdb_repository import DEFAULT_LIMIT
 
 from ..rdb_storage_interface import RdbStorageInterface
 
 
 # noinspection PyDataclass
 class LegacyStorageInterface(RdbStorageInterface, ffd.LoggerAware, ABC):
-    def _add(self, entity: ffd.Entity):
+    def _add(self, entity: Union[ffd.Entity, List[ffd.Entity]]):
+        entities = entity
+        if not isinstance(entity, list):
+            entities = [entity]
+
         return self._execute(*self._generate_query(
             entity,
             f'{self._sql_prefix}/insert.sql',
-            {'data': self._data_fields(entity)}
+            {'data': list(map(self._data_fields, entities))}
         ))
 
     def _find(self, uuid: str, entity_type: Type[ffd.Entity]):
@@ -37,16 +43,28 @@ class LegacyStorageInterface(RdbStorageInterface, ffd.LoggerAware, ABC):
             entity_type,
             f'{self._sql_prefix}/select.sql',
             {
-                'columns': ['document'],
+                'columns': self._select_list(entity_type),
                 'criteria': ffd.Attr(entity_type.id_name()) == uuid
             }
         ))
-        if len(results) > 0:
-            return self._build_entity(entity_type, results[0])
 
-    def _remove(self, entity: Union[ffd.Entity, ffd.BinaryOp]):
+        if len(results) == 0:
+            return None
+
+        if len(results) > 1:
+            raise ffd.MultipleResultsFound()
+
+        return self._build_entity(entity_type, results[0])
+
+    def _remove(self, entity: Union[ffd.Entity, List[ffd.Entity], ffd.BinaryOp]):
+        criteria = entity
+        if isinstance(entity, list):
+            criteria = ffd.Attr(entity[0].id_name()).is_in([e.id_value() for e in entity])
+        elif not isinstance(entity, ffd.BinaryOp):
+            criteria = ffd.Attr(entity.id_name()) == entity.id_value()
+
         self._execute(*self._generate_query(entity, f'{self._sql_prefix}/delete.sql', {
-            'criteria': entity if isinstance(entity, ffd.BinaryOp) else ffd.Attr(entity.id_name()) == entity.id_value()
+            'criteria': criteria
         }))
 
     def _update(self, entity: ffd.Entity):
@@ -62,17 +80,18 @@ class LegacyStorageInterface(RdbStorageInterface, ffd.LoggerAware, ABC):
     def _generate_select(self, entity_type: Type[ffd.Entity], criteria: ffd.BinaryOp = None, limit: int = None,
                          offset: int = None, sort: Tuple[Union[str, Tuple[str, bool]]] = None, count: bool = False):
         pruned_criteria = None
-        indexes = [f.name for f in fields(entity_type) if f.metadata.get('index') is True]
+        indexes = [f.name for f in fields(entity_type)
+                   if f.metadata.get('index') is True or f.metadata.get('id') is True]
         if criteria is not None:
             pruned_criteria = criteria.prune(indexes)
             data = {
-                'columns': ['document'],
+                'columns': self._select_list(entity_type),
                 'criteria': pruned_criteria,
                 'count': count and (pruned_criteria == criteria),
             }
         else:
             data = {
-                'columns': ['document'],
+                'columns': self._select_list(entity_type),
                 'count': count,
             }
 
@@ -80,12 +99,12 @@ class LegacyStorageInterface(RdbStorageInterface, ffd.LoggerAware, ABC):
         if sort is not None:
             sort_fields = []
             for s in sort:
-                if s[0] in indexes:
+                if str(s[0]) in indexes:
                     sort_fields.append(s)
             data['sort'] = sort_fields
             sorted_in_db = len(sort_fields) == len(sort)
 
-        if not sort or sorted_in_db:
+        if (not sort or sorted_in_db) and (pruned_criteria is None or criteria == pruned_criteria):
             if limit is not None:
                 data['limit'] = limit
 
@@ -119,12 +138,14 @@ class LegacyStorageInterface(RdbStorageInterface, ffd.LoggerAware, ABC):
             if count:
                 ret = len(ret)
 
-        indexes = [f.name for f in fields(entity_type) if f.metadata.get('index') is True]
+        indexes = [f.name for f in fields(entity_type)
+                   if f.metadata.get('index') is True or f.metadata.get('id') is True]
         sorted_in_db = False
+
         if sort is not None:
             sort_fields = []
             for s in sort:
-                if s[0] in indexes:
+                if str(s[0]) in indexes:
                     sort_fields.append(s)
             sorted_in_db = len(sort_fields) == len(sort)
 
@@ -141,16 +162,30 @@ class LegacyStorageInterface(RdbStorageInterface, ffd.LoggerAware, ABC):
             ret.sort(key=sort_keys)
 
         if (sort is not None and not sorted_in_db) and offset is not None and limit is not None:
-            return ret[offset:(offset + limit)]
+            if limit == DEFAULT_LIMIT:
+                return ret[offset:]
+            else:
+                return ret[offset:(offset + limit)]
 
         return ret
 
-    def _migrate_table(self, entity: Type[ffd.Entity]):
-        pass
-
-    @abstractmethod
     def _build_entity(self, entity: Type[ffd.Entity], data, raw: bool = False):
-        pass
+        if self._map_all is True:
+            types = get_type_hints(entity)
+            for k, v in data.items():
+                t = types[k]
+                if ffd.is_type_hint(t):
+                    if ffd.get_origin(t) is List:
+                        t = list
+                    elif ffd.get_origin(t) is Dict:
+                        t = dict
+                if isinstance(t, type) and issubclass(t, ffd.ValueObject):
+                    t = dict
+
+                if (t is dict or t is list) and isinstance(v, str):
+                    data[k] = self._serializer.deserialize(v)
+
+        return super()._build_entity(entity, data, raw)
 
     @abstractmethod
     def _execute(self, sql: str, params: dict = None):

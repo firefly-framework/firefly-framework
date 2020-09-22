@@ -2,23 +2,23 @@ create table {% block create_condition %}if not exists{% endblock %} {% block fq
     {% block column_list %}
         {% for f in mapped_fields(entity) %}
             {% block column_name scoped %} {{ _q | sqlsafe }}{{ f.name | sqlsafe }}{{ _q | sqlsafe }} {% endblock %}
-            {% if f.is_id %}
+            {% if f.index() %}
                 {% block id_type scoped %}
                     {% if f.length %}
                         varchar{{ '(' | sqlsafe }}{{ f.length | sqlsafe }}{{ ')' | sqlsafe }}
                     {% else %}
-                        varchar(256)
+                        varchar(255)
                     {% endif %}
                 {% endblock %}
-            {% elif f.type == 'int' %}
+            {% elif f.string_type == 'int' %}
                 {% block int_type scoped %}integer{% endblock %}
-            {% elif f.type == 'float' %}
+            {% elif f.string_type == 'float' %}
                 {% block float_type scoped %}float{% endblock %}
-            {% elif f.type == 'bool' %}
+            {% elif f.string_type == 'bool' %}
                 {% block bool_type scoped %}boolean{% endblock %}
-            {% elif f.type == 'bytes' %}
+            {% elif f.string_type == 'bytes' %}
                 {% block bytes_type scoped %}blob{% endblock %}
-            {% elif f.type == 'datetime' %}
+            {% elif f.string_type == 'datetime' %}
                 {% block datetime_type scoped %}datetime{% endblock %}
             {% else %}
                 {% if f.length %}

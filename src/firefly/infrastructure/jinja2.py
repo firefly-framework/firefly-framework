@@ -21,3 +21,7 @@ def is_attribute(x):
 
 def is_criteria(x):
     return isinstance(x, ffd.BinaryOp)
+
+
+def is_str_type(x):
+    return x is str

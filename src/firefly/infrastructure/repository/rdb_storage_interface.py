@@ -18,6 +18,7 @@ import inspect
 from abc import ABC, abstractmethod
 from dataclasses import fields
 from datetime import datetime
+from pprint import pprint
 from typing import Type, get_type_hints, List, Union, Callable, Dict, Tuple
 
 import firefly.domain as ffd
@@ -31,6 +32,7 @@ from .rdb_repository import Index, Column
 # noinspection PyDataclass
 class RdbStorageInterface(ffd.LoggerAware, ABC):
     _serializer: ffd.Serializer = None
+    _registry: ffd.Registry = None
     _j: JinjaSql = None
     _cache: dict = {}
     _sql_prefix = 'sql'
@@ -47,12 +49,12 @@ class RdbStorageInterface(ffd.LoggerAware, ABC):
     def _disconnect(self):
         pass
 
-    def add(self, entity: ffd.Entity):
+    def add(self, entity: Union[ffd.Entity, List[ffd.Entity]]):
         self._check_prerequisites(entity.__class__)
         self._add(entity)
 
     @abstractmethod
-    def _add(self, entity: ffd.Entity):
+    def _add(self, entity: Union[ffd.Entity, List[ffd.Entity]]):
         pass
 
     def all(self, entity_type: Type[ffd.Entity], criteria: ffd.BinaryOp = None, limit: int = None, offset: int = None,
@@ -70,19 +72,29 @@ class RdbStorageInterface(ffd.LoggerAware, ABC):
         return self._find(uuid, entity_type)
 
     @abstractmethod
-    def _find(self, uuid: str, entity_type: Type[ffd.Entity]):
+    def _find(self, x: Union[str, ffd.BinaryOp], entity_type: Type[ffd.Entity]):
         pass
 
-    def remove(self, entity: Union[ffd.Entity, Callable], force: bool = False):
+    def remove(self, entity: Union[ffd.Entity, List[ffd.Entity], Callable], force: bool = False):
         self._check_prerequisites(entity.__class__)
-        if hasattr(entity, 'deleted_on') and not force:
-            entity.deleted_on = datetime.now()
-            self._update(entity)
-        else:
-            self._remove(entity)
+        deletions = []
+
+        entities = entity
+        if not isinstance(entity, list):
+            entities = [entity]
+
+        for entity in entities:
+            if hasattr(entity, 'deleted_on') and not force:
+                entity.deleted_on = datetime.now()
+                self._update(entity)
+            else:
+                deletions.append(entity)
+
+        if len(deletions) > 0:
+            self._remove(deletions)
 
     @abstractmethod
-    def _remove(self, entity: Union[ffd.Entity, Callable]):
+    def _remove(self, entity: Union[ffd.Entity, List[ffd.Entity], Callable]):
         pass
 
     def update(self, entity: ffd.Entity):
@@ -123,13 +135,14 @@ class RdbStorageInterface(ffd.LoggerAware, ABC):
                 name=f.name,
                 type=annotations_[f.name],
                 length=f.metadata.get('length', None),
-                is_id=f.metadata.get('id', False)
+                is_id=f.metadata.get('id', False),
+                is_indexed=f.metadata.get('index', False)
             )
             if self._map_all is True:
                 ret.append(c)
-            elif self._map_indexes and 'index' in f.metadata:
+            elif self._map_indexes and f.metadata.get('index', False):
                 ret.append(c)
-            elif 'id' in f.metadata:
+            elif f.metadata.get('id', False):
                 ret.append(c)
 
         if not self._map_all:
@@ -193,9 +206,26 @@ class RdbStorageInterface(ffd.LoggerAware, ABC):
             *self._generate_query(entity, f'{self._sql_prefix}/drop_index.sql', {'index': index})
         )
 
-    @abstractmethod
     def _build_entity(self, entity: Type[ffd.Entity], data, raw: bool = False):
-        pass
+        if raw is True:
+            if self._map_all is True:
+                return data
+            else:
+                return self._serializer.deserialize(data['document'])
+
+        if self._map_all is False:
+            data = self._serializer.deserialize(data['document'])
+
+        for k, v in self._get_relationships(entity).items():
+            if v['this_side'] == 'one':
+                data[k] = self._registry(v['target']).find(data[k])
+            elif v['this_side'] == 'many':
+                r = self._registry(v['target'])
+                data[k] = list(self._registry(v['target']).filter(
+                    lambda ee: getattr(ee, v['target'].id_name()).is_in(data[k])
+                ))
+
+        return entity.from_dict(data)
 
     @staticmethod
     def _generate_index(name: str):
@@ -208,8 +238,10 @@ class RdbStorageInterface(ffd.LoggerAware, ABC):
     def _execute(self, sql: str, params: dict = None):
         pass
 
-    def _generate_query(self, entity: Union[ffd.Entity, Type[ffd.Entity]], template: str, params: dict = None):
+    def _generate_query(self, entity: Union[ffd.Entity, List[ffd.Entity], Type[ffd.Entity]], template: str, params: dict = None):
         params = params or {}
+        if isinstance(entity, list):
+            entity = entity[0]
         if not inspect.isclass(entity):
             entity = entity.__class__
 
@@ -310,6 +342,17 @@ class RdbStorageInterface(ffd.LoggerAware, ABC):
         for k, v in relationships.items():
             if v['target'] == inverse_entity:
                 return v
+
+    def _load_relationships(self, entity: Type[ffd.Entity], data: dict):
+        for k, v in self._get_relationships(entity).items():
+            if v['this_side'] == 'one':
+                data[k] = self._registry(v['target']).find(data[k])
+            elif v['this_side'] == 'many':
+                data[k] = list(self._registry(v['target']).filter(
+                    lambda ee: getattr(ee, v['target'].id_name()).is_in(data[k])
+                ))
+
+        return data
 
     def _serialize_entity(self, entity: ffd.Entity):
         relationships = self._get_relationships(entity.__class__)

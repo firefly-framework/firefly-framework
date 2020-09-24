@@ -11,8 +11,9 @@ insert into {% block fqtn %}{{ fqtn | sqlsafe }} {% endblock %} (
 {%- block values -%}
     {% for item in data %}
         (
-        {%-  for value in item.values() -%}
-            {{ value }}{% if not loop.last %},{% endif %}
+        {%-  for column, value in item.items() -%}
+            {% block insert_value scoped %}{{ value }}{% endblock %}
+            {% if not loop.last %},{% endif %}
         {%- endfor -%}
         )
         {% if not loop.last %},{% endif %}

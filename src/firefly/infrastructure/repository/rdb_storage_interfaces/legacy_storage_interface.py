@@ -27,56 +27,6 @@ from ..rdb_storage_interface import RdbStorageInterface
 
 # noinspection PyDataclass
 class LegacyStorageInterface(RdbStorageInterface, ffd.LoggerAware, ABC):
-    def _add(self, entity: Union[ffd.Entity, List[ffd.Entity]]):
-        entities = entity
-        if not isinstance(entity, list):
-            entities = [entity]
-
-        return self._execute(*self._generate_query(
-            entity,
-            f'{self._sql_prefix}/insert.sql',
-            {'data': list(map(self._data_fields, entities))}
-        ))
-
-    def _find(self, uuid: str, entity_type: Type[ffd.Entity]):
-        results = self._execute(*self._generate_query(
-            entity_type,
-            f'{self._sql_prefix}/select.sql',
-            {
-                'columns': self._select_list(entity_type),
-                'criteria': ffd.Attr(entity_type.id_name()) == uuid
-            }
-        ))
-
-        if len(results) == 0:
-            return None
-
-        if len(results) > 1:
-            raise ffd.MultipleResultsFound()
-
-        return self._build_entity(entity_type, results[0])
-
-    def _remove(self, entity: Union[ffd.Entity, List[ffd.Entity], ffd.BinaryOp]):
-        criteria = entity
-        if isinstance(entity, list):
-            criteria = ffd.Attr(entity[0].id_name()).is_in([e.id_value() for e in entity])
-        elif not isinstance(entity, ffd.BinaryOp):
-            criteria = ffd.Attr(entity.id_name()) == entity.id_value()
-
-        self._execute(*self._generate_query(entity, f'{self._sql_prefix}/delete.sql', {
-            'criteria': criteria
-        }))
-
-    def _update(self, entity: ffd.Entity):
-        return self._execute(*self._generate_query(
-            entity,
-            f'{self._sql_prefix}/update.sql',
-            {
-                'data': self._data_fields(entity),
-                'criteria': ffd.Attr(entity.id_name()) == entity.id_value()
-            }
-        ))
-
     def _generate_select(self, entity_type: Type[ffd.Entity], criteria: ffd.BinaryOp = None, limit: int = None,
                          offset: int = None, sort: Tuple[Union[str, Tuple[str, bool]]] = None, count: bool = False):
         pruned_criteria = None

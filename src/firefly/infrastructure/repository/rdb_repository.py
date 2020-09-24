@@ -170,6 +170,7 @@ class RdbRepository(ffd.Repository[T]):
             self._query_details['offset'] = item
             self._query_details['limit'] = 1
 
+        print(f'Loading data with query details: {self._query_details}')
         self._load_data()
 
         if isinstance(item, slice):
@@ -221,7 +222,7 @@ class RdbRepository(ffd.Repository[T]):
         self._state = 'empty'
 
     def migrate_schema(self):
-        self._interface.create_database(self._entity_type)
+        self._interface.create_schema(self._entity_type)
         self._interface.create_table(self._entity_type)
 
         entity_columns = self._interface.get_entity_columns(self._entity_type)
@@ -268,7 +269,7 @@ class Column(ffd.ValueObject):
 
     @property
     def string_type(self):
-        return str(self.type)
+        return str(self.type.__name__)
 
     def index(self):
         return self.is_id or (self.is_indexed and self.type is str)

@@ -11,11 +11,15 @@
 #
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
+
+import uuid
 from datetime import datetime
 from pprint import pprint
 
 from firefly_test.iam import Scope, Role, User
 from firefly_test.todo import TodoList, User as TodoUser, Task
+
+id_ = str(uuid.uuid4())
 
 
 def test_mutability(users):
@@ -46,12 +50,12 @@ def test_mutability(users):
 def test_basic_crud_operations(todos):
     todos.migrate_schema()
 
-    todos.append(TodoList(id='abc123', user=TodoUser(name='Bob')))
+    todos.append(TodoList(id=id_, user=TodoUser(name='Bob')))
     todos.commit()
     todos.reset()
 
     assert len(todos) == 1
-    todo: TodoList = todos.find('abc123')
+    todo: TodoList = todos.find(id_)
     assert todo is not None
     assert todo.user.name == 'Bob'
 
@@ -60,7 +64,7 @@ def test_basic_crud_operations(todos):
     todos.reset()
 
     assert len(todos) == 1
-    todo: TodoList = todos.find('abc123')
+    todo: TodoList = todos.find(id_)
     assert len(todo.tasks) == 1
 
     todo.user.name = 'Phillip'
@@ -68,7 +72,7 @@ def test_basic_crud_operations(todos):
     todos.reset()
 
     assert len(todos) == 1
-    todo: TodoList = todos.find('abc123')
+    todo: TodoList = todos.find(id_)
     assert todo.user.name == 'Phillip'
 
     todos.remove(todo)
@@ -76,7 +80,7 @@ def test_basic_crud_operations(todos):
     todos.reset()
 
     assert len(todos) == 0
-    assert todos.find('abc123') is None
+    assert todos.find(id_) is None
 
 
 def test_aggregate_associations(users):

@@ -1,12 +1,15 @@
 {% extends 'sql/create_table.sql' %}
-    {% block id_type %}
-        {% if 'length' in f.metadata %}
-            {% if f.metadata['length'] == 36 %}
-                uuid
-            {% else %}
-                varchar({{ f.metadata['length'] | sqlsafe }})
-            {% endif %}
+
+{% block id_type %}
+    {% if f.length %}
+        {% if f.length == 36 %}
+            uuid
         {% else %}
-            varchar(256)
+            varchar({{ f.length | sqlsafe }})
         {% endif %}
-    {% endblock %}
+    {% else %}
+        varchar(255)
+    {% endif %}
+{% endblock %}
+
+{% block json_type %}jsonb{% endblock %}

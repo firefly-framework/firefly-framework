@@ -11,6 +11,7 @@
 #
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
+import uuid
 
 import firefly.domain as ffd
 
@@ -23,5 +24,10 @@ def is_criteria(x):
     return isinstance(x, ffd.BinaryOp)
 
 
-def is_str_type(x):
-    return x is str
+def is_uuid(x):
+    try:
+        gid = uuid.UUID(x, version=4)
+    except ValueError:
+        return False
+
+    return str(gid) == x

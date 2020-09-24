@@ -20,6 +20,8 @@ create table {% block create_condition %}if not exists{% endblock %} {% block fq
                 {% block bytes_type scoped %}blob{% endblock %}
             {% elif f.string_type == 'datetime' %}
                 {% block datetime_type scoped %}datetime{% endblock %}
+            {% elif (f.string_type == 'dict' or f.string_type == 'list') %}
+                {% block json_type scoped %}text{% endblock %}
             {% else %}
                 {% if f.length %}
                     {% block varchar_type scoped %}varchar({{ f.length | sqlsafe }}){% endblock %}

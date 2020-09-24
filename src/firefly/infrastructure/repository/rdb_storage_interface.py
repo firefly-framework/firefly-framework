@@ -18,7 +18,6 @@ import inspect
 from abc import ABC, abstractmethod
 from dataclasses import fields
 from datetime import datetime
-from pprint import pprint
 from typing import Type, get_type_hints, List, Union, Callable, Dict, Tuple
 
 import firefly.domain as ffd
@@ -53,27 +52,86 @@ class RdbStorageInterface(ffd.LoggerAware, ABC):
         self._check_prerequisites(entity.__class__)
         self._add(entity)
 
-    @abstractmethod
     def _add(self, entity: Union[ffd.Entity, List[ffd.Entity]]):
-        pass
+        entities = entity
+        if not isinstance(entity, list):
+            entities = [entity]
+
+        return self._execute(*self._generate_query(
+            entity,
+            f'{self._sql_prefix}/insert.sql',
+            {'data': list(map(self._data_fields, entities))}
+        ))
 
     def all(self, entity_type: Type[ffd.Entity], criteria: ffd.BinaryOp = None, limit: int = None, offset: int = None,
             sort: Tuple[Union[str, Tuple[str, bool]]] = None, raw: bool = False, count: bool = False):
         self._check_prerequisites(entity_type)
         return self._all(entity_type, criteria, limit, offset, raw=raw, count=count, sort=sort)
 
-    @abstractmethod
+    def _generate_select(self, entity_type: Type[ffd.Entity], criteria: ffd.BinaryOp = None, limit: int = None,
+                         offset: int = None, sort: Tuple[Union[str, Tuple[str, bool]]] = None, count: bool = False):
+        indexes = [f.name for f in fields(entity_type)
+                   if f.metadata.get('index') is True or f.metadata.get('id') is True]
+        data = {
+                'columns': self._select_list(entity_type),
+                'count': count,
+            }
+        if criteria is not None:
+            data['criteria'] = criteria
+
+        if sort is not None:
+            sort_fields = []
+            for s in sort:
+                if str(s[0]) in indexes or self._map_indexes is False:
+                    sort_fields.append(s)
+            data['sort'] = sort_fields
+
+        if limit is not None:
+            data['limit'] = limit
+
+        if offset is not None:
+            data['offset'] = offset
+
+        return self._generate_query(entity_type, f'{self._sql_prefix}/select.sql', data)
+
     def _all(self, entity_type: Type[ffd.Entity], criteria: ffd.BinaryOp = None, limit: int = None, offset: int = None,
              sort: Tuple[Union[str, Tuple[str, bool]]] = None, raw: bool = False, count: bool = False):
-        pass
+        sql, params = self._generate_select(
+            entity_type, criteria, limit=limit, offset=offset, sort=sort, count=count
+        )
+        results = self._execute(sql, params)
+
+        ret = []
+        if count:
+            return results[0]['c']
+
+        for row in results:
+            self.debug('Result row: %s', dict(row))
+            ret.append(self._build_entity(entity_type, row, raw=raw))
+
+        return ret
 
     def find(self, uuid: str, entity_type: Type[ffd.Entity]):
         self._check_prerequisites(entity_type)
         return self._find(uuid, entity_type)
 
-    @abstractmethod
-    def _find(self, x: Union[str, ffd.BinaryOp], entity_type: Type[ffd.Entity]):
-        pass
+    def _find(self, uuid: str, entity_type: Type[ffd.Entity]):
+        results = self._execute(*self._generate_query(
+            entity_type,
+            f'{self._sql_prefix}/select.sql',
+            {
+                'columns': self._select_list(entity_type),
+                'criteria': ffd.Attr(entity_type.id_name()) == uuid
+            }
+        ))
+
+        if len(results) == 0:
+            return None
+
+        if len(results) > 1:
+            raise ffd.MultipleResultsFound()
+
+        return self._build_entity(entity_type, results[0])
 
     def remove(self, entity: Union[ffd.Entity, List[ffd.Entity], Callable], force: bool = False):
         self._check_prerequisites(entity.__class__)
@@ -93,9 +151,16 @@ class RdbStorageInterface(ffd.LoggerAware, ABC):
         if len(deletions) > 0:
             self._remove(deletions)
 
-    @abstractmethod
     def _remove(self, entity: Union[ffd.Entity, List[ffd.Entity], Callable]):
-        pass
+        criteria = entity
+        if isinstance(entity, list):
+            criteria = ffd.Attr(entity[0].id_name()).is_in([e.id_value() for e in entity])
+        elif not isinstance(entity, ffd.BinaryOp):
+            criteria = ffd.Attr(entity.id_name()) == entity.id_value()
+
+        self._execute(*self._generate_query(entity, f'{self._sql_prefix}/delete.sql', {
+            'criteria': criteria
+        }))
 
     def update(self, entity: ffd.Entity):
         self._check_prerequisites(entity.__class__)
@@ -103,9 +168,15 @@ class RdbStorageInterface(ffd.LoggerAware, ABC):
             entity.updated_on = datetime.now()
         self._update(entity)
 
-    @abstractmethod
     def _update(self, entity: ffd.Entity):
-        pass
+        return self._execute(*self._generate_query(
+            entity,
+            f'{self._sql_prefix}/update.sql',
+            {
+                'data': self._data_fields(entity),
+                'criteria': ffd.Attr(entity.id_name()) == entity.id_value()
+            }
+        ))
 
     @abstractmethod
     def _ensure_connected(self):
@@ -146,7 +217,7 @@ class RdbStorageInterface(ffd.LoggerAware, ABC):
                 ret.append(c)
 
         if not self._map_all:
-            ret.insert(1, Column(name='document', type='str'))
+            ret.insert(1, Column(name='document', type=dict))
 
         return ret
 
@@ -220,7 +291,6 @@ class RdbStorageInterface(ffd.LoggerAware, ABC):
             if v['this_side'] == 'one':
                 data[k] = self._registry(v['target']).find(data[k])
             elif v['this_side'] == 'many':
-                r = self._registry(v['target'])
                 data[k] = list(self._registry(v['target']).filter(
                     lambda ee: getattr(ee, v['target'].id_name()).is_in(data[k])
                 ))
@@ -255,6 +325,8 @@ class RdbStorageInterface(ffd.LoggerAware, ABC):
             'map_indexes': self._map_indexes,
             'map_all': self._map_all,
             'mapped_fields': mapped_fields,
+            'indexes': list(map(lambda e: e.name, self.get_entity_indexes(entity))),
+            'ids': entity.id_name() if isinstance(entity.id_name(), list) else [entity.id_name()],
         }
         data.update(params)
         sql, params = self._j.prepare_query(template, data)
@@ -270,11 +342,11 @@ class RdbStorageInterface(ffd.LoggerAware, ABC):
             )
         )
 
-    def create_database(self, entity_type: Type[ffd.Entity]):
+    def create_schema(self, entity_type: Type[ffd.Entity]):
         self.execute(
             *self._generate_query(
                 entity_type,
-                f'{self._sql_prefix}/create_database.sql',
+                f'{self._sql_prefix}/create_schema.sql',
                 {'context_name': entity_type.get_class_context()}
             )
         )

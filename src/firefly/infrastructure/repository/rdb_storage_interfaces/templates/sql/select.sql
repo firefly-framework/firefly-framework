@@ -13,14 +13,14 @@ from {% block fqtn %}{{ fqtn | sqlsafe }}{% endblock %}
 {% if criteria %}
     where
     {% import "sql/macros.sql" as macros %}
-    {% block where_clause scoped %}{{ macros.where_clause(criteria) }}{% endblock %}
+    {% block where_clause scoped %}{{ macros.where_clause(criteria, macros.default_attribute_macro, macros.default_value_macro, ids) }}{% endblock %}
 {% endif %}
 
 {% if count is false %}
     {% if sort %}
         order by
         {% for column in sort %}
-            {{ _q | sqlsafe }}{{ column[0] | string | sqlsafe }}{{ _q | sqlsafe }} {{ 'desc' if column[1] else 'asc' | sqlsafe }}{% if not loop.last %},{% endif %}
+            {% block sort_column scoped %}{{ _q | sqlsafe }}{{ column[0] | string | sqlsafe }}{{ _q | sqlsafe }}{% endblock %} {{ 'desc' if column[1] else 'asc' | sqlsafe }}{% if not loop.last %},{% endif %}
         {% endfor %}
     {% endif %}
 

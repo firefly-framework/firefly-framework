@@ -93,5 +93,5 @@ class SqliteStorageInterface(LegacyStorageInterface, ffd.LoggerAware):
 
         return cursor.fetchall()
 
-    def create_database(self, entity_type: Type[ffd.Entity]):
+    def create_schema(self, entity_type: Type[ffd.Entity]):
         return True

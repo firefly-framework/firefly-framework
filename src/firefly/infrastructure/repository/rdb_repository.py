@@ -170,13 +170,12 @@ class RdbRepository(ffd.Repository[T]):
             self._query_details['offset'] = item
             self._query_details['limit'] = 1
 
-        print(f'Loading data with query details: {self._query_details}')
         self._load_data()
 
         if isinstance(item, slice):
             return self._entities
         elif len(self._entities) > 0:
-            return self._entities[0]
+            return self._entities[-1]
 
     def _load_data(self):
         query_details = self._query_details

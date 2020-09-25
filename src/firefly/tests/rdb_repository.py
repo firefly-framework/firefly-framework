@@ -103,6 +103,10 @@ def test_pagination(users):
     assert test[0].name == 'Davante Adams'
     assert test[1].name == 'David Johnson'
 
+    test = users.sort(lambda u: u.name).filter(lambda u: u.name.is_in(('Davante Adams', 'David Johnson')))
+    assert test[0].name == 'Davante Adams'
+    assert test[1].name == 'David Johnson'
+
 
 def test_list_expansion(users):
     my_users = users.filter(lambda u: u.name.is_in(['Bob Loblaw', 'Davante Adams']))

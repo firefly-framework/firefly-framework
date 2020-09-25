@@ -12,4 +12,4 @@
     {% endif %}
 {% endblock %}
 
-{% block json_type %}jsonb{% endblock %}
+{% block json_type %}{% if f.name == '__document' %}text{% else %}jsonb{% endif %}{% endblock %}

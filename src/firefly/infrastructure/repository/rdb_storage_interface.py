@@ -218,6 +218,7 @@ class RdbStorageInterface(ffd.LoggerAware, ABC):
 
         if not self._map_all:
             ret.insert(1, Column(name='document', type=dict))
+            ret.insert(2, Column(name='__document', type=dict))
 
         return ret
 
@@ -374,7 +375,8 @@ class RdbStorageInterface(ffd.LoggerAware, ABC):
                     else:
                         ret[f.name] = self._serializer.serialize(getattr(entity, f.name))
             elif f.type is list or f.type is dict:
-                ret[f.name] = self._serializer.serialize(getattr(entity, f.name))
+                if hasattr(entity, f.name):
+                    ret[f.name] = self._serializer.serialize(getattr(entity, f.name))
             else:
                 ret[f.name] = getattr(entity, f.name)
                 if isinstance(ret[f.name], ffd.ValueObject):

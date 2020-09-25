@@ -4,7 +4,11 @@ select
     count(1) as c
 {% else %}
     {% for column in columns %}
-        {{ _q | sqlsafe }}{{ column | sqlsafe }}{{ _q | sqlsafe }}{% if not loop.last %},{% endif %}
+        {% if ' as ' in column %}
+            {{ column | sqlsafe }}
+        {% else %}
+            {{ _q | sqlsafe }}{{ column | sqlsafe }}{{ _q | sqlsafe }}{% if not loop.last %},{% endif %}
+        {% endif %}
     {% endfor %}
 {% endif %}
 

@@ -17,7 +17,7 @@ import setuptools
 
 setuptools.setup(
     name='firefly-framework',
-    version='1.1.1',
+    version='1.1.2',
     author="JD Williams",
     author_email="me@jdwilliams.xyz",
     description="A SOA framework for Python",
@@ -50,6 +50,9 @@ setuptools.setup(
     },
     packages=setuptools.PEP420PackageFinder.find('src'),
     package_dir={'': 'src'},
+    package_data={'firefly': [
+        'infrastructure/repository/rdb_storage_interfaces/templates/**/*.sql',
+    ]},
     classifiers=[
         "Programming Language :: Python :: 3.7",
         "Operating System :: OS Independent",

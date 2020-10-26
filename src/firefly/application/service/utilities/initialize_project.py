@@ -11,9 +11,12 @@
 #
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
+
 import os
+from pathlib import Path
 
 import firefly.domain as ffd
+import inflection
 
 
 @ffd.cli('firefly generate project', alias={'path': ['-p'], 'name': ['-n']})
@@ -21,35 +24,69 @@ class InitializeProject(ffd.ApplicationService):
     def __call__(self, name: str = None, path: str = None):
         if name is None:
             name = input('Project name: ')
+        snake_case_name = inflection.underscore(name).lower().replace(' ', '_')
 
         if path is None:
             path = input('Path (.): ')
             if path is None or str(path).strip() == '':
                 path = '.'
 
-        os.chdir(path)
-        self._generate_files(name)
+        original_path = os.getcwd()
+        if path != '.':
+            os.chdir(path)
+        self._generate_files(snake_case_name, name)
+        os.chdir(original_path)
 
     @staticmethod
-    def _generate_files(name: str):
-        with open('./README.md', 'w') as fp:
+    def _generate_files(snake_case_name: str, name: str):
+        with open('README.md', 'w') as fp:
             fp.write(readme(name))
-        with open('./setup.py', 'w') as fp:
+        with open('setup.py', 'w') as fp:
             fp.write(setup(name))
-        with open('./firefly.yml', 'w') as fp:
-            fp.write(firefly_config(name))
-        with open('./pytest.ini', 'w') as fp:
+        with open('firefly.yml', 'w') as fp:
+            fp.write(firefly_config(snake_case_name, name))
+        with open('pytest.ini', 'w') as fp:
             fp.write(pytest_ini())
 
         try:
             os.mkdir('src')
-            os.mkdir(f'src/{name}')
-            os.mkdir(f'src/{name}/domain')
-            os.mkdir(f'src/{name}/infrastructure')
-            os.mkdir(f'src/{name}/application')
-            os.mkdir(f'src/{name}/presentation')
+            os.mkdir(f'src/{snake_case_name}')
+            Path(f'src/{snake_case_name}/__init__.py').touch()
+            os.mkdir(f'src/{snake_case_name}/domain')
+            Path(f'src/{snake_case_name}/domain/__init__.py').touch()
+            os.mkdir(f'src/{snake_case_name}/infrastructure')
+            Path(f'src/{snake_case_name}/infrastructure/__init__.py').touch()
+            os.mkdir(f'src/{snake_case_name}/application')
+            Path(f'src/{snake_case_name}/application/__init__.py').touch()
+            os.mkdir(f'src/{snake_case_name}/presentation')
+            Path(f'src/{snake_case_name}/presentation/__init__.py').touch()
+
+            os.mkdir('tests')
+            os.mkdir('tests/unit')
+            os.mkdir('tests/integration')
         except FileExistsError:
             pass
+
+        with open('.env', 'w') as fp:
+            fp.write(f"""
+CONTEXT={snake_case_name}
+""".lstrip())
+
+        with open('.env.local', 'w') as fp:
+            fp.write(f"""
+DB_DRIVER=sqlite
+DB_HOST={snake_case_name}.db
+""".lstrip())
+
+        with open('.env-dist', 'w') as fp:
+            fp.write(f"""
+CONTEXT=
+""".lstrip())
+
+        with open('.gitignore', 'w') as fp:
+            fp.write(git_ignore())
+
+        os.system('pip freeze > requirements.txt')
 
 
 def setup(name: str):
@@ -92,11 +129,19 @@ def readme(name: str):
 """.lstrip()
 
 
-def firefly_config(name):
+def firefly_config(snake_case_name: str, name: str):
     return f"""
+provider: ~
+
 contexts:
   firefly: ~
-  {name}: ~
+  {snake_case_name}: ~
+
+environments:
+  local: ~
+  dev: ~
+  staging: ~
+  prod: ~
 """.lstrip()
 
 
@@ -105,4 +150,143 @@ def pytest_ini():
 [pytest]
 log_cli = True
 log_cli_level = DEBUG
+""".lstrip()
+
+
+def git_ignore():
+    return """
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*,cover
+.hypothesis/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# celery beat schedule file
+celerybeat-schedule
+
+# SageMath parsed files
+*.sage.py
+
+# dotenv
+.env*
+!.env*-dist
+
+# virtualenv
+.venv
+venv/
+ENV/
+share/
+Include/
+include/
+Scripts/
+tcl/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+
+# NPM
+node_modules/
+
+# Serverless
+.serverless/
+
+# PyCharm
+.idea/
+.idea/**
+**.idea/
+
+# VSCode
+.vscode/
+.vscode/**
+**.vscode/
+
+# NPM
+node_modules/
+
+# pytest
+.pytest_cache/
+
+# Misc
+__target__/
+requirements-local*
+tmp/
 """.lstrip()

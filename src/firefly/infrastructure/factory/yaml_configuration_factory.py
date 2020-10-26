@@ -114,7 +114,10 @@ class YamlConfigurationFactory(ffd.ConfigurationFactory):
 
     def _load_environment_vars(self):
         env = os.environ.get('ENV', 'local')
-        dir_ = self._move_to_project_root()
+        try:
+            dir_ = self._move_to_project_root()
+        except ffd.ProjectConfigNotFound:
+            return
         for path in ('.env', f'.env.{env}'):
             if os.path.exists(path):
                 load_dotenv(dotenv_path=os.path.join(os.getcwd(), path), override=True)
@@ -130,6 +133,7 @@ class YamlConfigurationFactory(ffd.ConfigurationFactory):
             os.chdir('..')
 
         if not os.path.exists('firefly.yml'):
+            os.chdir(original_dir)
             raise ffd.ProjectConfigNotFound()
 
         return original_dir

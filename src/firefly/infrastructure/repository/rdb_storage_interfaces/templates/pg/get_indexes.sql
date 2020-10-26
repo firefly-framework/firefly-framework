@@ -1,0 +1,1 @@
+select indexname, indexdef from pg_indexes where schemaname = {{ schema }} and tablename = {{ table }}

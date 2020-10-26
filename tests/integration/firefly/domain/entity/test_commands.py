@@ -31,19 +31,6 @@ def test_auto_generated_api(system_bus, message_factory, registry):
     assert todo.tasks[0].name == 'my task'
 
 
-@pytest.mark.skip
-async def test_http_endpoint(client, serializer, registry):
-    todo = registry(TodoList).find('abc123')
-    assert len(todo.tasks) == 0
-    await client.post(f'/todo-lists/abc123/task', data=serializer.serialize({
-        'todo_list': 'abc123',
-        'name': 'my new task',
-        'due_date': datetime.now() + timedelta(days=1)
-    }))
-    assert len(todo.tasks) == 1
-    assert todo.tasks[0].name == 'my new task'
-
-
 def test_nested_api(system_bus, message_factory, registry):
     system_bus.invoke(message_factory.command('todo.TodoList::AddTask', {
         'todo_list': 'abc123',

@@ -1,0 +1,1 @@
+show index from {{ fqtn | sqlsafe }}

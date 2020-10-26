@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from typing import Callable, Optional, List, Union
+from typing import Callable, Optional, List, Union, Tuple
 
 import firefly as ff
 from firefly import domain as ffd
@@ -28,20 +28,26 @@ class Widget(ff.AggregateRoot):
 
 
 class WidgetRepository(ff.Repository[Widget]):
+    def clear(self):
+        pass
+
+    def destroy(self):
+        pass
+
     def __init__(self, foos):
         self._foos = foos
         self._index = 0
 
-    def append(self, entity: T):
+    def append(self, entity: T, **kwargs):
         pass
 
-    def remove(self, entity: T):
+    def remove(self, entity: T, **kwargs):
         pass
 
-    def find(self, exp: Union[str, Callable]) -> Optional[T]:
+    def find(self, exp: Union[str, Callable], **kwargs) -> Optional[T]:
         pass
 
-    def filter(self, cb: Callable) -> List[T]:
+    def filter(self, cb: Callable, **kwargs) -> List[T]:
         criteria = self._get_search_criteria(cb)
         return list(filter(lambda i: criteria.matches(i), self._foos))
 
@@ -70,7 +76,7 @@ class WidgetRepository(ff.Repository[Widget]):
     def execute_ddl(self):
         pass
 
-    def raw(self, cb: Union[Callable, ffd.BinaryOp] = None, limit: int = None):
+    def sort(self, cb: Union[Callable, Tuple[Union[str, Tuple[str, bool]]]]):
         pass
 
 

@@ -22,9 +22,9 @@ from .rdb_storage_interface_registry import RdbStorageInterfaceRegistry
 
 class RdbConnectionFactory(ffd.ConnectionFactory):
     _container: di.Container = None
-    _db_api_storage_interface_registry: RdbStorageInterfaceRegistry = None
+    _rdb_storage_interface_registry: RdbStorageInterfaceRegistry = None
 
     def __call__(self, **kwargs):
         driver = kwargs['driver']
         del kwargs['driver']
-        return self._container.build(self._db_api_storage_interface_registry.get(driver), **kwargs)
+        return self._container.build(self._rdb_storage_interface_registry.get(driver), **kwargs)

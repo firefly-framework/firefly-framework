@@ -14,11 +14,16 @@
 
 from __future__ import annotations
 
+from typing import List
+
 import firefly as ff
+
+from .role import Role
 
 
 @ff.rest.crud()
 class User(ff.AggregateRoot):
     id: str = ff.id_()
     name: str = ff.required()
-    email: str = ff.required()
+    email: str = ff.required(index=True)
+    roles: List[Role] = ff.list_()

@@ -14,12 +14,15 @@
 
 from __future__ import annotations
 
-from typing import List, Callable, Optional, Union
+from pprint import pprint
+from typing import List, Callable, Union, Tuple, Optional
 
 import firefly.domain as ffd
 import firefly.infrastructure as ffi
 import inflection
 from firefly.domain.repository.repository import T
+
+DEFAULT_LIMIT = 999999999999999999
 
 
 class RdbRepository(ffd.Repository[T]):
@@ -29,56 +32,75 @@ class RdbRepository(ffd.Repository[T]):
         self._entity_type = self._type()
         self._table = table_name or inflection.tableize(self._entity_type.get_fqn())
         self._interface = interface
+        self._interface._repository = self
         self._index = 0
         self._state = 'empty'
+        self._query_details = {}
 
-    def execute_ddl(self):
-        self._interface.execute_ddl(self._type())
+    def execute(self, sql: str, params: dict = None):
+        self._interface.execute(sql, params)
 
-    def append(self, entity: T, **kwargs):
-        self.debug('Entity added to repository: %s', str(entity))
-        if entity not in self._entities:
-            self._entities.append(entity)
+    def append(self, entity: Union[T, List[T], Tuple[T]], **kwargs):
+        if not isinstance(entity, (list, tuple)):
+            entity = [entity]
+
+        for e in entity:
+            self.debug('Entity added to repository: %s', str(e))
+            if e not in self._entities:
+                self._entities.append(e)
         self._state = 'partial'
 
-    def remove(self, entity: T, **kwargs):
-        self.debug('Entity removed from repository: %s', str(entity))
-        self._deletions.append(entity)
-        if entity in self._entities:
-            self._entities.remove(entity)
+    def remove(self, x: Union[T, List[T], Tuple[T], Callable, ffd.BinaryOp], **kwargs):
+        if self._parent is not None:
+            self._parent.remove(x)
 
-    def find(self, exp: Union[str, Callable], **kwargs) -> T:
+        xs = x
+        if not isinstance(x, (list, tuple)):
+            xs = [x]
+
+        for x in xs:
+            self.debug('Entity removed from repository: %s', str(x))
+            self._deletions.append(x)
+            if isinstance(x, ffd.Entity) and x in self._entities:
+                self._entities.remove(x)
+
+    def find(self, x: Union[str, Callable, ffd.BinaryOp], **kwargs) -> T:
         ret = None
-        if isinstance(exp, str):
-            entity = self._find_checked_out_entity(exp)
+        if isinstance(x, str):
+            entity = self._find_checked_out_entity(x)
             if entity is not None:
                 return entity
-            ret = self._interface.find(exp, self._entity_type)
+            ret = self._interface.find(x, self._entity_type)
         else:
-            results = self._interface.all(self._entity_type, self._get_search_criteria(exp))
+            if not isinstance(x, ffd.BinaryOp):
+                x = self._get_search_criteria(x)
+            results = self._interface.all(self._entity_type, x)
             if len(results) > 0:
                 ret = results[0]
 
         if ret:
-            self._register_entity(ret)
+            self.register_entity(ret)
             if self._state == 'empty':
                 self._state = 'partial'
 
         return ret
 
-    def raw(self, cb: Union[Callable, ffd.BinaryOp] = None, limit: int = None):
-        criteria = None
-        if cb is not None:
-            criteria = self._get_search_criteria(cb)
-        return self._interface.raw(self._entity_type, criteria, limit)
+    def filter(self, x: Union[Callable, ffd.BinaryOp], **kwargs) -> RdbRepository:
+        self._query_details.update(kwargs)
+        self._query_details['criteria'] = x
 
-    def filter(self, cb: Union[Callable, ffd.BinaryOp], **kwargs) -> List[T]:
+        return self.copy()
+
+    def _do_filter(self, criteria: Union[Callable, ffd.BinaryOp], limit: int = None, offset: int = None,
+                   raw: bool = False, sort: tuple = None) -> List[T]:
+        if criteria is not None:
+            criteria = self._get_search_criteria(criteria) if not isinstance(criteria, ffd.BinaryOp) else criteria
         if self._state == 'full':
-            criteria = self._get_search_criteria(cb)
             entities = list(filter(lambda e: criteria.matches(e), self._entities))
         else:
-            criteria = self._get_search_criteria(cb)
-            entities = self._interface.all(self._entity_type, criteria=criteria)
+            entities = self._interface.all(
+                self._entity_type, criteria=criteria, limit=limit, offset=offset, raw=raw, sort=sort
+            )
 
             merged = []
             for entity in entities:
@@ -86,46 +108,99 @@ class RdbRepository(ffd.Repository[T]):
                     merged.append(next(e for e in self._entities if e == entity))
                 else:
                     merged.append(entity)
-                    self._register_entity(entity)
+                    self.register_entity(entity)
             if self._state == 'empty':
                 self._state = 'partial'
             entities = merged
         return entities
 
-    def reduce(self, cb: Callable) -> Optional[T]:
-        pass
+    def sort(self, cb: Optional[Union[Callable, Tuple[Union[str, Tuple[str, bool]]]]] = None, **kwargs):
+        if cb is None and 'key' in kwargs:
+            return list(self).sort(**kwargs)
+
+        if not isinstance(cb, tuple):
+            cb = cb(ffd.EntityAttributeSpy(self._entity_type))
+            if not isinstance(cb, tuple):
+                cb = [(cb,)]
+        self._query_details['sort'] = cb
+
+        return self.copy()
+
+    def clear(self):
+        self._interface.clear(self._entity_type)
+
+    def destroy(self):
+        self._interface.destroy(self._entity_type)
+
+    def copy(self):
+        ret = self.__class__()
+        ret._query_details = self._query_details.copy()
+        ret._entities = []
+        ret._entity_hashes = {}
+        ret._deletions = []
+        ret._parent = self
+
+        deletions = self._deletions
+        self.reset()
+        self._deletions = deletions
+
+        return ret
 
     def __iter__(self):
-        self._load_all()
+        self._load_data()
         return iter(list(self._entities))
 
-    def __next__(self):
-        pass
-
     def __len__(self):
-        self._load_all()
-        return len(self._entities)
+        params = self._query_details.copy()
+        if 'criteria' in params and not isinstance(params['criteria'], ffd.BinaryOp):
+            params['criteria'] = self._get_search_criteria(params['criteria'])
+        return self._interface.all(self._entity_type, count=True, **params)
 
     def __getitem__(self, item):
-        self._load_all()
-        return self._entities[item]
+        if isinstance(item, slice):
+            if item.start is not None:
+                self._query_details['offset'] = item.start
+            if item.stop is not None:
+                self._query_details['limit'] = (item.stop - item.start) + 1
+            else:
+                self._query_details['limit'] = DEFAULT_LIMIT
+        else:
+            if len(self._entities) > item:
+                return self._entities[item]
+            self._query_details['offset'] = item
+            self._query_details['limit'] = 1
 
-    def _load_all(self):
-        if self._state != 'full':
-            for entity in self._interface.all(self._entity_type):
+        self._load_data()
+
+        if isinstance(item, slice):
+            return self._entities
+        elif len(self._entities) > 0:
+            return self._entities[-1]
+
+    def _load_data(self):
+        query_details = self._query_details
+
+        if 'criteria' not in query_details:
+            query_details['criteria'] = None
+
+        results = self._do_filter(**query_details)
+
+        if isinstance(results, list):
+            for entity in results:
                 if entity not in self._entities:
-                    self._register_entity(entity)
-            self._state = 'full'
+                    self.register_entity(entity)
 
     def commit(self, force_delete: bool = False):
         self.debug('commit() called in %s', str(self))
-        for entity in self._deletions:
-            self.debug('Deleting %s', entity)
-            self._interface.remove(entity, force=force_delete)
 
-        for entity in self._new_entities():
-            self.debug('Adding %s', entity)
-            self._interface.add(entity)
+        if len(self._deletions) > 0:
+            self.debug('Deleting %s', self._deletions)
+            self._interface.remove(self._deletions, force=force_delete)
+
+        new_entities = self._new_entities()
+        if len(new_entities) > 0:
+            self.debug('Adding %s', new_entities)
+            self._interface.add(new_entities)
 
         for entity in self._changed_entities():
             self.debug('Updating %s', entity)
@@ -133,7 +208,7 @@ class RdbRepository(ffd.Repository[T]):
         self.debug('Done in commit()')
 
     def __repr__(self):
-        return f'DbApiRepository[{self._entity_type}]'
+        return f'RdbRepository[{self._entity_type}]'
 
     def _find_checked_out_entity(self, id_: str):
         for entity in self._entities:
@@ -142,4 +217,61 @@ class RdbRepository(ffd.Repository[T]):
 
     def reset(self):
         super().reset()
+        self._query_details = {}
         self._state = 'empty'
+
+    def migrate_schema(self):
+        self._interface.create_schema(self._entity_type)
+        self._interface.create_table(self._entity_type)
+
+        entity_columns = self._interface.get_entity_columns(self._entity_type)
+        table_columns = self._interface.get_table_columns(self._entity_type)
+
+        for ec in entity_columns:
+            if ec not in table_columns:
+                self._interface.add_column(self._entity_type, ec)
+        for tc in table_columns:
+            if tc not in entity_columns:
+                self._interface.drop_column(self._entity_type, tc)
+
+        entity_indexes = self._interface.get_entity_indexes(self._entity_type)
+        table_indexes = self._interface.get_table_indexes(self._entity_type)
+
+        for ei in entity_indexes:
+            if ei not in table_indexes:
+                self._interface.create_index(self._entity_type, ei)
+        for ti in table_indexes:
+            if ti not in entity_indexes:
+                self._interface.drop_index(self._entity_type, ti)
+
+
+class Index(ffd.ValueObject):
+    name: str = ffd.optional()
+    table: str = ffd.optional()
+    columns: List[str] = ffd.list_()
+    unique: bool = ffd.optional(default=False)
+
+    def __post_init__(self):
+        if self.name is None:
+            self.name = f'idx_{self.table}_{"_".join(self.columns)}'
+
+    def __eq__(self, other):
+        return self.name == other.name
+
+
+class Column(ffd.ValueObject):
+    name: str = ffd.required()
+    type: str = ffd.required()
+    length: int = ffd.optional()
+    is_id: bool = ffd.optional(default=False)
+    is_indexed: bool = ffd.optional(default=False)
+
+    @property
+    def string_type(self):
+        return str(self.type.__name__)
+
+    def index(self):
+        return self.is_id or (self.is_indexed and self.type is str)
+
+    def __eq__(self, other):
+        return self.name == other.name

@@ -14,10 +14,29 @@
 
 from __future__ import annotations
 
+import os
+
 import firefly.application as ffa
 import firefly.domain as ffd
 import firefly.infrastructure as ffi
+import firefly.infrastructure.repository.rdb_storage_interfaces as rsi
 import firefly_di as di
+from firefly.infrastructure.jinja2 import is_attribute, is_criteria, is_uuid
+from jinja2 import Environment, FileSystemLoader
+from jinjasql import JinjaSql
+
+
+def build_jinja(self):
+    env = self.jinjasql_environment
+    env.tests['attribute'] = is_attribute
+    env.tests['criteria'] = is_criteria
+    env.tests['uuid'] = is_uuid
+
+    def serialized(entity):
+        return self.serializer.serialize(entity)
+    env.filters['serialized'] = serialized
+
+    return JinjaSql(env=env, param_style='named')
 
 
 class Container(di.Container):
@@ -88,7 +107,7 @@ class Container(di.Container):
     system_bus: ffd.SystemBus = ffd.SystemBus
 
     # Storage
-    db_api_storage_interface_registry: ffi.RdbStorageInterfaceRegistry = ffi.RdbStorageInterfaceRegistry
+    rdb_storage_interface_registry: ffi.RdbStorageInterfaceRegistry = ffi.RdbStorageInterfaceRegistry
 
     # Messaging
     message_transport: ffd.MessageTransport = ffi.AsyncioMessageTransport
@@ -102,3 +121,12 @@ class Container(di.Container):
     agent_factory: ffd.AgentFactory = lambda self: self.build(ffd.AgentFactory, agents={
         'default': self.build(ffi.DefaultAgent)
     })
+
+    # Templating
+    jinjasql_environment: Environment = lambda self: Environment(
+        loader=FileSystemLoader([f'{os.path.abspath(os.path.dirname(rsi.__file__))}/templates']),
+        autoescape=True,
+        trim_blocks=True,
+        lstrip_blocks=True,
+    )
+    jinjasql: JinjaSql = lambda self: build_jinja(self)

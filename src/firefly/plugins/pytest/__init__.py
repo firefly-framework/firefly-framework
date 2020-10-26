@@ -98,7 +98,7 @@ def registry(container, request) -> ff.Registry:
                 try:
                     repository = registry(entity)
                     if isinstance(repository, ffi.RdbRepository):
-                        repository.execute_ddl()
+                        repository.migrate_schema()
                 except ff.FrameworkError:
                     pass
 
@@ -107,9 +107,7 @@ def registry(container, request) -> ff.Registry:
             for entity in context.entities:
                 if issubclass(entity, ff.AggregateRoot) and entity is not ff.AggregateRoot:
                     try:
-                        for e in registry(entity):
-                            registry(entity).remove(e)
-                        registry(entity).commit(force_delete=True)
+                        registry(entity).destroy()
                     except ff.FrameworkError:
                         pass
 

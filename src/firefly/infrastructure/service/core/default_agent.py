@@ -60,7 +60,7 @@ class DefaultAgent(ffd.ApplicationService, ffd.LoggerAware):
                     try:
                         repository = self._registry(entity)
                         if isinstance(repository, ffi.RdbRepository):
-                            repository.execute_ddl()
+                            repository.migrate_schema()
                     except ffd.FrameworkError:
                         pass
 

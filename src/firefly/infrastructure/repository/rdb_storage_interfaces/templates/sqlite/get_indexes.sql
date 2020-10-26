@@ -1,0 +1,1 @@
+select * from sqlite_master where type = 'index' and tbl_name = '{{ fqtn.replace(".", "_") | sqlsafe }}'

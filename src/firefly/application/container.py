@@ -50,7 +50,7 @@ class Container(di.Container):
     context_map: ffd.ContextMap = ffd.ContextMap
     registry: ffd.Registry = ffd.Registry
     message_factory: ffd.MessageFactory = ffd.MessageFactory
-    validator: ffd.Validation = ffd.Validation
+    validator: ffd.Validator = ffd.Validator
 
     # System Bus
     event_resolver: ffd.EventResolvingMiddleware = lambda self: self.build(

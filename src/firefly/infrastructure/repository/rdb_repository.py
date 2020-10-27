@@ -108,7 +108,8 @@ class RdbRepository(ffd.Repository[T]):
                     merged.append(next(e for e in self._entities if e == entity))
                 else:
                     merged.append(entity)
-                    self.register_entity(entity)
+                    if raw is False:
+                        self.register_entity(entity)
             if self._state == 'empty':
                 self._state = 'partial'
             entities = merged
@@ -147,6 +148,8 @@ class RdbRepository(ffd.Repository[T]):
         return ret
 
     def __iter__(self):
+        if 'raw' in self._query_details and self._query_details['raw'] is True:
+            return iter(self._load_data())
         self._load_data()
         return iter(list(self._entities))
 
@@ -170,6 +173,9 @@ class RdbRepository(ffd.Repository[T]):
             self._query_details['offset'] = item
             self._query_details['limit'] = 1
 
+        if 'raw' in self._query_details and self._query_details['raw'] is True:
+            return self._load_data()
+
         self._load_data()
 
         if isinstance(item, slice):
@@ -184,6 +190,8 @@ class RdbRepository(ffd.Repository[T]):
             query_details['criteria'] = None
 
         results = self._do_filter(**query_details)
+        if 'raw' in query_details and query_details['raw'] is True:
+            return results
 
         if isinstance(results, list):
             for entity in results:
@@ -230,9 +238,6 @@ class RdbRepository(ffd.Repository[T]):
         for ec in entity_columns:
             if ec not in table_columns:
                 self._interface.add_column(self._entity_type, ec)
-        for tc in table_columns:
-            if tc not in entity_columns:
-                self._interface.drop_column(self._entity_type, tc)
 
         entity_indexes = self._interface.get_entity_indexes(self._entity_type)
         table_indexes = self._interface.get_table_indexes(self._entity_type)
@@ -240,9 +245,6 @@ class RdbRepository(ffd.Repository[T]):
         for ei in entity_indexes:
             if ei not in table_indexes:
                 self._interface.create_index(self._entity_type, ei)
-        for ti in table_indexes:
-            if ti not in entity_indexes:
-                self._interface.drop_index(self._entity_type, ti)
 
 
 class Index(ffd.ValueObject):

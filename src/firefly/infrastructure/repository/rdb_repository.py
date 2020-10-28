@@ -245,6 +245,9 @@ class RdbRepository(ffd.Repository[T]):
         for ei in entity_indexes:
             if ei not in table_indexes:
                 self._interface.create_index(self._entity_type, ei)
+        for ti in table_indexes:
+            if ti not in entity_indexes:
+                self._interface.drop_index(self._entity_type, ti)
 
 
 class Index(ffd.ValueObject):

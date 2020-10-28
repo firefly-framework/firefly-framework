@@ -37,7 +37,7 @@ class QueryService(Generic[T], GenericBase, ApplicationService):
                 criteria = kwargs['criteria']
                 if isinstance(criteria, str):
                     criteria = self._serializer.deserialize(criteria)
-                return self._registry(self._type()).filter(ffd.BinaryOp.from_dict(criteria))
+                return list(self._registry(self._type()).filter(ffd.BinaryOp.from_dict(criteria)))
             else:
                 return list(self._registry(self._type()))
         except KeyError:

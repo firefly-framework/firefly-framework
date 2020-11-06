@@ -45,9 +45,9 @@ class RdbRepository(ffd.Repository[T]):
             entity = [entity]
 
         for e in entity:
-            self.debug('Entity added to repository: %s', str(e))
             if e not in self._entities:
                 self._entities.append(e)
+                self.debug('Entity added to repository: %s', str(e))
         self._state = 'partial'
 
     def remove(self, x: Union[T, List[T], Tuple[T], Callable, ffd.BinaryOp], **kwargs):
@@ -142,8 +142,10 @@ class RdbRepository(ffd.Repository[T]):
         ret._parent = self
 
         deletions = self._deletions
+        entities = self._entities
         self.reset()
         self._deletions = deletions
+        self._entities = entities
 
         return ret
 

@@ -142,7 +142,7 @@ class RdbRepository(ffd.Repository[T]):
         ret._parent = self
 
         deletions = self._deletions
-        entities = self._entities
+        entities = self._new_entities()
         self.reset()
         self._deletions = deletions
         self._entities = entities

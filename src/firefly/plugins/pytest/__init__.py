@@ -37,8 +37,10 @@ def container(config):
     Container.configuration = lambda self: ffi.MemoryConfigurationFactory()(config)
     Container.asyncio_message_transport = ffi.AsyncioMessageTransport
     Container.message_transport = ffi.FakeMessageTransport
+    Container.mutex = ffi.MemoryMutex
 
     Container.__annotations__['asyncio_message_transport'] = ffi.AsyncioMessageTransport
+    Container.__annotations__['mutex'] = ffi.MemoryMutex
 
     c = Container()
 

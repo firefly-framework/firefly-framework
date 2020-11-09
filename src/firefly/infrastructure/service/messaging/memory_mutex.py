@@ -12,6 +12,20 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from .asyncio_message_transport import AsyncioMessageTransport
-from .fake_message_transport import FakeMessageTransport
-from .memory_mutex import MemoryMutex
+from __future__ import annotations
+
+import firefly.domain as ffd
+
+
+class MemoryMutex(ffd.Mutex):
+    _mutexes = {}
+
+    def acquire(self, key: str, timeout: int = None) -> bool:
+        if key in self._mutexes:
+            return False
+        self._mutexes[key] = timeout
+        return True
+
+    def release(self, key: str):
+        if key in self._mutexes:
+            del self._mutexes[key]

@@ -12,6 +12,8 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from .asyncio_message_transport import AsyncioMessageTransport
-from .fake_message_transport import FakeMessageTransport
-from .memory_mutex import MemoryMutex
+def test_mutex(container):
+    with container.mutex('foo'):
+        assert 'foo' in container.mutex._mutexes
+        assert container.mutex.acquire('foo') is False
+    assert 'foo' not in container.mutex._mutexes

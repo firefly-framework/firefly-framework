@@ -18,7 +18,6 @@ from typing import List, Callable, Union, Tuple, Optional
 
 import firefly.domain as ffd
 import firefly.infrastructure as ffi
-import inflection
 from firefly.domain.repository.repository import T
 
 from .abstract_repository import AbstractRepository
@@ -26,20 +25,16 @@ from .abstract_repository import AbstractRepository
 DEFAULT_LIMIT = 999999999999999999
 
 
-class RdbRepository(AbstractRepository[T]):
-    def __init__(self, interface: ffi.RdbStorageInterface, table_name: str = None):
+class DocumentRepository(AbstractRepository[T]):
+    def __init__(self, interface: ffi.DocumentStorageInterface):
         super().__init__(interface=interface)
 
         self._entity_type = self._type()
-        self._table = table_name or inflection.tableize(self._entity_type.get_fqn())
         self._interface = interface
         self._interface._repository = self
         self._index = 0
         self._state = 'empty'
         self._query_details = {}
-
-    def execute(self, sql: str, params: dict = None):
-        self._interface.execute(sql, params)
 
     def append(self, entity: Union[T, List[T], Tuple[T]], **kwargs):
         if not isinstance(entity, (list, tuple)):
@@ -86,7 +81,7 @@ class RdbRepository(AbstractRepository[T]):
 
         return ret
 
-    def filter(self, x: Union[Callable, ffd.BinaryOp], **kwargs) -> RdbRepository:
+    def filter(self, x: Union[Callable, ffd.BinaryOp], **kwargs) -> DocumentRepository:
         self._query_details.update(kwargs)
         self._query_details['criteria'] = x
 
@@ -230,56 +225,3 @@ class RdbRepository(AbstractRepository[T]):
         super().reset()
         self._query_details = {}
         self._state = 'empty'
-
-    def migrate_schema(self):
-        self._interface.create_schema(self._entity_type)
-        self._interface.create_table(self._entity_type)
-
-        entity_columns = self._interface.get_entity_columns(self._entity_type)
-        table_columns = self._interface.get_table_columns(self._entity_type)
-
-        for ec in entity_columns:
-            if ec not in table_columns:
-                self._interface.add_column(self._entity_type, ec)
-
-        entity_indexes = self._interface.get_entity_indexes(self._entity_type)
-        table_indexes = self._interface.get_table_indexes(self._entity_type)
-
-        for ei in entity_indexes:
-            if ei not in table_indexes:
-                self._interface.create_index(self._entity_type, ei)
-        for ti in table_indexes:
-            if ti not in entity_indexes:
-                self._interface.drop_index(self._entity_type, ti)
-
-
-class Index(ffd.ValueObject):
-    name: str = ffd.optional()
-    table: str = ffd.optional()
-    columns: List[str] = ffd.list_()
-    unique: bool = ffd.optional(default=False)
-
-    def __post_init__(self):
-        if self.name is None:
-            self.name = f'idx_{self.table}_{"_".join(self.columns)}'
-
-    def __eq__(self, other):
-        return self.name == other.name
-
-
-class Column(ffd.ValueObject):
-    name: str = ffd.required()
-    type: str = ffd.required()
-    length: int = ffd.optional()
-    is_id: bool = ffd.optional(default=False)
-    is_indexed: bool = ffd.optional(default=False)
-
-    @property
-    def string_type(self):
-        return str(self.type.__name__)
-
-    def index(self):
-        return self.is_id or (self.is_indexed and self.type is str)
-
-    def __eq__(self, other):
-        return self.name == other.name

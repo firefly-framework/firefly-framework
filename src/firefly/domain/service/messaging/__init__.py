@@ -15,6 +15,7 @@
 # __pragma__('skip')
 from .middleware import Middleware
 from .middleware_stack import MiddlewareStack
+from .mutex import Mutex
 from .logging_middleware import LoggingMiddleware
 from .command_bus import CommandBus
 from .event_bus import EventBus

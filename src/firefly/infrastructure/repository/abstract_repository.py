@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+from pprint import pprint
 from typing import List, Callable, Union, Tuple, Optional
 
 import firefly.domain as ffd
@@ -21,25 +22,19 @@ import firefly.infrastructure as ffi
 import inflection
 from firefly.domain.repository.repository import T
 
-from .abstract_repository import AbstractRepository
-
 DEFAULT_LIMIT = 999999999999999999
 
 
-class RdbRepository(AbstractRepository[T]):
-    def __init__(self, interface: ffi.RdbStorageInterface, table_name: str = None):
-        super().__init__(interface=interface)
+class AbstractRepository(ffd.Repository[T]):
+    def __init__(self, interface: ffi.AbstractStorageInterface):
+        super().__init__()
 
         self._entity_type = self._type()
-        self._table = table_name or inflection.tableize(self._entity_type.get_fqn())
         self._interface = interface
         self._interface._repository = self
         self._index = 0
         self._state = 'empty'
         self._query_details = {}
-
-    def execute(self, sql: str, params: dict = None):
-        self._interface.execute(sql, params)
 
     def append(self, entity: Union[T, List[T], Tuple[T]], **kwargs):
         if not isinstance(entity, (list, tuple)):
@@ -86,7 +81,7 @@ class RdbRepository(AbstractRepository[T]):
 
         return ret
 
-    def filter(self, x: Union[Callable, ffd.BinaryOp], **kwargs) -> RdbRepository:
+    def filter(self, x: Union[Callable, ffd.BinaryOp], **kwargs) -> AbstractRepository:
         self._query_details.update(kwargs)
         self._query_details['criteria'] = x
 
@@ -262,24 +257,6 @@ class Index(ffd.ValueObject):
     def __post_init__(self):
         if self.name is None:
             self.name = f'idx_{self.table}_{"_".join(self.columns)}'
-
-    def __eq__(self, other):
-        return self.name == other.name
-
-
-class Column(ffd.ValueObject):
-    name: str = ffd.required()
-    type: str = ffd.required()
-    length: int = ffd.optional()
-    is_id: bool = ffd.optional(default=False)
-    is_indexed: bool = ffd.optional(default=False)
-
-    @property
-    def string_type(self):
-        return str(self.type.__name__)
-
-    def index(self):
-        return self.is_id or (self.is_indexed and self.type is str)
 
     def __eq__(self, other):
         return self.name == other.name

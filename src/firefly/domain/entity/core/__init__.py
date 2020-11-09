@@ -20,4 +20,5 @@ from .context_map import ContextMap
 from .deployment import Deployment
 from .endpoint import Endpoint
 from .http_endpoint import HttpEndpoint
+from .mutex import Mutex
 from .service import Service

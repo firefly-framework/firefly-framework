@@ -17,7 +17,7 @@ import setuptools
 
 setuptools.setup(
     name='firefly-framework',
-    version='1.1.10',
+    version='1.1.11',
     author="JD Williams",
     author_email="me@jdwilliams.xyz",
     description="A SOA framework for Python",

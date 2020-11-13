@@ -98,6 +98,8 @@ class LoadApplicationLayer(ffd.ApplicationService):
 
         if cls.is_event_listener() and issubclass(cls, ffd.ApplicationService):
             for event in cls.get_events():
+                if 'extends' in context.config and event.get_class_context() != context.name:
+                    event._context = context.name
                 self._event_resolver.add_event_listener(cls, event)
                 if cls not in context.event_listeners:
                     context.event_listeners[cls] = []
@@ -109,6 +111,8 @@ class LoadApplicationLayer(ffd.ApplicationService):
             cmd = cls.get_command()
             if isinstance(cmd, str):
                 cmd = self._message_factory.command_class(cmd, typing.get_type_hints(cls.__call__))
+            if 'extends' in context.config and cmd.get_class_context() != context.name:
+                cmd._context = context.name
             self._command_resolver.add_command_handler(cls, cmd)
             context.command_handlers[cls] = cmd
 
@@ -118,6 +122,8 @@ class LoadApplicationLayer(ffd.ApplicationService):
             query = cls.get_query()
             if isinstance(query, str):
                 query = self._message_factory.query_class(query, typing.get_type_hints(cls.__call__))
+            if 'extends' in context.config and query.get_class_context() != context.name:
+                query._context = context.name
             self._query_resolver.add_query_handler(cls, query)
             context.query_handlers[cls] = query
 

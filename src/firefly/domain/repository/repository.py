@@ -73,8 +73,8 @@ class Repository(Generic[T], GenericBase, LoggerAware, ABC):
         self._entity_hashes = {}
 
     def touch(self, entity: ffd.Entity):
-        if id(entity) in self._entity_hashes:
-            self._entity_hashes[id(entity)] = ''
+        if entity.id_value() in self._entity_hashes:
+            self._entity_hashes[entity.id_value()] = ''
 
     @abstractmethod
     def __iter__(self):
@@ -97,18 +97,18 @@ class Repository(Generic[T], GenericBase, LoggerAware, ABC):
         return hashlib.md5(self._serializer.serialize(entity.to_dict(force_all=True)).encode('utf-8')).hexdigest()
 
     def register_entity(self, entity: ffd.Entity):
-        self._entity_hashes[id(entity)] = self._get_hash(entity)
+        self._entity_hashes[entity.id_value()] = self._get_hash(entity)
         self._entities.append(entity)
         if self._parent is not None:
             self._parent.register_entity(entity)
 
     def _has_changed(self, entity: ffd.Entity):
-        if id(entity) not in self._entity_hashes:
+        if entity.id_value() not in self._entity_hashes:
             return False
-        return self._get_hash(entity) != self._entity_hashes[id(entity)]
+        return self._get_hash(entity) != self._entity_hashes[entity.id_value()]
 
     def _new_entities(self):
-        return [e for e in self._entities if id(e) not in self._entity_hashes]
+        return [e for e in self._entities if e.id_value() not in self._entity_hashes]
 
     def _changed_entities(self):
         return [e for e in self._entities if self._has_changed(e)]

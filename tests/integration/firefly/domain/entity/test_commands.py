@@ -31,6 +31,7 @@ def test_auto_generated_api(system_bus, message_factory, registry):
     assert todo.tasks[0].name == 'my task'
 
 
+@pytest.mark.skip
 def test_nested_api(system_bus, message_factory, registry):
     system_bus.invoke(message_factory.command('todo.TodoList::AddTask', {
         'todo_list': 'abc123',

@@ -26,7 +26,7 @@ from firefly.domain.entity.validation import IsValidEmail, HasLength, MatchesPat
     IsLessThan, IsGreaterThanOrEqualTo, IsGreaterThan, IsMultipleOf, HasMaxLength, HasMinLength
 from firefly.domain.meta.build_argument_list import build_argument_list
 from firefly.domain.meta.entity_meta import EntityMeta
-from firefly.domain.utils import is_type_hint, get_origin, get_args
+from firefly.domain.utils import is_type_hint, get_origin, get_args, can_be_type
 
 from .event_buffer import EventBuffer
 from .generic_base import GenericBase
@@ -70,7 +70,7 @@ class ValueObject(metaclass=EntityMeta):
             elif is_type_hint(annotations_[field_.name]):
                 origin = get_origin(type_)
                 args = get_args(type_)
-                if origin is List and issubclass(args[0], ValueObject):
+                if origin is List and can_be_type(args[0], ValueObject):
                     if getattr(self, field_.name) is None:
                         ret[field_.name] = None
                     else:
@@ -78,7 +78,7 @@ class ValueObject(metaclass=EntityMeta):
                             lambda v: v.to_dict() if isinstance(v, ValueObject) else None,
                             getattr(self, field_.name)
                         ))
-                elif origin is Dict and issubclass(args[1], ValueObject):
+                elif origin is Dict and can_be_type(args[1], ValueObject):
                     if getattr(self, field_.name) is None:
                         ret[field_.name] = None
                     else:

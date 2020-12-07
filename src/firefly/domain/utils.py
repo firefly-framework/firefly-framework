@@ -15,12 +15,13 @@
 from __future__ import annotations
 
 import importlib
+import inspect
 import sys
+import typing
 from dataclasses import dataclass
 from time import sleep
 
 import firefly as ff
-import typing
 
 
 def retry(cb, valid_cb=None, wait: int = 1, backoff: bool = True, retries: int = 5, catch=Exception, should_retry=None):
@@ -103,6 +104,19 @@ if sys.version_info[1] == 7:
             return obj.__args__
         except AttributeError:
             return None
+
+
+def can_be_type(x, t):
+    if inspect.isclass(x):
+        return issubclass(x, t)
+
+    if is_type_hint(x):
+        if get_origin(x) is typing.Union:
+            for arg in get_args(x):
+                if can_be_type(arg, t):
+                    return True
+
+    return False
 
 
 class ValueMeta(type):

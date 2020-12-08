@@ -107,6 +107,7 @@ class ArgparseExecutor(CliAppExecutor, SystemBusAware):
             sp = parser.add_subparsers(help='Commands', dest='target')
             for k, v in node['children'].items():
                 p = sp.add_parser(k, help=v['endpoint'].help if 'endpoint' in v else None)
+                self._add_verbosity_arguments(p)
                 if 'endpoint' in v:
                     self._message_cache[k] = v['endpoint'].message
                 self._configure_argparse(v, p)
@@ -125,7 +126,11 @@ class ArgparseExecutor(CliAppExecutor, SystemBusAware):
             kwargs['action'] = 'store_true' if not arg.default else 'store_false'
         else:
             kwargs['type'] = arg.type
-        parser.add_argument(*params, **kwargs)
+        try:
+            parser.add_argument(*params, **kwargs)
+        except argparse.ArgumentError as e:
+            if 'conflicting option' not in str(e):
+                raise e
 
     def _configure_single_command_app(self):
         if len(self._app.endpoints):

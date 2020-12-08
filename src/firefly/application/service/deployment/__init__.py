@@ -13,3 +13,4 @@
 #  <http://www.gnu.org/licenses/>.
 
 from .deploy import Deploy
+from .migrate_repositories import MigrateRepositories

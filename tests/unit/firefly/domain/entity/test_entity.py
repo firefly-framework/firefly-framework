@@ -87,8 +87,18 @@ def test_none_values(sut):
     assert s.required_field is None
 
 
+def test_value_object_serialization(sut):
+    # make sure to_dict() / from_dict() work with a null value object
+    s = sut(required_field='foo')
+    d = s.to_dict()
+    sut.from_dict(d)
+
+
 @pytest.fixture()
 def sut():
+    class Widget(ffd.ValueObject):
+        name: str = ffd.required()
+
     class ConcreteEntity(Entity):
         id: str = ffd.id_()
         strings: str = ffd.list_()
@@ -97,5 +107,6 @@ def sut():
         required_field: str = ffd.required()
         dictionary: dict = ffd.dict_()
         list_of_ints: List[int] = ffd.list_()
+        widget: Widget = ffd.optional()
 
     return ConcreteEntity

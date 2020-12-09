@@ -33,9 +33,25 @@ import firefly.infrastructure as ffi
 @ff.cli('firefly migrate-repositories')
 class MigrateRepositories(ff.ApplicationService):
     _registry: ff.Registry = None
+    _context_map: ff.ContextMap = None
 
     def __call__(self, **kwargs):
-        for repository in self._registry.get_repositories():
-            print(f'Migrating {repository.__class__.__name__}')
-            if isinstance(repository, ffi.RdbRepository):
-                repository.migrate_schema()
+        for context in self._context_map.contexts:
+            if context.is_extension:
+                continue
+
+            for entity in context.entities:
+                if not issubclass(entity, ff.AggregateRoot):
+                    continue
+
+                try:
+                    repository = self._registry(entity)
+                except ff.FrameworkError as e:
+                    if 'No registry found' not in str(e):
+                        raise e
+                    else:
+                        continue
+
+                if isinstance(repository, ffi.RdbRepository):
+                    print(f'Migrating {repository.__class__.__name__}')
+                    repository.migrate_schema()

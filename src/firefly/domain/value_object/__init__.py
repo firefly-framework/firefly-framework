@@ -66,7 +66,11 @@ class ValueObject(metaclass=EntityMeta):
 
             type_ = annotations_[field_.name]
             if inspect.isclass(type_) and issubclass(type_, ValueObject):
-                ret[field_.name] = getattr(self, field_.name).to_dict()
+                f = getattr(self, field_.name)
+                if isinstance(f, ValueObject):
+                    ret[field_.name] = f.to_dict()
+                else:
+                    ret[field_.name] = None
             elif is_type_hint(annotations_[field_.name]):
                 origin = get_origin(type_)
                 args = get_args(type_)

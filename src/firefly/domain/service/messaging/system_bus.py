@@ -58,7 +58,7 @@ class SystemBusAware:
     def dispatch(self, event: Union[ffd.Event, str], data: dict = None):
         return self._system_bus.dispatch(event, data)
 
-    def invoke(self, command: Union[ffd.Command, str], data: dict = None):
+    def invoke(self, command: Union[ffd.Command, str], data: dict = None, async_: bool = False):
         return self._system_bus.invoke(command, data)
 
     def request(self, request: Union[ffd.Query, str], criteria: Union[ffd.BinaryOp, Callable] = None,

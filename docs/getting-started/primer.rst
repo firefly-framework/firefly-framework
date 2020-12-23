@@ -3,6 +3,13 @@
 Framework Primer
 ================
 
+.. contents:: Table of Contents
+    :local:
+    :depth: 3
+
+Introduction
+============
+
 Firefly is a highly-opinionated application framework, intended to ease the burden of
 prototyping and releasing highly-scalable, service-oriented, domain-driven applications.
 It uses a layered-architecture, much like a hexagonal (ports & adapters) architecture,
@@ -23,4 +30,8 @@ baked in:
 #. A router for restful http endpoints
 #. Integration with argparse to easily expose your Application Services to a CLI
 #. A plugin-based system for deploying your applications to cloud services
+#. An asynchronous HTTP server for testing or VM/bare metal deployments
 #. A myriad of Bounded Contexts (services) that you can include in your application for out-of-the-box functionality
+
+Foobar
+======

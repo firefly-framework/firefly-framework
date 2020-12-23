@@ -19,7 +19,7 @@ import firefly.domain as ffd
 import inflection
 
 
-@ffd.cli('firefly generate project', alias={'path': ['-p'], 'name': ['-n']})
+@ffd.cli('firefly generate project', alias={'path': ['p'], 'name': ['n']})
 class InitializeProject(ffd.ApplicationService):
     def __call__(self, name: str = None, path: str = None):
         if name is None:

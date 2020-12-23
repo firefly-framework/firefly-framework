@@ -163,7 +163,8 @@ def _generate_model(args: dict, model_type: type, strict: bool = False):
     return model_type(**entity_args)
 
 
-def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], strict: bool = True):
+def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], strict: bool = True,
+                        registry: ffd.Registry = None):
     args = {}
     field_dict = {}
     is_dc = False
@@ -213,6 +214,11 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], 
         type_ = types[name] if name in types else None
         if type_ is datetime and name in params and isinstance(params[name], str):
             params[name] = parse(params[name]).replace(tzinfo=None)
+
+        # If a registry was supplied, and the type is an aggregate with a string argument, attempt to fetch it
+        if isinstance(type_, type) and issubclass(type_, ffd.AggregateRoot) and registry is not None:
+            if name in params and isinstance(params[name], str):
+                params[name] = registry(type_).find(params[name])
 
         if isinstance(type_, type) and issubclass(type_, ffd.ValueObject):
             if name in params and isinstance(params[name], type_):

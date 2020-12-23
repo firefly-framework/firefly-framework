@@ -40,7 +40,7 @@ class InvokeCommand(Generic[T], GenericBase, ApplicationService):
 
         method = getattr(aggregate, self._method)
         return self._buffer_events(
-            method(**ffd.build_argument_list(kwargs, method))
+            method(**ffd.build_argument_list(kwargs, method, registry=self._registry))
         )
 
     def _aggregate_name_snake(self):

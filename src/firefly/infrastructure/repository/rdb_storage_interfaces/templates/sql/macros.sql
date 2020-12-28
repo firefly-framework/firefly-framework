@@ -38,7 +38,7 @@
 
         {% if c is not criteria %}
             {% if c is attribute %}
-                {{ attribute_macro(c, ids) }}
+                {{ attribute_macro(c, ids, other_hand) }}
             {% elif c is iterable and c is not string %}
             (
                 {% for i in c %}
@@ -52,7 +52,7 @@
     {% endif %}
 {% endmacro %}
 
-{% macro default_attribute_macro(c, ids) %}
+{% macro default_attribute_macro(c, ids, other_hand) %}
     {{ _q | sqlsafe }}{{ c | string | sqlsafe }}{{ _q | sqlsafe }}
 {% endmacro %}
 

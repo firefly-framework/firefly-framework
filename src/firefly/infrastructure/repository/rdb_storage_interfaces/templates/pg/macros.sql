@@ -6,6 +6,6 @@
     {% endif %}
 {% endmacro %}
 
-{% macro value(v, ids) %}
-    {{ v }}{% if v is uuid %}::uuid{% endif %}
+{% macro value(v, ids, other_hand) %}
+    {{ v }}{% if other_hand in ids and v is uuid %}::uuid{% endif %}
 {% endmacro %}

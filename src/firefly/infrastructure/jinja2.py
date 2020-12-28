@@ -26,8 +26,7 @@ def is_criteria(x):
 
 def is_uuid(x):
     try:
-        gid = uuid.UUID(x, version=4)
+        uuid.UUID(x, version=4)
+        return True
     except ValueError:
         return False
-
-    return str(gid) == x

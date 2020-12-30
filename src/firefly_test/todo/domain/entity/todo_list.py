@@ -22,8 +22,7 @@ from .task import Task
 from .user import User
 
 
-@ff.rest('/todo-lists')
-@ff.rest('/todo-lists/{todo_list_id}')
+@ff.rest.crud()
 class TodoList(ff.AggregateRoot, create_on='iam.UserCreated', delete_on='iam.UserDeleted'):
     id: str = ff.id_()
     user: User = ff.required()

@@ -98,8 +98,15 @@ class LoadApplicationLayer(ffd.ApplicationService):
 
         if cls.is_event_listener() and issubclass(cls, ffd.ApplicationService):
             for event in cls.get_events():
-                if 'extends' in context.config and event.get_class_context() != context.name:
-                    event._context = context.name
+                if isinstance(event, str):
+                    context_name = event
+                else:
+                    context_name = event.get_class_context()
+                if 'extends' in context.config and context_name != context.name:
+                    if isinstance(event, str):
+                        event = f'{context.name}.{event.split(".")[-1]}'
+                    else:
+                        event._context = context.name
                 self._event_resolver.add_event_listener(cls, event)
                 if cls not in context.event_listeners:
                     context.event_listeners[cls] = []
@@ -128,7 +135,7 @@ class LoadApplicationLayer(ffd.ApplicationService):
             context.query_handlers[cls] = query
 
     def _add_endpoints(self, cls: Type[ffd.MetaAware], context: ffd.Context):
-        if not cls.has_endpoints():
+        if not cls.has_endpoints() or (context.name != 'firefly' and context.config.get('is_extension', False)):
             return
 
         for endpoint in cls.get_endpoints():

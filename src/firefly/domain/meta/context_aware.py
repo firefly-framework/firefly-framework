@@ -35,6 +35,10 @@ class ContextAware(ABC):
         return parts[0] if parts[0] != 'firefly_test' else parts[1]
 
     @classmethod
+    def set_class_context(cls, context_name: str):
+        cls._context = context_name
+
+    @classmethod
     def get_fqn(cls):
         if hasattr(cls, '_context') and cls._context is not None:
             context = cls._context

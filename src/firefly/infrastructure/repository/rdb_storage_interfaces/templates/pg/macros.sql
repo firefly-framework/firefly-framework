@@ -10,5 +10,6 @@
 {% endmacro %}
 
 {% macro value(v, ids, other_hand) %}
-    {{ v }}{% if other_hand in ids and v is uuid %}::uuid{% endif %}
+    {%  set other_hand_str = other_hand | string %}
+    {{ v }}{% if other_hand_str in ids and v is uuid %}::uuid{% endif %}
 {% endmacro %}

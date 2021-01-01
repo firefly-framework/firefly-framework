@@ -5,7 +5,13 @@
     {% elif other_hand is true or other_hand is false %}
         (document->>'{{ c_str | sqlsafe }}')::boolean
     {% else %}
+        {% if c.has_modifiers() %}
+            {% for modifier in c.get_modifiers() %}{{ modifier | sqlsafe }}({% endfor %}
+        {% endif %}
         document->>'{{ c_str | sqlsafe }}'
+        {% if c.has_modifiers() %}
+            {% for modifier in c.get_modifiers() %}){% endfor %}
+        {% endif %}
     {% endif %}
 {% endmacro %}
 

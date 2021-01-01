@@ -40,7 +40,18 @@ class EntityAttributeSpy:
 
 
 class AttributeString(str):
-    pass
+    __modifiers = None
+
+    def add_modifier(self, modifier: str):
+        if self.__modifiers is None:
+            self.__modifiers = []
+        self.__modifiers.append(modifier)
+
+    def has_modifiers(self):
+        return self.__modifiers is not None
+
+    def get_modifiers(self):
+        return self.__modifiers
 
 
 class Invalid:
@@ -83,11 +94,11 @@ class Attr:
         return BinaryOp(self.attr, 'startswith', value)
 
     def lower(self):
-        self.attr = AttributeString(f'LOWER({self.attr})')
+        self.attr.add_modifier('LOWER')
         return self
 
     def upper(self):
-        self.attr = AttributeString(f'UPPER({self.attr})')
+        self.attr.add_modifier('UPPER')
         return self
 
     def endswith(self, value):
@@ -184,30 +195,18 @@ class BinaryOp:
         if isinstance(bop.lhv, BinaryOp):
             lhv = self._do_match(bop.lhv, data)
         elif isinstance(bop.lhv, AttributeString):
-            if '(' in bop.lhv:
-                lhv = self._parse_attribute_string(bop.lhv, data)
-            else:
-                lhv = data[bop.lhv]
+            lhv = self._parse_attribute_string(bop.lhv, data)
         elif isinstance(bop.lhv, Attr):
-            if '(' in bop.lhv.attr:
-                lhv = self._parse_attribute_string(bop.lhv.attr, data)
-            else:
-                lhv = data[bop.lhv.attr]
+            lhv = self._parse_attribute_string(bop.lhv.attr, data)
         else:
             lhv = bop.lhv
 
         if isinstance(bop.rhv, BinaryOp):
             rhv = self._do_match(bop.rhv, data)
         elif isinstance(bop.rhv, AttributeString):
-            if '(' in bop.rhv:
-                rhv = self._parse_attribute_string(bop.rhv, data)
-            else:
-                rhv = data[bop.rhv]
+            rhv = self._parse_attribute_string(bop.rhv, data)
         elif isinstance(bop.rhv, Attr):
-            if '(' in bop.rhv.attr:
-                rhv = self._parse_attribute_string(bop.rhv.attr, data)
-            else:
-                rhv = data[bop.rhv.attr]
+            rhv = self._parse_attribute_string(bop.rhv.attr, data)
         else:
             rhv = bop.rhv
 
@@ -245,16 +244,15 @@ class BinaryOp:
         return list(map(lambda rr: rr[2], regex.findall(r'((\w)\((?R)\))|(\w+)', attr))).pop()
 
     @staticmethod
-    def _parse_attribute_string(attr: str, data: dict):
-        matches = list(map(lambda rr: rr[2], regex.findall(r'((\w)\((?R)\))|(\w+)', attr)))
-        attribute = matches.pop()
-        value = data[attribute]
+    def _parse_attribute_string(attr: AttributeString, data: dict):
+        value = data[attr]
 
-        for func in reversed(matches):
-            if func == 'LOWER':
-                value = value.lower()
-            elif func == 'UPPER':
-                value = value.upper()
+        if attr.has_modifiers():
+            for modifier in attr.get_modifiers():
+                if modifier == 'LOWER':
+                    value = value.lower()
+                elif modifier == 'UPPER':
+                    value = value.upper()
 
         return value
 

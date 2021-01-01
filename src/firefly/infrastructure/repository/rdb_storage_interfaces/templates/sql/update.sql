@@ -13,6 +13,6 @@
     {% if criteria %}
         where
         {% import "sql/macros.sql" as macros %}
-        {% block where_clause scoped %}{{ macros.where_clause(criteria, macros.default_attribute_macro, macros.default_value_macro, ids) }}{% endblock %}
+        {% block where_clause scoped %}{{ macros.where_clause(criteria, macros.default_attribute_macro, macros.default_value_macro, ids, field_types) }}{% endblock %}
     {% endif %}
 {%- endblock -%}

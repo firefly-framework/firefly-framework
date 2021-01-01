@@ -285,6 +285,7 @@ class RdbStorageInterface(AbstractStorageInterface, ABC):
             'mapped_fields': mapped_fields,
             'indexes': list(map(lambda e: e.name, self.get_entity_indexes(entity))),
             'ids': entity.id_name() if isinstance(entity.id_name(), list) else [entity.id_name()],
+            'field_types': {f.name: f.type for f in fields(entity)},
         }
         data.update(params)
         sql, params = self._j.prepare_query(template, data)

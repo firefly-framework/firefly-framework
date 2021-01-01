@@ -39,8 +39,20 @@ class EntityAttributeSpy:
         return Attr(item)
 
 
-class AttributeString(str):
+class AttributeString:
     __modifiers = None
+    _value: str = None
+
+    def __init__(self, value: str):
+        if '(' in value:
+            matches = list(map(lambda rr: rr[2], regex.findall(r'((\w)\((?R)\))|(\w+)', str(value))))
+            attribute = matches.pop()
+
+            for func in reversed(matches):
+                self.add_modifier(func)
+            self._value = attribute
+        else:
+            self._value = str(value)
 
     def add_modifier(self, modifier: str):
         if self.__modifiers is None:
@@ -52,6 +64,21 @@ class AttributeString(str):
 
     def get_modifiers(self):
         return self.__modifiers
+
+    def __str__(self):
+        return str(self._value)
+
+    def __repr__(self):
+        ret = ''
+        if self.has_modifiers():
+            for modifier in self.get_modifiers():
+                ret += f'{modifier}('
+        ret += str(self)
+        if self.has_modifiers():
+            for _ in self.get_modifiers():
+                ret += ')'
+
+        return ret
 
 
 class Invalid:
@@ -126,7 +153,10 @@ class Attr:
         return BinaryOp(self.attr, '<=', other)
 
     def __repr__(self):
-        return self.attr
+        return repr(self.attr)
+
+    def __str__(self):
+        return str(self.attr)
 
 
 class AttrFactory:
@@ -154,14 +184,14 @@ class BinaryOp:
         if isinstance(bop.lhv, BinaryOp):
             ret['l'] = self._do_to_dict(bop.lhv)
         elif isinstance(bop.lhv, (Attr, AttributeString)):
-            ret['l'] = f'a:{str(bop.lhv)}'
+            ret['l'] = f'a:{repr(bop.lhv)}'
         else:
             ret['l'] = bop.lhv
 
         if isinstance(bop.rhv, BinaryOp):
             ret['r'] = self._do_to_dict(bop.rhv)
         elif isinstance(bop.rhv, (Attr, AttributeString)):
-            ret['r'] = f'a:{str(bop.rhv)}'
+            ret['r'] = f'a:{repr(bop.rhv)}'
         else:
             ret['r'] = bop.rhv
 

@@ -98,3 +98,15 @@ def test_search_criteria():
     for widget in widgets:
         lst.append(widget)
     assert len(lst) == 4
+
+
+def test_search_criteria_serialization():
+    spy = ff.EntityAttributeSpy()
+
+    def criteria(x):
+        return x.foo.lower() == 'bar'
+
+    c = criteria(spy)
+    assert c.to_dict()['l'].startswith('a:LOWER')
+    nc = ff.BinaryOp.from_dict(c.to_dict())
+    assert str(nc.lhv) == 'foo'

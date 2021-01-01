@@ -94,6 +94,9 @@ class Attr:
         self.default = default
 
     def __getattribute__(self, item):
+        if item in ('has_modifiers', 'get_modifiers'):
+            return getattr(self.attr, item)
+
         try:
             return object.__getattribute__(self, item)
         except AttributeError:
@@ -275,7 +278,7 @@ class BinaryOp:
 
     @staticmethod
     def _parse_attribute_string(attr: AttributeString, data: dict):
-        value = data[attr]
+        value = data[str(attr)]
 
         if attr.has_modifiers():
             for modifier in attr.get_modifiers():

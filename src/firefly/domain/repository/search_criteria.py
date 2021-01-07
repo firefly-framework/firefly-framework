@@ -182,41 +182,44 @@ class BinaryOp:
         return self._do_to_dict(self)
 
     def _do_to_dict(self, bop: BinaryOp):
-        ret = {'l': None, 'o': bop.op, 'r': None}
+        return {
+            'l': self._get_serialized_value(bop.lhv),
+            'o': bop.op,
+            'r': self._get_serialized_value(bop.rhv)
+        }
 
-        if isinstance(bop.lhv, BinaryOp):
-            ret['l'] = self._do_to_dict(bop.lhv)
-        elif isinstance(bop.lhv, (Attr, AttributeString)):
-            ret['l'] = f'a:{repr(bop.lhv)}'
+    def _get_serialized_value(self, val):
+        if isinstance(val, BinaryOp):
+            return self._do_to_dict(val)
+        elif isinstance(val, (Attr, AttributeString)):
+            return f'a:{repr(val)}'
+        elif isinstance(val, datetime):
+            return f'datetime:{val}'
+        elif isinstance(val, date):
+            return f'date:{val}'
         else:
-            ret['l'] = bop.lhv
-
-        if isinstance(bop.rhv, BinaryOp):
-            ret['r'] = self._do_to_dict(bop.rhv)
-        elif isinstance(bop.rhv, (Attr, AttributeString)):
-            ret['r'] = f'a:{repr(bop.rhv)}'
-        else:
-            ret['r'] = bop.rhv
-
-        return ret
+            return val
 
     @classmethod
     def from_dict(cls, data: dict):
-        if isinstance(data['l'], dict):
-            lhv = cls.from_dict(data['l'])
-        elif isinstance(data['l'], str) and data['l'].startswith('a:'):
-            lhv = Attr(data['l'].split(':')[1])
-        else:
-            lhv = data['l']
+        return BinaryOp(
+            cls._deserialize_value(data['l']),
+            data['o'],
+            cls._deserialize_value(data['r'])
+        )
 
-        if isinstance(data['r'], dict):
-            rhv = cls.from_dict(data['r'])
-        elif isinstance(data['r'], str) and data['r'].startswith('a:'):
-            rhv = Attr(data['r'].split(':')[1])
+    @classmethod
+    def _deserialize_value(cls, val):
+        if isinstance(val, dict):
+            return cls.from_dict(val)
+        elif isinstance(val, str) and val.startswith('a:'):
+            return Attr(val.split(':')[1])
+        elif isinstance(val, str) and val.startswith('datetime:'):
+            return ffd.parse(val.split(':')[1])
+        elif isinstance(val, str) and val.startswith('date:'):
+            return ffd.parse(val.split(':')[1]).date()
         else:
-            rhv = data['r']
-
-        return BinaryOp(lhv, data['o'], rhv)
+            return val
 
     def matches(self, data: Union[ffd.Entity, dict]) -> bool:
         if isinstance(data, ffd.Entity):

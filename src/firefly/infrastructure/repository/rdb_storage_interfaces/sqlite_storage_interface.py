@@ -59,7 +59,9 @@ class SqliteStorageInterface(LegacyStorageInterface, ffd.LoggerAware):
     def _build_entity(self, entity: Type[ffd.Entity], data, raw: bool = False):
         if raw:
             return self._serializer.deserialize(data['document'])
-        return entity.from_dict(self._load_relationships(entity, self._serializer.deserialize(data['document'])))
+        ret = entity.from_dict(self._load_relationships(entity, self._serializer.deserialize(data['document'])))
+        setattr(ret, '__ff_version', data['version'])
+        return ret
 
     def _get_table_columns(self, entity: Type[ffd.Entity]):
         ret = []
@@ -90,6 +92,9 @@ class SqliteStorageInterface(LegacyStorageInterface, ffd.LoggerAware):
         self.info(params)
         cursor.execute(sql, params)
         self._connection.commit()
+
+        if sql.startswith('update ') or sql.startswith('insert '):
+            return cursor.rowcount
 
         return cursor.fetchall()
 

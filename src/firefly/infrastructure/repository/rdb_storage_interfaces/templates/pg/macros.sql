@@ -1,6 +1,6 @@
 {% macro attribute(c, ids, other_hand, field_types) %}
     {% set c_str = c | string %}
-    {% if c_str in ids %}
+    {% if c_str in ids or c_str == 'version' %}
         {{ _q | sqlsafe }}{{ c | string | sqlsafe }}{{ _q | sqlsafe }}
     {% elif other_hand is true or other_hand is false %}
         (document->>'{{ c_str | sqlsafe }}')::boolean

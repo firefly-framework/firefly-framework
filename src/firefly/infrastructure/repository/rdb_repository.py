@@ -211,11 +211,13 @@ class RdbRepository(AbstractRepository[T]):
         new_entities = self._new_entities()
         if len(new_entities) > 0:
             self.debug('Adding %s', new_entities)
-            self._interface.add(new_entities)
+            if self._interface.add(new_entities) == 0:
+                raise ffd.ConcurrentUpdateDetected()
 
         for entity in self._changed_entities():
             self.debug('Updating %s', entity)
-            self._interface.update(entity)
+            if self._interface.update(entity) == 0:
+                raise ffd.ConcurrentUpdateDetected()
         self.debug('Done in commit()')
 
     def __repr__(self):
@@ -273,6 +275,7 @@ class Column(ffd.ValueObject):
     length: int = ffd.optional()
     is_id: bool = ffd.optional(default=False)
     is_indexed: bool = ffd.optional(default=False)
+    default: any = ffd.optional()
 
     @property
     def string_type(self):

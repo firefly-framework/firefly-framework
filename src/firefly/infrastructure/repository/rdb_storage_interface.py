@@ -126,12 +126,18 @@ class RdbStorageInterface(AbstractStorageInterface, ABC):
         }))
 
     def _update(self, entity: ffd.Entity):
+        criteria = ffd.Attr(entity.id_name()) == entity.id_value()
+        try:
+            criteria &= ffd.Attr('version') == getattr(entity, '__ff_version')
+        except AttributeError:
+            pass
+
         return self._execute(*self._generate_query(
             entity,
             f'{self._sql_prefix}/update.sql',
             {
                 'data': self._data_fields(entity),
-                'criteria': ffd.Attr(entity.id_name()) == entity.id_value()
+                'criteria': criteria
             }
         ))
 
@@ -176,6 +182,7 @@ class RdbStorageInterface(AbstractStorageInterface, ABC):
         if not self._map_all:
             ret.insert(1, Column(name='document', type=dict))
             ret.insert(2, Column(name='__document', type=dict))
+            ret.insert(3, Column(name='version', type=int, default=1))
 
         return ret
 
@@ -242,7 +249,9 @@ class RdbStorageInterface(AbstractStorageInterface, ABC):
             else:
                 return self._serializer.deserialize(data['document'])
 
+        version = None
         if self._map_all is False:
+            version = data['version']
             data = self._serializer.deserialize(data['document'])
 
         for k, v in self._get_relationships(entity).items():
@@ -253,7 +262,10 @@ class RdbStorageInterface(AbstractStorageInterface, ABC):
                     lambda ee: getattr(ee, v['target'].id_name()).is_in(data[k])
                 ))
 
-        return entity.from_dict(data)
+        ret = entity.from_dict(data)
+        if version is not None:
+            setattr(ret, '__ff_version', version)
+        return ret
 
     @staticmethod
     def _generate_index(name: str):
@@ -315,6 +327,11 @@ class RdbStorageInterface(AbstractStorageInterface, ABC):
         for f in self.get_entity_columns(entity.__class__):
             if f.name == 'document' and not hasattr(entity, 'document'):
                 ret[f.name] = self._serialize_entity(entity)
+            elif f.name == 'version':
+                try:
+                    ret['version'] = getattr(entity, '__ff_version')
+                except AttributeError:
+                    ret['version'] = 1
             elif inspect.isclass(f.type) and issubclass(f.type, ffd.AggregateRoot):
                 ret[f.name] = getattr(entity, f.name).id_value()
             elif ffd.is_type_hint(f.type):
@@ -344,4 +361,4 @@ class RdbStorageInterface(AbstractStorageInterface, ABC):
     def _select_list(self, entity: Type[ffd.Entity]):
         if self._map_all:
             return list(map(lambda c: c.name, self.get_entity_columns(entity)))
-        return ['document']
+        return ['document', 'version']

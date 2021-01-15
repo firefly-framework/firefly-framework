@@ -29,6 +29,10 @@ create table {% block create_condition %}if not exists{% endblock %} {% block fq
                     {% block text_type scoped %}text{% endblock %}
                 {% endif %}
             {% endif %}
+            {% if f.default is not none %}
+                default
+                {% if f.default is string %}'{% endif %}{{ f.default | sqlsafe }}{% if f.default is string %}'{% endif %}
+            {% endif %}
             {% if not loop.last %},{% endif %}
         {% endfor %}
 

@@ -42,7 +42,7 @@ class AbstractStorageInterface(ffd.LoggerAware, ABC):
 
     def add(self, entity: Union[ffd.Entity, List[ffd.Entity]]):
         self._check_prerequisites(entity.__class__)
-        self._add(entity)
+        return self._add(entity)
 
     @abstractmethod
     def _add(self, entity: Union[ffd.Entity, List[ffd.Entity]]):
@@ -92,7 +92,7 @@ class AbstractStorageInterface(ffd.LoggerAware, ABC):
         self._check_prerequisites(entity.__class__)
         if hasattr(entity, 'updated_on'):
             entity.updated_on = datetime.now()
-        self._update(entity)
+        return self._update(entity)
 
     @abstractmethod
     def _update(self, entity: ffd.Entity):

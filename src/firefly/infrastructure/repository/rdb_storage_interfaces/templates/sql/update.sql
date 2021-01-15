@@ -5,13 +5,11 @@
         {%- for k, v in data.items() -%}
             {% if k not in ids %}
                 {{ _q | sqlsafe }}{{ k | sqlsafe }}{{ _q | sqlsafe }}=
-                    {%- block update_value scoped %}
-                        {% if k == 'version' %}
-                            {{ v + 1 }}
-                        {% else %}
-                            {{ v }}
-                        {% endif %}
-                    {% endblock %}
+                {% if k == 'version' %}
+                    {{ v + 1 }}
+                {% else %}
+                    {%- block update_value scoped %}{{ v }}{% endblock %}
+                {% endif %}
                 {% if not loop.last %},{% endif %}
             {% endif %}
         {%- endfor -%}

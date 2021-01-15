@@ -75,6 +75,9 @@ class RdbRepository(AbstractRepository[T]):
         else:
             if not isinstance(x, ffd.BinaryOp):
                 x = self._get_search_criteria(x)
+            entity = self._find_checked_out_entity(x)
+            if entity is not None:
+                return entity
             results = self._interface.all(self._entity_type, x)
             if len(results) > 0:
                 ret = results[0]
@@ -223,9 +226,11 @@ class RdbRepository(AbstractRepository[T]):
     def __repr__(self):
         return f'RdbRepository[{self._entity_type}]'
 
-    def _find_checked_out_entity(self, id_: str):
+    def _find_checked_out_entity(self, x: Union[str, ffd.BinaryOp]):
         for entity in self._entities:
-            if entity.id_value() == id_:
+            if isinstance(x, str) and entity.id_value() == x:
+                return entity
+            elif isinstance(x, ffd.BinaryOp) and x.matches(entity):
                 return entity
 
     def reset(self):

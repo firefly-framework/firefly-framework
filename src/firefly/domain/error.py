@@ -31,6 +31,10 @@ class MultipleResultsFound(RepositoryError):
     pass
 
 
+class ConcurrentUpdateDetected(RepositoryError):
+    pass
+
+
 class FrameworkError(Exception):
     pass
 

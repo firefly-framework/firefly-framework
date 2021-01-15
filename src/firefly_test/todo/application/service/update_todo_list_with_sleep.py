@@ -12,6 +12,20 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from .create_calendar import CreateCalendar
-from .get_dto_schema import GetDtoSchema
-from .update_todo_list_with_sleep import UpdateTodoListWithSleep
+from __future__ import annotations
+
+from datetime import datetime
+from time import sleep
+
+import firefly as ff
+import firefly_test.todo as todo
+
+
+@ff.command_handler()
+class UpdateTodoListWithSleep(ff.ApplicationService):
+    _registry: ff.Registry = None
+
+    def __call__(self, id_: str, task_name: str, **kwargs):
+        todo_list: todo.TodoList = self._registry(todo.TodoList).find(id_)
+        sleep(1)
+        todo_list.tasks.append(todo.Task(name=task_name, due_date=datetime.now()))

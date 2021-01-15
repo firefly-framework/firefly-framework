@@ -14,6 +14,7 @@
 
 import uuid
 from datetime import datetime
+from multiprocessing import Pool
 from pprint import pprint
 
 from firefly_test.iam import Scope, Role, User

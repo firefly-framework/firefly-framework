@@ -35,38 +35,43 @@ class TransactionHandlingMiddleware(Middleware, LoggerAware, SystemBusAware):
         self._level = 0
 
     def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
-        try:
-            if self._level == 0:
-                self.debug('Level 0 - Resetting repositories')
-                self.debug(message)
-                self._reset()
-            elif self._level > 0:
-                if isinstance(message, ffd.Event):
-                    self.debug('Buffering message')
-                    self._event_buffer.append(message)
-                    return message
+        while True:
+            try:
+                if self._level == 0:
+                    self.debug('Level 0 - Resetting repositories')
+                    self.debug(message)
+                    self._reset()
+                elif self._level > 0:
+                    if isinstance(message, ffd.Event):
+                        self.debug('Buffering message')
+                        self._event_buffer.append(message)
+                        return message
 
-            self._level += 1
-            self.debug('Level incremented: %d', self._level)
-            ret = next_(message)
-            self._level -= 1
-            if self._level < 0:
-                self._level = 0
-            self.debug('Level decremented: %d', self._level)
-            if self._level == 0:
-                self.debug('Level 0 - Committing changes')
-                self._commit()
-            return ret
-        except Exception as e:
-            self.exception(str(e))
-            self._level -= 1
-            if self._level < 0:
-                self._level = 0
-            self.debug('Level decremented: %d', self._level)
-            if self._level == 0:
-                self.debug('Level 0 - Resetting repositories')
+                self._level += 1
+                self.debug('Level incremented: %d', self._level)
+                ret = next_(message)
+                self._level -= 1
+                if self._level < 0:
+                    self._level = 0
+                self.debug('Level decremented: %d', self._level)
+                if self._level == 0:
+                    self.debug('Level 0 - Committing changes')
+                    self._commit()
+                return ret
+            except ffd.ConcurrentUpdateDetected:
+                self.info('Concurrent update detected. Retrying the operation.')
+                self.reset_level()
                 self._reset()
-            raise
+            except Exception as e:
+                self.exception(str(e))
+                self._level -= 1
+                if self._level < 0:
+                    self._level = 0
+                self.debug('Level decremented: %d', self._level)
+                if self._level == 0:
+                    self.debug('Level 0 - Resetting repositories')
+                    self._reset()
+                raise
 
     def _reset(self):
         for repository in self._registry.get_repositories():

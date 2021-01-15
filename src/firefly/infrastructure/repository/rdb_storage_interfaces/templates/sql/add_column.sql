@@ -19,3 +19,7 @@ add column {{ _q | sqlsafe }}{{ column.name | sqlsafe }}{{ _q | sqlsafe }}
             {% block text_type scoped %} text{% endblock %}
         {% endif %}
     {% endif %}
+        {% if column.default is not none %}
+        default
+        {% if column.default is string %}'{% endif %}{{ column.default | sqlsafe }}{% if column.default is string %}'{% endif %}
+    {% endif %}

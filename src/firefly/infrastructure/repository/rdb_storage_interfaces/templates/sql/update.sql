@@ -4,7 +4,14 @@
     {% block columns %}
         {%- for k, v in data.items() -%}
             {% if k not in ids %}
-                {{ _q | sqlsafe }}{{ k | sqlsafe }}{{ _q | sqlsafe }}={% block update_value scoped %}{{ v }}{% endblock %}
+                {{ _q | sqlsafe }}{{ k | sqlsafe }}{{ _q | sqlsafe }}=
+                    {%- block update_value scoped %}
+                        {% if k == 'version' %}
+                            {{ v + 1 }}
+                        {% else %}
+                            {{ v }}
+                        {% endif %}
+                    {% endblock %}
                 {% if not loop.last %},{% endif %}
             {% endif %}
         {%- endfor -%}

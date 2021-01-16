@@ -22,3 +22,4 @@ from .endpoint import Endpoint
 from .http_endpoint import HttpEndpoint
 from .mutex import Mutex
 from .service import Service
+from .timer import Timer

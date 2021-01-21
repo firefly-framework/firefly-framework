@@ -21,5 +21,6 @@ from .entity import *
 from .http import *
 from .logging import *
 from .messaging import *
+from .multithreading import *
 from .patterns import *
 from .serialization import *

@@ -12,11 +12,12 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from .aggregate_root import *
-from .core import *
-from .entity import *
-from .json_schema import JsonSchema
-from .messaging import *
-from .meta_aggregate import MetaAggregate
-from .system import *
-from .validation import *
+from __future__ import annotations
+
+from .. import ValueObject
+from ..entity import required, optional
+
+
+class File(ValueObject):
+    name: str = required()
+    content: str = optional()

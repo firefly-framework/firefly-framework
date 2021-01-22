@@ -59,7 +59,7 @@ class CommandResolvingMiddleware(Middleware, LoggerAware):
         service = self._command_handlers[str(message)]
 
         parsed_args = ffd.build_argument_list(args, service)
-        self.info('Calling service with arguments: %s', parsed_args)
+        self.info('Calling service %s with arguments: %s', service, parsed_args)
         return service(**parsed_args)
 
     def _transfer_message(self, message: ffd.Message):

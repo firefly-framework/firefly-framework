@@ -31,6 +31,11 @@ def config():
     raise Exception('You must provide a config fixture.')
 
 
+class TestingKernel(ff.Kernel):
+    def reset(self):
+        pass
+
+
 @pytest.fixture(scope="session")
 def container(config):
     from firefly.application import Container
@@ -38,6 +43,7 @@ def container(config):
     Container.asyncio_message_transport = ffi.AsyncioMessageTransport
     Container.message_transport = ffi.FakeMessageTransport
     Container.mutex = ffi.MemoryMutex
+    Container.kernel = TestingKernel
 
     Container.__annotations__['asyncio_message_transport'] = ffi.AsyncioMessageTransport
     Container.__annotations__['mutex'] = ffi.MemoryMutex

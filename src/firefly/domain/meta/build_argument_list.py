@@ -57,7 +57,7 @@ void = Void()
 
 
 def _handle_type_hint(params: typing.Any, t: type, key: str = None, required: bool = False):
-    logging.debug('Processing type hint %s with params: %s, key: %s, required: %s', t, params, key, required)
+    # logging.debug('Processing type hint %s with params: %s, key: %s, required: %s', t, params, key, required)
     ret = {}
 
     origin = ffd.get_origin(t)
@@ -100,9 +100,9 @@ def _handle_type_hint(params: typing.Any, t: type, key: str = None, required: bo
 
     elif origin is typing.Union:
         for arg in args:
-            logging.debug('Calling _handle_type_hint')
+            # logging.debug('Calling _handle_type_hint')
             r = _handle_type_hint(params, arg, key, required)
-            logging.debug('Response: %s', r)
+            # logging.debug('Response: %s', r)
             if r is not void:
                 if key is not None:
                     ret[key] = r
@@ -171,7 +171,7 @@ def _generate_model(args: dict, model_type: type, strict: bool = False):
 
 
 def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], strict: bool = True):
-    logging.debug('Building argument list for %s with params: %s, strict: %s', obj, params, strict)
+    # logging.debug('Building argument list for %s with params: %s, strict: %s', obj, params, strict)
     args = {}
     field_dict = {}
     is_dc = False
@@ -205,9 +205,9 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], 
             # return params
 
     for name, param in sig.parameters.items():
-        logging.debug('Processing param %s', param)
+        # logging.debug('Processing param %s', param)
         if name == 'self' or param.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
-            logging.debug('Skipping...')
+            # logging.debug('Skipping...')
             continue
 
         required = False
@@ -234,14 +234,11 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], 
             try:
                 nested = False
                 if name in params and isinstance(params[name], dict):
-                    logging.debug("FUCK 1")
                     e = _generate_model(params[name], type_)
                     nested = True
                 else:
-                    logging.debug('FUCK 2')
                     e = _generate_model(params, type_)
             except ffd.MissingArgument:
-                logging.debug('FUCK 3')
                 if required is False:
                     continue
                 raise
@@ -261,7 +258,6 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], 
                 if name in params:
                     args[name] = params[name]
             else:
-                logging.debug('FUCK 4 - %s', type_)
                 parameter_args = _handle_type_hint(params, type_, key=name, required=required)
                 if parameter_args and not isinstance(parameter_args, Void):
                     args.update(parameter_args)
@@ -278,5 +274,5 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], 
             if k not in args:
                 args[k] = v
 
-    logging.debug('Returning %s', args)
+    # logging.debug('Returning %s', args)
     return args

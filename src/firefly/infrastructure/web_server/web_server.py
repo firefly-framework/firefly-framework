@@ -129,10 +129,13 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
                     part = await reader.next()
                     if part is None:
                         break
-                    request_data[part.name] = ffd.File(
-                        name=part.filename or part.name,
-                        content=await part.text()
-                    )
+                    if part.filename:
+                        request_data[part.name] = ffd.File(
+                            name=part.filename,
+                            content=await part.text()
+                        )
+                    else:
+                        request_data[part.name] = await part.text()
 
             self.debug('Got a request -----------------------')
             self.debug(request.headers)

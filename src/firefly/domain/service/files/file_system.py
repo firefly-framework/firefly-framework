@@ -12,16 +12,16 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from .annotation import *
-from .command_line import *
-from .content_negotiation import *
-from .core import *
-from .crud import *
-from .entity import *
-from .files import *
-from .http import *
-from .logging import *
-from .messaging import *
-from .multithreading import *
-from .patterns import *
-from .serialization import *
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+
+
+class FileSystem(ABC):
+    @abstractmethod
+    def read(self, file_name: str):
+        pass
+
+    @abstractmethod
+    def write(self, file_name: str, data):
+        pass

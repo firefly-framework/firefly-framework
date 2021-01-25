@@ -18,6 +18,7 @@ from .cli import *
 from .config import *
 from .content_negotiation import *
 from .core import *
+from .files import *
 from .http import *
 from .logging import *
 from .messaging import *

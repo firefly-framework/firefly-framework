@@ -12,16 +12,24 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from .annotation import *
-from .command_line import *
-from .content_negotiation import *
-from .core import *
-from .crud import *
-from .entity import *
-from .files import *
-from .http import *
-from .logging import *
-from .messaging import *
-from .multithreading import *
-from .patterns import *
-from .serialization import *
+from __future__ import annotations
+
+import os
+import pathlib
+from os.path import dirname
+
+import firefly as ff
+
+
+class LocalFileSystem(ff.FileSystem):
+    def read(self, file_name: str):
+        with open(file_name, 'rb') as fp:
+            return fp.read()
+
+    def write(self, file_name: str, data):
+        d = dirname(file_name)
+        if not os.path.exists(d):
+            pathlib.Path(d).mkdir(parents=True, exist_ok=True)
+        mode = 'wb' if isinstance(data, bytes) else 'w'
+        with open(file_name, mode) as fp:
+            fp.write(data)

@@ -108,6 +108,7 @@ class Container(di.Container):
 
     # Storage
     rdb_storage_interface_registry: ffi.RdbStorageInterfaceRegistry = ffi.RdbStorageInterfaceRegistry
+    file_system: ffd.FileSystem = ffi.LocalFileSystem
 
     # Messaging
     message_transport: ffd.MessageTransport = ffi.AsyncioMessageTransport

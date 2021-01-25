@@ -83,7 +83,7 @@ class Entity(ContextAware, ValueObject):
                     setattr(self, name, parse(data[name], ignoretz=True))
                 else:
                     try:
-                        if data[name] is not None:
+                        if data[name] is not None and not isinstance(data[name], type_):
                             setattr(self, name, type_(data[name]))
                         else:
                             setattr(self, name, data[name])

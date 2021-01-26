@@ -29,7 +29,8 @@ function_name = re.compile(r'.*function\s([^\.]+)\..*')
 
 class Rest:
     def __call__(self, route: str, method: str = 'GET', generates: ff.TypeOfMessage = None, gateway: str = None,
-                 query_params: dict = None, secured: bool = True, scopes: List[str] = None):
+                 query_params: dict = None, secured: bool = True, scopes: List[str] = None, tags: List[str] = None,
+                 **kwargs):
         def on_wrapper(cls):
             prefix = ''
             if inspect.isfunction(cls):
@@ -44,7 +45,8 @@ class Rest:
                 query_params=query_params,
                 service=cls,
                 secured=secured,
-                scopes=[] if scopes is None else scopes
+                scopes=scopes or [],
+                tags=tags or []
             )
 
             try:

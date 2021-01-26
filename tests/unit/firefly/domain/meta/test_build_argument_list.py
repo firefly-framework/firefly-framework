@@ -38,6 +38,18 @@ class Widget2(ff.AggregateRoot):
     foo: BaseClass = ff.optional()
 
 
+class ChildWidget(ff.ValueObject):
+    name: str = ff.required()
+    extra1: str = ff.optional()
+    extra2: str = ff.optional()
+
+
+class ParentWidget(ff.AggregateRoot):
+    id: str = ff.id_()
+    name: str = ff.required()
+    child: ChildWidget = ff.optional()
+
+
 def test_class_hierarchies(serializer):
     w = Widget(stuff=[Foo(foo_field='foo'), Bar(bar_field='bar')])
     data = serializer.deserialize(serializer.serialize(w))
@@ -72,3 +84,11 @@ def test_todos():
 
     assert todo.name == "Bob's TODO List"
     assert todo.tasks == []
+
+
+def test_shared_property_names_in_nested_classes():
+    p = ParentWidget.from_dict({
+        'name': 'foo',
+    })
+
+    assert p.name == 'foo'

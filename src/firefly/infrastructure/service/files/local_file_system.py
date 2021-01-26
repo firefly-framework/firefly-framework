@@ -24,12 +24,15 @@ import firefly as ff
 class LocalFileSystem(ff.FileSystem):
     def read(self, file_name: str):
         with open(file_name, 'rb') as fp:
-            return fp.read()
+            return ff.File(
+                name=file_name,
+                content=fp.read()
+            )
 
-    def write(self, file_name: str, data):
-        d = dirname(file_name)
+    def write(self, file: ff.File, path: str = None):
+        d = path or dirname(file.name)
         if not os.path.exists(d):
             pathlib.Path(d).mkdir(parents=True, exist_ok=True)
-        mode = 'wb' if isinstance(data, bytes) else 'w'
-        with open(file_name, mode) as fp:
-            fp.write(data)
+        mode = 'wb' if isinstance(file.content, bytes) else 'w'
+        with open((path or '').rstrip('/') + '/' + file.name, mode) as fp:
+            fp.write(file.content)

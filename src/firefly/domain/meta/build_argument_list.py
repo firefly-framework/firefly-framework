@@ -119,10 +119,14 @@ def _handle_type_hint(params: typing.Any, t: type, key: str = None, required: bo
 
         try:
             if key is not None:
-                if t(params[key]) == params[key]:
-                    return params[key]
-                if key in params and params[key] is None:
+                if key in params:
+                    if t(params[key]) == params[key]:
+                        return params[key]
+                    if params[key] is None:
+                        return None
+                elif str(t) == "<class 'NoneType'>":
                     return None
+
             elif key is None and t(params) == params:
                 return params
         except (TypeError, KeyError):
@@ -237,7 +241,7 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], 
                     e = _generate_model(params[name], type_)
                     nested = True
                 else:
-                    e = _generate_model(params, type_)
+                    e = _generate_model(copy_params(params, sig), type_)
             except ffd.MissingArgument:
                 if required is False:
                     continue
@@ -258,14 +262,35 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], 
                 if name in params:
                     args[name] = params[name]
             else:
-                parameter_args = _handle_type_hint(params, type_, key=name, required=required)
+                if name in params:
+                    parameter_args = _handle_type_hint({name: params[name]}, type_, key=name, required=required)
+                else:
+                    parameter_args = _handle_type_hint(copy_params(params, sig), type_, key=name, required=required)
                 if parameter_args and not isinstance(parameter_args, Void):
                     args.update(parameter_args)
 
         elif isinstance(params, dict) and name in params:
-            args[name] = params[name]
+            try:
+                if params[name] is None:
+                    args[name] = None
+                elif isinstance(params[name], bytes):
+                    args[name] = params[name]
+                else:
+                    args[name] = type_(params[name])
+            except TypeError:
+                args[name] = params[name]
         elif name.endswith('_') and name.rstrip('_') in params:
-            args[name] = params[name.rstrip('_')]
+            # args[name] = params[name.rstrip('_')]
+            try:
+                sname = name.rstrip('_')
+                if params[sname] is None:
+                    args[name] = None
+                elif isinstance(params[sname], bytes):
+                    args[name] = params[sname]
+                else:
+                    args[name] = type_(params[sname])
+            except TypeError:
+                args[name] = params[name.rstrip('_')]
         elif required is True and strict:
             raise ffd.MissingArgument(f'Argument: {name} is required for object {obj}')
 
@@ -276,3 +301,11 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], 
 
     # logging.debug('Returning %s', args)
     return args
+
+
+def copy_params(params: dict, sig: inspect.Signature):
+    params_copy = params.copy()
+    for n in sig.parameters.keys():
+        if n in params_copy:
+            del params_copy[n]
+    return params_copy

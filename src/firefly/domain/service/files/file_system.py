@@ -16,12 +16,14 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
+from ...entity.system.file import File
+
 
 class FileSystem(ABC):
     @abstractmethod
-    def read(self, file_name: str):
+    def read(self, file_name: str) -> File:
         pass
 
     @abstractmethod
-    def write(self, file_name: str, data):
+    def write(self, file: File, path: str = None):
         pass

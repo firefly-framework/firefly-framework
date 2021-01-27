@@ -22,5 +22,5 @@ from ..entity import required, optional
 
 class File(ValueObject):
     name: str = required()
-    content: bytes = optional()  # Base64-Encoded
+    content: Union[bytes, str] = optional()  # Base64-Encoded
     content_type: str = optional()

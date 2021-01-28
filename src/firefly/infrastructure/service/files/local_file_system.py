@@ -34,5 +34,8 @@ class LocalFileSystem(ff.FileSystem):
         if not os.path.exists(d):
             pathlib.Path(d).mkdir(parents=True, exist_ok=True)
         mode = 'wb' if isinstance(file.content, bytes) else 'w'
+        data = file.content
+        if not isinstance(data, str):
+            data = data.decode('utf-8')
         with open((path or '').rstrip('/') + '/' + file.name, mode) as fp:
-            fp.write(file.content)
+            fp.write(data)

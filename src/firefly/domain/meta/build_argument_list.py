@@ -252,12 +252,6 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], 
             args[name] = e
             if nested:
                 del params[name]
-            else:
-                for key in e.to_dict().keys():
-                    if (not hasattr(type_, 'id_name') or key != type_.id_name()) and key in params:
-                        del params[key]
-                        if key in args:
-                            del args[key]
 
         elif ffd.is_type_hint(type_):
             if type_ is typing.Any:

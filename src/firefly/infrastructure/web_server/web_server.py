@@ -132,7 +132,7 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
                     if part.filename:
                         request_data[part.name] = ffd.File(
                             name=part.filename,
-                            content=await part.text()
+                            content=await part.read()
                         )
                     else:
                         request_data[part.name] = await part.text()

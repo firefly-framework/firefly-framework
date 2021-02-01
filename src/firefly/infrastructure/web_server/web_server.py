@@ -105,7 +105,14 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
         def event_listener(message: ffd.Message, next_: Callable):
             self._broadcast(message)
             return next_(message)
-        self._system_bus.add_event_listener(event_listener)
+
+        exists = False
+        for listener in self._system_bus._event_bus._middleware:
+            if 'event_listener' in str(listener):
+                exists = True
+                break
+        if not exists:
+            self._system_bus.add_event_listener(event_listener)
 
     def _broadcast(self, message: ffd.Message):
         if message.get_context() != 'firefly':

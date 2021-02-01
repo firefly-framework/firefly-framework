@@ -99,7 +99,7 @@ class LegacyStorageInterface(RdbStorageInterface, ffd.LoggerAware, ABC):
                     sort_fields.append(s)
             sorted_in_db = len(sort_fields) == len(sort)
 
-        if sort is not None and not sorted_in_db:
+        if sort is not None and not sorted_in_db and isinstance(ret, list):
             def sort_keys(x):
                 keys = []
                 for ss in sort:

@@ -236,6 +236,18 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
             if isinstance(response, HttpResponse):
                 body = response.body
                 headers = response.headers
+            elif isinstance(response, ffd.Envelope):
+                body = self._serializer.serialize(response.unwrap())
+                headers = {}
+                # TODO The below is deprecated. Headers should be on the envelope.
+                try:
+                    headers = body.headers
+                except AttributeError:
+                    pass
+                if response.get_range() is not None:
+                    range_ = response.get_range()
+                    headers['content-range'] = f'{range_["unit"]} {range_["lower"]}-{range_["upper"]}/{range_["total"]}'
+                    status_code = 206
             else:
                 body = self._serializer.serialize(response)
                 headers = {}

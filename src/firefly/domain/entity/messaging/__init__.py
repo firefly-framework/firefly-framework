@@ -13,11 +13,12 @@
 #  <http://www.gnu.org/licenses/>.
 
 from .command import Command
+from .envelope import Envelope
 from .event import Event
-from .topic import Topic
 from .http_response import HttpResponse
 from .message import Message
 from .network_topology import NetworkTopology
 from .query import Query
 from .queue import Queue
 from .response import Response
+from .topic import Topic

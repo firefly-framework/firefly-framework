@@ -50,6 +50,9 @@ class ArgparseExecutor(CliAppExecutor, SystemBusAware):
         if args.debug is True:
             self._logger.set_level_to_debug()
         os.environ['ENV'] = args.env or 'local'
+        # KLUDGE: Gitlab runner does not like it when you use "ENV". We'll use this as a workaround until it can be
+        # changed.
+        os.environ['_ENV'] = args.env or 'local'
 
         try:
             target = args.target

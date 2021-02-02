@@ -246,7 +246,9 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
                     pass
                 if response.get_range() is not None:
                     range_ = response.get_range()
-                    headers['content-range'] = f'{range_["unit"]} {range_["lower"]}-{range_["upper"]}/{range_["total"]}'
+                    headers['content-range'] = f'{range_["lower"]}-{range_["upper"]}/{range_["total"]}'
+                    if 'unit' in range_:
+                        headers['content-range'] = f'{range_["unit"]} {headers["content-range"]}'
                     status_code = 206
             else:
                 body = self._serializer.serialize(response)

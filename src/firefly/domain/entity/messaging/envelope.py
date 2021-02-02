@@ -46,13 +46,14 @@ class Envelope(Entity):
     def get_raw_request(self):
         return self.raw_request
 
-    def set_range(self, unit: str, lower: int, upper: int, total: int):
+    def set_range(self, lower: int, upper: int, total: int, unit: str = None):
         self.headers['range'] = {
-            'unit': unit,
             'lower': lower,
             'upper': upper,
             'total': total,
         }
+        if unit is not None:
+            self.headers['range']['unit'] = unit
         return self
 
     def get_range(self):

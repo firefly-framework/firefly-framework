@@ -49,10 +49,9 @@ class ArgparseExecutor(CliAppExecutor, SystemBusAware):
             self._logger.set_level_to_info()
         if args.debug is True:
             self._logger.set_level_to_debug()
+        # Deprecated. Should use FF_ENVIRONMENT going forward
         os.environ['ENV'] = args.env or 'local'
-        # KLUDGE: Gitlab runner does not like it when you use "ENV". We'll use this as a workaround until it can be
-        # changed.
-        os.environ['_ENV'] = args.env or 'local'
+        os.environ['FF_ENVIRONMENT'] = args.env or 'local'
 
         try:
             target = args.target

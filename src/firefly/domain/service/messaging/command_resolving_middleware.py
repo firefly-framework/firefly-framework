@@ -27,7 +27,7 @@ from firefly.domain.service.messaging.middleware import Middleware
 class CommandResolvingMiddleware(Middleware, LoggerAware):
     _context_map: ffd.ContextMap = None
     _context: str = None
-    _env: str = None
+    _ff_environment: str = None
 
     def __init__(self, command_handlers: Dict[Type[Command], ffd.ApplicationService] = None):
         self._command_handlers = {}

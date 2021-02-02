@@ -28,7 +28,7 @@ from .serialization import *
 def set_env(func):
     for i in range(len(sys.argv)):
         if sys.argv[i] in ('--env', '-e'):
-            os.environ['ENV'] = sys.argv[i + 1]
+            os.environ['FF_ENVIRONMENT'] = sys.argv[i + 1]
             return func
-    os.environ['ENV'] = 'local'
+    os.environ['FF_ENVIRONMENT'] = 'local'
     return func

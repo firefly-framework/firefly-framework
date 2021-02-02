@@ -54,7 +54,7 @@ class YamlConfigurationFactory(ffd.ConfigurationFactory):
                 configuration.contexts[context] or {},
             )
 
-        env = os.environ['ENV']
+        env = os.environ['FF_ENVIRONMENT']
         if env in configuration.environments and isinstance(configuration.environments[env], dict):
             configuration.contexts = ffd.merge(
                 configuration.contexts,

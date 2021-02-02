@@ -15,7 +15,7 @@ import os
 
 import pytest
 
-os.environ['ENV'] = 'local'
+os.environ['FF_ENVIRONMENT'] = 'local'
 
 
 @pytest.fixture(scope="session")

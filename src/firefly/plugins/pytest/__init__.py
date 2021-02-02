@@ -24,6 +24,7 @@ import firefly.infrastructure as ffi
 
 
 os.environ['ENV'] = 'test'
+os.environ['TESTING_ENVIRONMENT'] = '1'
 
 
 @pytest.fixture(scope="session")

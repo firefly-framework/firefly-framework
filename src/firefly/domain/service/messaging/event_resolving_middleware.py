@@ -50,10 +50,14 @@ class EventResolvingMiddleware(Middleware, LoggerAware):
         if not self._initialized:
             self._initialize()
 
+        self.debug('Message context: %s', message.get_context())
+        self.debug('This context: %s', self._context)
+        self.debug('ENV: %s', self._env)
         if message.get_context() != 'firefly' and \
                 message.get_context() == self._context and \
                 not message.headers.get('external', False) and \
                 self._env != 'test':
+            self.debug('EventResolvingMiddleware - event originated from this context. Dispatching.')
             self._publish_message(message)
             return next_(message)
 
@@ -65,11 +69,13 @@ class EventResolvingMiddleware(Middleware, LoggerAware):
             for service in services:
                 try:
                     parsed_args = ffd.build_argument_list(args, service)
-                    self.info('Calling service with arguments: %s', parsed_args)
+                    self.info('Calling service %s with arguments: %s', service.__class__.__name__, parsed_args)
                     service(**parsed_args)
                 except TypeError as e:
                     self.exception(e)
                     raise ffd.FrameworkError(f'Error calling {service.__class__.__name__}:\n\n{str(e)}')
+        else:
+            self.info('No event listener found for message %s', message)
 
         return next_(message)
 

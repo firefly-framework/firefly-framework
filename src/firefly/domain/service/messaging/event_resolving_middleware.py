@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import inspect
+from pprint import pprint
 from typing import Callable, Dict, Type, Union, List
 
 import firefly.domain as ffd
@@ -89,4 +90,6 @@ class EventResolvingMiddleware(Middleware, LoggerAware):
         key = event.get_fqn() if not isinstance(event, str) else event
         if key not in self._event_listeners:
             self._event_listeners[key] = []
-        self._event_listeners[key].append(handler)
+        if handler.__class__.__name__ not in list(map(lambda h: h.__class__.__name__, self._event_listeners[key])):
+
+            self._event_listeners[key].append(handler)

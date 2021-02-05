@@ -17,6 +17,7 @@ from __future__ import annotations
 import importlib
 import inspect
 import typing
+from pprint import pprint
 from typing import List, Type
 
 import firefly.domain as ffd
@@ -110,7 +111,8 @@ class LoadApplicationLayer(ffd.ApplicationService):
                 self._event_resolver.add_event_listener(cls, event)
                 if cls not in context.event_listeners:
                     context.event_listeners[cls] = []
-                context.event_listeners[cls].append(event)
+                if event not in context.event_listeners[cls]:
+                    context.event_listeners[cls].append(event)
 
         if cls.is_command_handler() and issubclass(cls, ffd.ApplicationService):
             if cls.get_command() is None:

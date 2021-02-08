@@ -120,8 +120,11 @@ def _handle_type_hint(params: typing.Any, t: type, key: str = None, required: bo
         try:
             if key is not None:
                 if key in params:
-                    if t(params[key]) == params[key]:
-                        return params[key]
+                    try:
+                        if t(params[key]) == params[key]:
+                            return params[key]
+                    except ValueError:
+                        pass
                     if params[key] is None:
                         return None
                 elif str(t) == "<class 'NoneType'>":
@@ -239,10 +242,11 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], 
 
             try:
                 nested = False
+                e = None
                 if name in params and isinstance(params[name], dict):
                     e = _generate_model(params[name], type_)
                     nested = True
-                else:
+                elif isinstance(params, dict):
                     e = _generate_model(copy_params(params, sig), type_)
             except ffd.MissingArgument:
                 if required is False:
@@ -260,7 +264,7 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], 
             else:
                 if name in params:
                     parameter_args = _handle_type_hint({name: params[name]}, type_, key=name, required=required)
-                else:
+                elif isinstance(params, dict):
                     parameter_args = _handle_type_hint(copy_params(params, sig), type_, key=name, required=required)
                 if parameter_args and not isinstance(parameter_args, Void):
                     args.update(parameter_args)

@@ -74,22 +74,6 @@ class Entity(ContextAware, ValueObject):
 
         return ret[0] if len(ret) == 1 else ret
 
-    def load_dict(self, data: dict):
-        data = build_argument_list(data, self.__class__, strict=False)
-        t = typing.get_type_hints(self.__class__)
-        for name, type_ in t.items():
-            if name in data:
-                if inspect.isclass(type_) and issubclass(type_, (datetime, date)) and isinstance(data[name], str):
-                    setattr(self, name, parse(data[name], ignoretz=True))
-                else:
-                    try:
-                        if data[name] is not None and not isinstance(data[name], type_):
-                            setattr(self, name, type_(data[name]))
-                        else:
-                            setattr(self, name, data[name])
-                    except TypeError:
-                        setattr(self, name, data[name])
-
     @classmethod
     def id_name(cls):
         if not is_dataclass(cls):

@@ -23,7 +23,7 @@ from typing import List, Union, Dict
 
 import inflection
 from firefly.domain.entity.validation import IsValidEmail, HasLength, MatchesPattern, IsValidUrl, IsLessThanOrEqualTo, \
-    IsLessThan, IsGreaterThanOrEqualTo, IsGreaterThan, IsMultipleOf, HasMaxLength, HasMinLength
+    IsLessThan, IsGreaterThanOrEqualTo, IsGreaterThan, IsMultipleOf, HasMaxLength, HasMinLength, parse
 from firefly.domain.meta.build_argument_list import build_argument_list
 from firefly.domain.meta.entity_meta import EntityMeta
 from firefly.domain.utils import is_type_hint, get_origin, get_args, can_be_type
@@ -100,6 +100,28 @@ class ValueObject(metaclass=EntityMeta):
             return d
 
         return ret
+
+    def load_dict(self, d: dict):
+        data = build_argument_list(d.copy(), self.__class__, strict=False)
+        t = typing.get_type_hints(self.__class__)
+        for name, type_ in t.items():
+            if name in data:
+                if inspect.isclass(type_) and issubclass(type_, (datetime, date)) and isinstance(data[name], str):
+                    setattr(self, name, parse(data[name], ignoretz=True))
+                elif inspect.isclass(type_) and issubclass(type_, ValueObject) and isinstance(data[name], type_):
+                    existing = getattr(self, name)
+                    if existing is None:
+                        setattr(self, name, type_(**data[name]))
+                    else:
+                        existing.load_dict(d[name])
+                else:
+                    try:
+                        if data[name] is not None and not isinstance(data[name], type_):
+                            setattr(self, name, type_(data[name]))
+                        else:
+                            setattr(self, name, data[name])
+                    except TypeError:
+                        setattr(self, name, data[name])
 
     @classmethod
     def get_dto_schema(cls, stack: List[type] = None):

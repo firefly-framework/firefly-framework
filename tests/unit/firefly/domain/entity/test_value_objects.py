@@ -22,6 +22,7 @@ class Config(ff.ValueObject):
 
 
 class Widget(ff.AggregateRoot):
+    name: str = ff.optional()
     config: Config = ff.optional()
 
 
@@ -36,3 +37,23 @@ def test_load_dict_with_nested_value_objects():
     assert w.config.x == 'foo'
     assert w.config.y == 'BAR'
     assert w.config.z == 'baz'
+
+
+def test_replace_null_with_value_object():
+    w = Widget(name='foo', config=None)
+    w.load_dict({
+        'config': {
+            'y': 'bar',
+        }
+    })
+
+    assert w.name == 'foo'
+
+
+def test_dict_missing_value_object_property():
+    w = Widget(config=Config(x='foo', y='bar', z='baz'))
+    w.load_dict({
+        'name': 'foo'
+    })
+
+    assert w.name == 'foo'

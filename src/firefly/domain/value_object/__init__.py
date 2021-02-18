@@ -111,8 +111,8 @@ class ValueObject(metaclass=EntityMeta):
                 elif inspect.isclass(type_) and issubclass(type_, ValueObject) and isinstance(data[name], type_):
                     existing = getattr(self, name)
                     if existing is None:
-                        setattr(self, name, type_(**data[name]))
-                    else:
+                        setattr(self, name, data[name])
+                    elif name in d and isinstance(d[name], dict):
                         existing.load_dict(d[name])
                 else:
                     try:

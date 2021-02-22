@@ -214,7 +214,7 @@ class RdbRepository(AbstractRepository[T]):
         new_entities = self._new_entities()
         if len(new_entities) > 0:
             self.debug('Adding %s', new_entities)
-            if self._interface.add(new_entities) == 0:
+            if self._interface.add(new_entities) != len(new_entities):
                 raise ffd.ConcurrentUpdateDetected()
 
         for entity in self._changed_entities():

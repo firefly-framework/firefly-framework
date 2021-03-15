@@ -48,4 +48,4 @@ class CommandBusAware(ABC):
     _command_bus: CommandBus = None
 
     def invoke(self, command: Union[ffd.Command, str], data: dict = None, async_: bool = False):
-        return self._command_bus.invoke(command, data, async_)
+        return self._command_bus.invoke(command, data, async_=async_)

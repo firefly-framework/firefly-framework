@@ -34,3 +34,21 @@ class Mutex(ABC):
             yield
         finally:
             self.release(key)
+
+
+class RateLimiter(ABC):
+    @abstractmethod
+    def acquire(self, key: str, max_concurrent: int, timeout: int = None) -> bool:
+        pass
+
+    @abstractmethod
+    def release(self, key: str):
+        pass
+
+    @contextmanager
+    def __call__(self, key: str, max_concurrent: int, timeout: int = None):
+        self.acquire(key, max_concurrent, timeout=timeout)
+        try:
+            yield
+        finally:
+            self.release(key)

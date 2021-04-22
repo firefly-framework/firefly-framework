@@ -387,7 +387,7 @@ class BinaryOp:
         return v, params, counter
 
     def __repr__(self):
-        return f'({self.lhv} {self.op} {self.rhv})'
+        return f'({self.lhv} {self.op} {self.rhv})'.replace('==', '=')
 
     def __eq__(self, other):
         return isinstance(other, BinaryOp) and self.to_dict() == other.to_dict()

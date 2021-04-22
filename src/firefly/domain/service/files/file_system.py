@@ -15,8 +15,10 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from typing import List, Tuple
 
 from ...entity.system.file import File
+from ...repository.search_criteria import BinaryOp
 
 
 class FileSystem(ABC):
@@ -26,4 +28,12 @@ class FileSystem(ABC):
 
     @abstractmethod
     def write(self, file: File, path: str = None):
+        pass
+
+    @abstractmethod
+    def list(self, path: str) -> List[Tuple[str, dict]]:
+        pass
+
+    @abstractmethod
+    def filter(self, path: str, fields: list, criteria: BinaryOp):
         pass

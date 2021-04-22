@@ -17,11 +17,14 @@ from __future__ import annotations
 import os
 import pathlib
 from os.path import dirname
+from typing import List, Tuple
 
 import firefly as ff
 
 
 class LocalFileSystem(ff.FileSystem):
+    _serializer: ff.Serializer = None
+
     def read(self, file_name: str):
         with open(file_name, 'rb') as fp:
             return ff.File(
@@ -39,3 +42,28 @@ class LocalFileSystem(ff.FileSystem):
             data = data.decode('utf-8')
         with open((path or '').rstrip('/') + '/' + file.name, mode) as fp:
             fp.write(data)
+
+    def list(self, path: str) -> List[Tuple[str, dict]]:
+        ret = []
+        for (_, _, filenames) in os.walk(path):
+            # TODO we should have file sizes and last_modified here
+            ret.extend([
+                (f, {}) for f in filenames
+            ])
+
+        return ret
+
+    def filter(self, path: str, fields: list, criteria: ff.BinaryOp):
+        if not path.lower().endswith('.json'):
+            raise NotImplemented()
+
+        file = self.read(path)
+        data = self._serializer.deserialize(file.content)
+        ret = []
+        if not isinstance(data, list):
+            data = [data]
+        for d in data:
+            if criteria.matches(d):
+                ret.append(d)
+
+        return ret

@@ -206,6 +206,7 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
             try:
                 message.headers['client_id'] = request.headers['Firefly-Client-ID']
             except KeyError:
+                message.headers['client_id'] = ''
                 self.info('Request missing header Firefly-ClientID')
 
             response = None

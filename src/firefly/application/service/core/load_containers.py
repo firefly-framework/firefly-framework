@@ -44,6 +44,13 @@ class LoadContainers(ffd.ApplicationService):
             self.debug('Registering root container')
             context.container.register_container(self._container)
 
+            if context.config.get('extends'):
+                for c in self._context_map.contexts:
+                    if c.name != context.config.get('extends'):
+                        self._context_map.get_context(context.config.get('extends')).container.register_container(
+                            c.container
+                        )
+
         self.dispatch(ffd.ContainersLoaded())
 
     def _load_module(self, name: str, config: dict) -> di.Container:

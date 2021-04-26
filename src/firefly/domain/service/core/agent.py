@@ -15,12 +15,22 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from typing import Callable, List
 
 import firefly as ff
 import firefly.domain as ffd
 
 
 class Agent(ffd.MetaAware, ABC):
+    _pre_deployment_hooks: List[Callable] = []
+    _post_deployment_hooks: List[Callable] = []
+
     @abstractmethod
     def __call__(self, deployment: ff.Deployment, **kwargs):
         pass
+
+    def add_pre_deployment_hook(self, cb: Callable):
+        self._pre_deployment_hooks.append(cb)
+
+    def add_post_deployment_hook(self, cb: Callable):
+        self._post_deployment_hooks.append(cb)

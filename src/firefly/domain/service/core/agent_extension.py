@@ -12,30 +12,14 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from typing import List, Callable
 
-from .agent_extension import AgentExtension
-from .application_service import ApplicationService
-from .device import Device
-from .domain_service import DomainService
-from .invoke_on import InvokeOn
-from .kernel import Kernel
-from .query_service import QueryService
-from ...entity.core.deployment import Deployment
-from ...meta.meta_aware import MetaAware
+import firefly.domain as ffd
 
 
-class Agent(MetaAware, ABC):
-    _pre_deployment_hooks: List[Callable] = []
-    _post_deployment_hooks: List[Callable] = []
-
+class AgentExtension(ffd.MetaAware, ABC):
     @abstractmethod
-    def __call__(self, deployment: Deployment, **kwargs):
+    def __call__(self, *args, **kwargs):
         pass
-
-    def add_pre_deployment_hook(self, cb: Callable):
-        self._pre_deployment_hooks.append(cb)
-
-    def add_post_deployment_hook(self, cb: Callable):
-        self._post_deployment_hooks.append(cb)

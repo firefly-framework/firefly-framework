@@ -24,18 +24,28 @@ import firefly.domain as ffd
 class LoadInfrastructureLayer(ffd.ApplicationService):
     _context_map: ffd.ContextMap = None
     _agent_factory: ffd.AgentFactory = None
+    _deferred: list = []
 
     def __call__(self, **kwargs):
         for context in self._context_map.contexts:
+            self._deferred = []
             for cls in self._load_module(context):
+                self._register_object(cls, context)
+            for cls in self._deferred:
                 self._register_object(cls, context)
 
         self.dispatch(ffd.InfrastructureLayerLoaded())
 
     def _register_object(self, cls: Type[ffd.MetaAware], context: ffd.Context):
-        pass
-        # if issubclass(cls, ffd.Agent) and cls.is_agent():
-        #     self._agent_factory.register(cls.get_agent(), context.container.build(cls))
+        if cls.is_agent():
+            self._agent_factory.register(cls.get_agent(), context.container.build(cls))
+
+        elif issubclass(cls, ffd.AgentExtension) and cls.is_agent_extension():
+            for_, step = cls.get_agent_extension()
+            try:
+                getattr(self._agent_factory(for_), step)(context.container.build(cls))
+            except ffd.ConfigurationError:
+                self._deferred.append(cls)
 
     @staticmethod
     def _load_module(context: ffd.Context) -> List[Type[ffd.MetaAware]]:

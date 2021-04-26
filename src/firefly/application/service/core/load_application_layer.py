@@ -91,9 +91,6 @@ class LoadApplicationLayer(ffd.ApplicationService):
                 self._deferred.append(('query', built, params))
 
     def _register_service(self, cls: Type[ffd.ApplicationService], context: ffd.Context):
-        if cls.is_agent():
-            self._agent_factory.register(cls.get_agent(), context.container.build(cls))
-
         if not cls.is_handler():
             return
 

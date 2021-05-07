@@ -47,7 +47,11 @@ class CommandResolvingMiddleware(Middleware, LoggerAware):
         if not self._initialized:
             self._initialize()
 
-        if message.get_context() != 'firefly' and self._context_map.get_context(message.get_context()) is None:
+        not_for_this_context = message.get_context() != 'firefly' and \
+                               self._context_map.get_context(message.get_context()) is None
+        is_async = hasattr(message, '_async') and getattr(message, '_async') is True
+
+        if not_for_this_context or is_async:
             return self._transfer_message(message)
 
         args = message.to_dict()

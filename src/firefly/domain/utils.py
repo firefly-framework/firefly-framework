@@ -209,3 +209,7 @@ def merge(a, b, path=None):
         else:
             a[key] = b[key]
     return a
+
+
+def chunk(array: list, n: int):
+    return [array[x:x+n] for x in range(0, len(array), n)]

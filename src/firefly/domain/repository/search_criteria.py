@@ -16,10 +16,13 @@ from __future__ import annotations
 
 from dataclasses import is_dataclass
 from datetime import datetime, date
+from pprint import pprint
 from typing import Union, List, Type
 
 import firefly.domain as ffd
 import regex
+
+T = '__FF_SKIP_TYPE'
 
 
 class EntityAttributeSpy:
@@ -301,17 +304,17 @@ class BinaryOp:
     def prune(self, fields: list):
         data = self._prune(fields, self.to_dict())
         if data is INVALID:
-            data = {'l': 1, 'o': '==', 'r': 1}
+            return None
+        if data['l'] is INVALID:
+            return BinaryOp.from_dict(data['r'])
+        if data['r'] is INVALID:
+            return BinaryOp.from_dict(data['l'])
+
         return BinaryOp.from_dict(data)
 
     def _prune(self, fields: list, data: dict):
         if isinstance(data['l'], dict):
-            result = self._prune(fields, data['l'])
-            if result is INVALID:
-                if data['o'] == 'and':
-                    data['l'] = {'l': 1, 'o': '==', 'r': 1}
-                else:
-                    data['l'] = {'l': 1, 'o': '!=', 'r': 1}
+            data['l'] = self._prune(fields, data['l'])
         elif isinstance(data['l'], str) and len(data['l']) > 2:
             prop = data['l']
             if '(' in prop:
@@ -320,12 +323,7 @@ class BinaryOp:
                 return INVALID
 
         if isinstance(data['r'], dict):
-            result = self._prune(fields, data['r'])
-            if result is INVALID:
-                if data['o'] == 'and':
-                    data['r'] = {'l': 1, 'o': '==', 'r': 1}
-                else:
-                    data['r'] = {'l': 1, 'o': '!=', 'r': 1}
+            data['r'] = self._prune(fields, data['r'])
         elif isinstance(data['r'], str) and len(data['r']) > 2:
             prop = data['r']
             if '(' in prop:
@@ -333,27 +331,31 @@ class BinaryOp:
             if prop.startswith('a:') and prop[2:] not in fields:
                 return INVALID
 
-        if isinstance(data['r'], dict) and isinstance(data['l'], dict):
-            if data['l']['l'] == 1 and data['l']['r'] == 1 and data['r']['l'] == 1 and data['r']['r'] == 1:
-                return INVALID
+        if data['l'] is INVALID and data['r'] is not INVALID:
+            return data['r']
+        if data['l'] is not INVALID and data['r'] is INVALID:
+            return data['l']
+        if data['l'] is INVALID and data['r'] is INVALID:
+            return INVALID
 
         return data
 
-    def to_sql(self):
-        sql, params, counter = self._to_sql()
+    def to_sql(self, prefix: str = None):
+        sql, params, counter = self._to_sql(prefix=prefix)
         return sql, params
 
-    def _to_sql(self, counter: int = None, params: dict = None):
+    def _to_sql(self, counter: int = None, params: dict = None, prefix: str = None):
         counter = counter or 1
         params = params or {}
-        lhv, params, counter = self._process_op(self.lhv, params, counter)
+        rhv = None
+        lhv, params, counter = self._process_op(self.lhv, params, counter, prefix=prefix)
         if self.op == 'is':
             if self.rhv == 'null' or self.rhv is None:
                 rhv = 'null'
             elif self.rhv is False or self.rhv is True:
                 rhv = str(self.rhv).lower()
         else:
-            rhv, params, counter = self._process_op(self.rhv, params, counter)
+            rhv, params, counter = self._process_op(self.rhv, params, counter, prefix=prefix)
 
         ret_op = self.op
         if ret_op == 'startswith':
@@ -366,9 +368,9 @@ class BinaryOp:
         return f'({lhv} {ret_op.replace("==", "=")} {rhv})', params, counter
 
     @staticmethod
-    def _process_op(v, params: dict, counter: int):
+    def _process_op(v, params: dict, counter: int, prefix: str = None):
         if isinstance(v, BinaryOp):
-            v, p, counter = v._to_sql(counter, params)
+            v, p, counter = v._to_sql(counter, params, prefix=prefix)
             params.update(p)
         elif isinstance(v, (list, tuple)):
             placeholders = []
@@ -383,10 +385,24 @@ class BinaryOp:
             counter += 1
             params[var] = v
             v = f':{var}'
+        elif isinstance(v, (Attr, AttributeString)) and prefix is not None:
+            if isinstance(v, Attr):
+                v.attr._value = f'{prefix}."{v.attr._value}"'
+            else:
+                v._value = f'{prefix}."{v._value}"'
 
         return v, params, counter
 
     def __repr__(self):
+        lhv = repr(self.lhv)
+        rhv = repr(self.rhv)
+        if lhv == '1' and rhv == '1' and self.op == '==':
+            return T
+        if lhv == T and rhv != T:
+            return rhv
+        if rhv == T and lhv != T:
+            return lhv
+
         return f'({self.lhv} {self.op} {self.rhv})'.replace('==', '=')
 
     def __eq__(self, other):

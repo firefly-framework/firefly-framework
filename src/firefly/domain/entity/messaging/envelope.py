@@ -58,3 +58,7 @@ class Envelope(Entity):
 
     def get_range(self):
         return self.headers.get('range')
+
+    def add_forwarding_address(self, location: str):
+        self.headers['location'] = location
+        return self

@@ -100,7 +100,8 @@ class LoadApplicationLayer(ffd.ApplicationService):
                     context_name = event.split('.')[0]
                 else:
                     context_name = event.get_class_context()
-                if 'extends' in context.config and context_name == context.config.get('extends'):
+                if 'extends' in context.config and \
+                        (context_name == context.config.get('extends') or context_name == 'firefly'):
                     if isinstance(event, str):
                         event = f'{context.name}.{event.split(".")[-1]}'
                     else:

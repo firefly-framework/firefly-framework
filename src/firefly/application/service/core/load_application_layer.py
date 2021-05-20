@@ -97,10 +97,10 @@ class LoadApplicationLayer(ffd.ApplicationService):
         if cls.is_event_listener() and issubclass(cls, ffd.ApplicationService):
             for event in cls.get_events():
                 if isinstance(event, str):
-                    context_name = event
+                    context_name = event.split('.')[0]
                 else:
                     context_name = event.get_class_context()
-                if 'extends' in context.config and context_name != context.name:
+                if 'extends' in context.config and context_name == context.config.get('extends'):
                     if isinstance(event, str):
                         event = f'{context.name}.{event.split(".")[-1]}'
                     else:

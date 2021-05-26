@@ -12,6 +12,7 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
+from datetime import datetime
 from typing import List
 
 import firefly as ff
@@ -92,3 +93,16 @@ def test_shared_property_names_in_nested_classes():
     })
 
     assert p.name == 'foo'
+
+
+def test_optional_datetimes():
+    class TestAppService(ff.ApplicationService):
+        def __call__(self, last_updated: datetime = None, start_date: datetime = None, **kwargs):
+            pass
+
+    sut = TestAppService()
+    x = ff.build_argument_list({
+        'last_updated': '2021-05-26T06:20:15'
+    }, sut)
+
+    assert isinstance(x['last_updated'], datetime) is True

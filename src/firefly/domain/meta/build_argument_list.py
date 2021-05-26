@@ -120,6 +120,10 @@ def _handle_type_hint(params: typing.Any, t: type, key: str = None, required: bo
         try:
             if key is not None:
                 if key in params:
+                    val = _check_special_types(params[key], t)
+                    if val is not None:
+                        return val
+
                     try:
                         if t(params[key]) == params[key]:
                             return params[key]
@@ -177,6 +181,13 @@ def _generate_model(args: dict, model_type: type, strict: bool = False):
     return model_type(**entity_args)
 
 
+def _check_special_types(value: typing.Any, type_: type):
+    if type_ is datetime and isinstance(value, str):
+        return parse(value).replace(tzinfo=None)
+    elif type_ is date and isinstance(value, str):
+        return parse(value).replace(tzinfo=None).date()
+
+
 def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], strict: bool = True):
     # logging.debug('Building argument list for %s with params: %s, strict: %s', obj, params, strict)
     args = {}
@@ -230,10 +241,10 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], 
             required = True
 
         type_ = types[name] if name in types else None
-        if type_ is datetime and name in params and isinstance(params[name], str):
-            params[name] = parse(params[name]).replace(tzinfo=None)
-        elif type_ is date and name in params and isinstance(params[name], str):
-            params[name] = parse(params[name]).replace(tzinfo=None).date()
+        if name in params:
+            val = _check_special_types(params[name], type_)
+            if val is not None:
+                params[name] = val
 
         if isinstance(type_, type) and issubclass(type_, ffd.ValueObject):
             if name in params and isinstance(params[name], type_):

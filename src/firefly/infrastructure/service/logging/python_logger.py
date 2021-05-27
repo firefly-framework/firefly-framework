@@ -28,22 +28,22 @@ class PythonLogger(ffd.Logger):
         self.log.basicConfig(format=f'%(message).{self._max_length}s', level=self.log.WARNING)
 
     def debug(self, message: str, *args, **kwargs):
-        if not isinstance(message, str):
+        if isinstance(message, dict):
             message = self._serializer.serialize(message)
         self.log.debug(message, *args, **kwargs)
 
     def info(self, message: str, *args, **kwargs):
-        if not isinstance(message, str):
+        if isinstance(message, dict):
             message = self._serializer.serialize(message)
         self.log.info(message, *args, **kwargs)
 
     def warning(self, message: str, *args, **kwargs):
-        if not isinstance(message, str):
+        if isinstance(message, dict):
             message = self._serializer.serialize(message)
         self.log.warning(message, *args, **kwargs)
 
     def error(self, message: str, *args, **kwargs):
-        if not isinstance(message, str):
+        if isinstance(message, dict):
             message = self._serializer.serialize(message)
         self.log.error(message, *args, **kwargs)
 

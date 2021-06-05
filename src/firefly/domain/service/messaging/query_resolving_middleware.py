@@ -26,7 +26,7 @@ from firefly.domain.service.messaging.middleware import Middleware
 class QueryResolvingMiddleware(Middleware, LoggerAware):
     _context_map: ffd.ContextMap = None
     _context: str = None
-    _env: str = None
+    _ff_environment: str = None
 
     def __init__(self, query_handlers: Dict[ffd.ApplicationService, Type[Query]] = None):
         self._initialized = False

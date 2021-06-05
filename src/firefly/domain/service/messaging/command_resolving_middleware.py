@@ -27,7 +27,7 @@ from firefly.domain.service.messaging.middleware import Middleware
 class CommandResolvingMiddleware(Middleware, LoggerAware):
     _context_map: ffd.ContextMap = None
     _context: str = None
-    _env: str = None
+    _ff_environment: str = None
 
     def __init__(self, command_handlers: Dict[Type[Command], ffd.ApplicationService] = None):
         self._command_handlers = {}
@@ -47,7 +47,11 @@ class CommandResolvingMiddleware(Middleware, LoggerAware):
         if not self._initialized:
             self._initialize()
 
-        if message.get_context() != 'firefly' and self._context_map.get_context(message.get_context()) is None:
+        not_for_this_context = message.get_context() != 'firefly' and \
+                               self._context_map.get_context(message.get_context()) is None
+        is_async = hasattr(message, '_async') and getattr(message, '_async') is True
+
+        if not_for_this_context or is_async:
             return self._transfer_message(message)
 
         args = message.to_dict()
@@ -59,7 +63,7 @@ class CommandResolvingMiddleware(Middleware, LoggerAware):
         service = self._command_handlers[str(message)]
 
         parsed_args = ffd.build_argument_list(args, service)
-        self.info('Calling service with arguments: %s', parsed_args)
+        self.info('Calling service %s with arguments: %s', service, parsed_args)
         return service(**parsed_args)
 
     def _transfer_message(self, message: ffd.Message):

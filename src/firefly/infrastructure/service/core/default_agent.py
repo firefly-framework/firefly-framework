@@ -42,7 +42,8 @@ class DefaultAgent(ffd.ApplicationService, ffd.LoggerAware):
         self._deployment = deployment
         self._execute_ddl()
 
-        self._web_server.add_extension(self._register_gateways)
+        if self._register_gateways not in self._web_server.extensions:
+            self._web_server.add_extension(self._register_gateways)
 
         if start_web_app:
             self.info('Starting web app')
@@ -60,7 +61,7 @@ class DefaultAgent(ffd.ApplicationService, ffd.LoggerAware):
                     try:
                         repository = self._registry(entity)
                         if isinstance(repository, ffi.RdbRepository):
-                            repository.execute_ddl()
+                            repository.migrate_schema()
                     except ffd.FrameworkError:
                         pass
 

@@ -128,3 +128,4 @@ node_modules/
 .pytest_cache/
 
 __target__/
+test.py

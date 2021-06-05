@@ -23,12 +23,17 @@ import firefly as ff
 import firefly.infrastructure as ffi
 
 
-os.environ['ENV'] = 'test'
+os.environ['FF_ENVIRONMENT'] = 'test'
 
 
 @pytest.fixture(scope="session")
 def config():
     raise Exception('You must provide a config fixture.')
+
+
+class TestingKernel(ff.Kernel):
+    def reset(self):
+        pass
 
 
 @pytest.fixture(scope="session")
@@ -37,8 +42,11 @@ def container(config):
     Container.configuration = lambda self: ffi.MemoryConfigurationFactory()(config)
     Container.asyncio_message_transport = ffi.AsyncioMessageTransport
     Container.message_transport = ffi.FakeMessageTransport
+    Container.mutex = ffi.MemoryMutex
+    Container.kernel = TestingKernel
 
     Container.__annotations__['asyncio_message_transport'] = ffi.AsyncioMessageTransport
+    Container.__annotations__['mutex'] = ffi.MemoryMutex
 
     c = Container()
 
@@ -98,7 +106,7 @@ def registry(container, request) -> ff.Registry:
                 try:
                     repository = registry(entity)
                     if isinstance(repository, ffi.RdbRepository):
-                        repository.execute_ddl()
+                        repository.migrate_schema()
                 except ff.FrameworkError:
                     pass
 
@@ -107,9 +115,7 @@ def registry(container, request) -> ff.Registry:
             for entity in context.entities:
                 if issubclass(entity, ff.AggregateRoot) and entity is not ff.AggregateRoot:
                     try:
-                        for e in registry(entity):
-                            registry(entity).remove(e)
-                        registry(entity).commit(force_delete=True)
+                        registry(entity).destroy()
                     except ff.FrameworkError:
                         pass
 

@@ -33,14 +33,19 @@ from firefly.domain.service.messaging.message_bus import MessageBus
 class CommandBus(MessageBus):
     _message_factory: ffd.MessageFactory = None
 
-    def invoke(self, command: Union[ffd.Command, str], data: dict = None):
+    def invoke(self, command: Union[ffd.Command, str], data: dict = None, async_: bool = False):
         if isinstance(command, str):
-            command = self._message_factory.command(command, data or {})
+            data = data or {}
+            data['_async'] = async_
+            command = self._message_factory.command(command, data)
+        else:
+            setattr(command, '_async', async_)
+
         return self.dispatch(command)
 
 
 class CommandBusAware(ABC):
     _command_bus: CommandBus = None
 
-    def invoke(self, command: Union[ffd.Command, str], data: dict = None):
-        return self._command_bus.invoke(command, data)
+    def invoke(self, command: Union[ffd.Command, str], data: dict = None, async_: bool = False):
+        return self._command_bus.invoke(command, data, async_=async_)

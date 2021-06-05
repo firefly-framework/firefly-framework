@@ -12,9 +12,11 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
+from datetime import datetime
 from typing import List
 
 import firefly as ff
+from firefly_test.todo import TodoList
 
 
 class BaseClass(ff.ValueObject):
@@ -35,6 +37,18 @@ class Widget(ff.AggregateRoot):
 
 class Widget2(ff.AggregateRoot):
     foo: BaseClass = ff.optional()
+
+
+class ChildWidget(ff.ValueObject):
+    name: str = ff.required()
+    extra1: str = ff.optional()
+    extra2: str = ff.optional()
+
+
+class ParentWidget(ff.AggregateRoot):
+    id: str = ff.id_()
+    name: str = ff.required()
+    child: ChildWidget = ff.optional()
 
 
 def test_class_hierarchies(serializer):
@@ -59,3 +73,36 @@ def test_reserved_words():
     args = ff.build_argument_list({'id': 'bar'}, foo)
 
     assert 'id_' in args and args['id_'] == 'bar'
+
+
+def test_todos():
+    todo = TodoList.from_dict({
+        'id': 'abc123',
+        'user': {"id": "cf130627-c5d9-4ccf-bee3-2fe96a675b53", "name": "Bob"},
+        'name': "Bob's TODO List",
+        'tasks': []
+    })
+
+    assert todo.name == "Bob's TODO List"
+    assert todo.tasks == []
+
+
+def test_shared_property_names_in_nested_classes():
+    p = ParentWidget.from_dict({
+        'name': 'foo',
+    })
+
+    assert p.name == 'foo'
+
+
+def test_optional_datetimes():
+    class TestAppService(ff.ApplicationService):
+        def __call__(self, last_updated: datetime = None, start_date: datetime = None, **kwargs):
+            pass
+
+    sut = TestAppService()
+    x = ff.build_argument_list({
+        'last_updated': '2021-05-26T06:20:15'
+    }, sut)
+
+    assert isinstance(x['last_updated'], datetime) is True

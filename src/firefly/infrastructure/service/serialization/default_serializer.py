@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import inspect
 import json
-from datetime import datetime, date
+from datetime import datetime, date, time
 from json import JSONEncoder
 from pprint import pprint
 
@@ -32,7 +32,7 @@ class FireflyEncoder(JSONEncoder):
             return f'{o.get_class_context()}.{o.__name__}'
         elif isinstance(o, (di.Container, ffd.Empty)):
             return None
-        elif isinstance(o, (datetime, date)):
+        elif isinstance(o, (datetime, date, time)):
             return o.isoformat()
         elif not inspect.isclass(o) and isinstance(o, ffd.Message):
             try:

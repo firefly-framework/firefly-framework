@@ -14,92 +14,142 @@
 
 from __future__ import annotations
 
+import inspect
 from abc import ABC, abstractmethod
 from dataclasses import fields
-from datetime import datetime
-from typing import Type, get_type_hints, List
+from typing import Type, get_type_hints, List, Union, Callable, Dict, Tuple
 
 import firefly.domain as ffd
 import inflection
+# noinspection PyDataclass
+from jinjasql import JinjaSql
+
+from .abstract_storage_interface import AbstractStorageInterface
+from .rdb_repository import Index, Column
 
 
 # noinspection PyDataclass
-class RdbStorageInterface(ffd.LoggerAware, ABC):
+class RdbStorageInterface(AbstractStorageInterface, ABC):
     _serializer: ffd.Serializer = None
+    _registry: ffd.Registry = None
+    _j: JinjaSql = None
     _cache: dict = {}
+    _sql_prefix = 'sql'
+    _map_indexes = False
+    _map_all = False
+    _identifier_quote_char = '"'
 
     def __init__(self, **kwargs):
         self._tables_checked = []
-        self._cache = {
-            'sql': {
-                'insert': {},
-                'update': {},
-            },
-            'indexes': {},
-            'parts': {
-                'columns': {},
-                'values': {},
-                'update': {},
-                'select': {},
-            },
-        }
 
-    def disconnect(self):
-        self._disconnect()
+    def _add(self, entity: Union[ffd.Entity, List[ffd.Entity]]):
+        entities = entity
+        if not isinstance(entity, list):
+            entities = [entity]
 
-    @abstractmethod
-    def _disconnect(self):
-        pass
+        return self._execute(*self._generate_query(
+            entity,
+            f'{self._sql_prefix}/insert.sql',
+            {'data': list(map(self._data_fields, entities))}
+        ))
 
-    def add(self, entity: ffd.Entity):
-        self._check_prerequisites(entity.__class__)
-        self._add(entity)
+    def _generate_select(self, entity_type: Type[ffd.Entity], criteria: ffd.BinaryOp = None, limit: int = None,
+                         offset: int = None, sort: Tuple[Union[str, Tuple[str, bool]]] = None, count: bool = False):
+        indexes = [f.name for f in fields(entity_type)
+                   if f.metadata.get('index') is True or f.metadata.get('id') is True]
+        data = {
+                'columns': self._select_list(entity_type),
+                'count': count,
+            }
+        if criteria is not None:
+            data['criteria'] = criteria
 
-    @abstractmethod
-    def _add(self, entity: ffd.Entity):
-        pass
+        if sort is not None:
+            sort_fields = []
+            for s in sort:
+                if str(s[0]) in indexes or self._map_indexes is False:
+                    sort_fields.append(s)
+            data['sort'] = sort_fields
 
-    def all(self, entity_type: Type[ffd.Entity], criteria: ffd.BinaryOp = None, limit: int = None):
-        self._check_prerequisites(entity_type)
-        return self._all(entity_type, criteria, limit)
+        if limit is not None:
+            data['limit'] = limit
 
-    @abstractmethod
-    def _all(self, entity_type: Type[ffd.Entity], criteria: ffd.BinaryOp = None, limit: int = None):
-        pass
+        if offset is not None:
+            data['offset'] = offset
 
-    def find(self, uuid: str, entity_type: Type[ffd.Entity]):
-        self._check_prerequisites(entity_type)
-        return self._find(uuid, entity_type)
+        return self._generate_query(entity_type, f'{self._sql_prefix}/select.sql', data)
 
-    @abstractmethod
+    def _all(self, entity_type: Type[ffd.Entity], criteria: ffd.BinaryOp = None, limit: int = None, offset: int = None,
+             sort: Tuple[Union[str, Tuple[str, bool]]] = None, raw: bool = False, count: bool = False):
+        sql, params = self._generate_select(
+            entity_type, criteria, limit=limit, offset=offset, sort=sort, count=count
+        )
+        results = self._execute(sql, params)
+
+        ret = []
+        if count:
+            return results[0]['c']
+
+        for row in results:
+            self.debug('Result row: %s', dict(row))
+            ret.append(self._build_entity(entity_type, row, raw=raw))
+
+        return ret
+
     def _find(self, uuid: str, entity_type: Type[ffd.Entity]):
-        pass
+        results = self._execute(*self._generate_query(
+            entity_type,
+            f'{self._sql_prefix}/select.sql',
+            {
+                'columns': self._select_list(entity_type),
+                'criteria': ffd.Attr(entity_type.id_name()) == uuid
+            }
+        ))
 
-    def remove(self, entity: ffd.Entity, force: bool = False):
-        self._check_prerequisites(entity.__class__)
-        if hasattr(entity, 'deleted_on') and not force:
-            entity.deleted_on = datetime.now()
-            self._update(entity)
-        else:
-            self._remove(entity)
+        if len(results) == 0:
+            return None
 
-    @abstractmethod
-    def _remove(self, entity: ffd.Entity):
-        pass
+        if len(results) > 1:
+            raise ffd.MultipleResultsFound()
 
-    def update(self, entity: ffd.Entity):
-        self._check_prerequisites(entity.__class__)
-        if hasattr(entity, 'updated_on'):
-            entity.updated_on = datetime.now()
-        self._update(entity)
+        return self._build_entity(entity_type, results[0])
 
-    @abstractmethod
+    def _remove(self, entity: Union[ffd.Entity, List[ffd.Entity], Callable]):
+        criteria = entity
+        if isinstance(entity, list):
+            criteria = ffd.Attr(entity[0].id_name()).is_in([e.id_value() for e in entity])
+        elif not isinstance(entity, ffd.BinaryOp):
+            criteria = ffd.Attr(entity.id_name()) == entity.id_value()
+
+        self._execute(*self._generate_query(entity, f'{self._sql_prefix}/delete.sql', {
+            'criteria': criteria
+        }))
+
     def _update(self, entity: ffd.Entity):
-        pass
+        criteria = ffd.Attr(entity.id_name()) == entity.id_value()
+        try:
+            criteria &= ffd.Attr('version') == getattr(entity, '__ff_version')
+        except AttributeError:
+            pass
+
+        return self._execute(*self._generate_query(
+            entity,
+            f'{self._sql_prefix}/update.sql',
+            {
+                'data': self._data_fields(entity),
+                'criteria': criteria
+            }
+        ))
 
     @abstractmethod
     def _ensure_connected(self):
         pass
+
+    def clear(self, entity: Type[ffd.Entity]):
+        self.execute(*self._generate_query(entity, f'{self._sql_prefix}/truncate_table.sql'))
+
+    def destroy(self, entity: Type[ffd.Entity]):
+        self.execute(*self._generate_query(entity, f'{self._sql_prefix}/drop_table.sql'))
 
     @staticmethod
     def _fqtn(entity: Type[ffd.Entity]):
@@ -108,153 +158,207 @@ class RdbStorageInterface(ffd.LoggerAware, ABC):
     def _check_prerequisites(self, entity: Type[ffd.Entity]):
         self._ensure_connected()
 
-    def get_indexes(self, entity: Type[ffd.Entity], include_ids: bool = False):
-        key = str(entity) + str(include_ids)
-        if key not in self._cache['indexes']:
-            self._cache['indexes'][key] = []
-            for field_ in fields(entity):
-                if 'index' in field_.metadata and field_.metadata['index'] is True:
-                    self._cache['indexes'][key].append(field_)
-                elif 'id' in field_.metadata and include_ids is True:
-                    self._cache['indexes'][key].append(field_)
+    def get_entity_columns(self, entity: Type[ffd.Entity]):
+        ret = []
+        annotations_ = get_type_hints(entity)
+        for f in fields(entity):
+            if f.name.startswith('_'):
+                continue
 
-        return self._cache['indexes'][key]
+            c = Column(
+                name=f.name,
+                type=annotations_[f.name],
+                length=f.metadata.get('length', None),
+                is_id=f.metadata.get('id', False),
+                is_indexed=f.metadata.get('index', False)
+            )
+            if self._map_all is True:
+                ret.append(c)
+            elif self._map_indexes and f.metadata.get('index', False):
+                ret.append(c)
+            elif f.metadata.get('id', False):
+                ret.append(c)
 
-    def _generate_insert(self, entity: ffd.Entity):
-        t = entity.__class__
-        sql = f"insert into {self._fqtn(t)} ({self._generate_column_list(t)}) values ({self._generate_value_list(t)})"
-        return sql, self._generate_parameters(entity)
+        if not self._map_all:
+            ret.insert(1, Column(name='document', type=dict))
+            ret.insert(2, Column(name='__document', type=dict))
+            ret.insert(3, Column(name='version', type=int, default=1))
 
-    def _generate_update(self, entity: ffd.Entity):
-        t = entity.__class__
-        sql = f"update {self._fqtn(t)} set {self._generate_update_list(t)} where id = :id"
-        return sql, self._generate_parameters(entity)
+        return ret
+
+    def get_table_columns(self, entity: Type[ffd.Entity]):
+        return self._get_table_columns(entity)
 
     @abstractmethod
-    def _generate_update_list(self, entity: Type[ffd.Entity]):
+    def _get_table_columns(self, entity: Type[ffd.Entity]):
         pass
 
-    @abstractmethod
-    def _generate_column_list(self, entity: Type[ffd.Entity]):
-        pass
+    def add_column(self, entity: Type[ffd.Entity], column: Column):
+        self.execute(
+            *self._generate_query(entity, f'{self._sql_prefix}/add_column.sql', {'column': column})
+        )
+
+    def drop_column(self, entity: Type[ffd.Entity], column: Column):
+        self.execute(
+            *self._generate_query(entity, f'{self._sql_prefix}/drop_column.sql', {'column': column})
+        )
+
+    def get_entity_indexes(self, entity: Type[ffd.Entity]):
+        ret = []
+        table = self._fqtn(entity).replace('.', '_')
+        for field_ in fields(entity):
+            if 'index' in field_.metadata:
+                if field_.metadata['index'] is True:
+                    ret.append(
+                        Index(table=table, columns=[field_.name], unique=field_.metadata.get('unique', False) is True)
+                    )
+                elif isinstance(field_.metadata['index'], str):
+                    name = field_.metadata['index']
+                    idx = next(filter(lambda i: i.name == name, ret))
+                    if not idx:
+                        ret.append(Index(table=table, columns=[field_.name],
+                                         unique=field_.metadata.get('unique', False) is True))
+                    else:
+                        idx.columns.append(field_.name)
+                        if field_.metadata.get('unique', False) is True and idx.unique is False:
+                            idx.unique = True
+
+        return ret
+
+    def get_table_indexes(self, entity: Type[ffd.Entity]):
+        return self._get_table_indexes(entity)
 
     @abstractmethod
-    def _generate_select_list(self, entity: Type[ffd.Entity]):
+    def _get_table_indexes(self, entity: Type[ffd.Entity]):
         pass
 
-    @abstractmethod
-    def _generate_value_list(self, entity: Type[ffd.Entity]):
-        pass
+    def create_index(self, entity: Type[ffd.Entity], index: Index):
+        self.execute(
+            *self._generate_query(entity, f'{self._sql_prefix}/add_index.sql', {'index': index})
+        )
 
-    @abstractmethod
-    def _generate_parameters(self, entity: ffd.Entity, part: str = None):
-        pass
+    def drop_index(self, entity: Type[ffd.Entity], index: Index):
+        self.execute(
+            *self._generate_query(entity, f'{self._sql_prefix}/drop_index.sql', {'index': index})
+        )
 
-    @abstractmethod
     def _build_entity(self, entity: Type[ffd.Entity], data, raw: bool = False):
-        pass
+        if raw is True:
+            if self._map_all is True:
+                return data
+            else:
+                return self._serializer.deserialize(data['document'])
 
-    @staticmethod
-    def _generate_where_clause(criteria: ffd.BinaryOp):
-        if criteria is None:
-            return '', {}
-        sql, params = criteria.to_sql()
+        version = None
+        if self._map_all is False:
+            version = data['version']
+            data = self._serializer.deserialize(data['document'])
 
-        # TODO Find a better way to handle non-standard SQL dialects.
-        for find, replace in {
-            ' is true': ' = 1',
-            ' is false': ' = 0',
-            ' is not true': ' <> 1',
-            ' is not false': ' <> 0',
-        }.items():
-            sql = sql.replace(find, replace)
+        for k, v in self._get_relationships(entity).items():
+            if v['this_side'] == 'one':
+                data[k] = self._registry(v['target']).find(data[k])
+            elif v['this_side'] == 'many':
+                data[k] = list(self._registry(v['target']).filter(
+                    lambda ee: getattr(ee, v['target'].id_name()).is_in(data[k])
+                ))
 
-        return sql, params
+        ret = entity.from_dict(data)
+        if version is not None:
+            setattr(ret, '__ff_version', version)
+        return ret
 
     @staticmethod
     def _generate_index(name: str):
         return ''
 
-    @staticmethod
-    def _db_type(field_):
-        if field_.type == 'float' or field_.type is float:
-            return 'float'
-        if field_.type == 'integer' or field_.type is int:
-            return 'integer'
-        if field_.type == 'datetime' or field_.type is datetime:
-            return 'datetime'
-        length = field_.metadata['length'] if 'length' in field_.metadata else 256
-        return f'varchar({length})'
+    def execute(self, sql: str, params: dict = None):
+        self._execute(sql, params)
 
     @abstractmethod
-    def _generate_create_table(self, entity: Type[ffd.Entity]):
+    def _execute(self, sql: str, params: dict = None):
         pass
 
-    @staticmethod
-    def _datetime_declaration(name: str):
-        return f"`{name}` datetime"
+    def _generate_query(self, entity: Union[ffd.Entity, List[ffd.Entity], Type[ffd.Entity]], template: str, params: dict = None):
+        params = params or {}
+        if isinstance(entity, list):
+            entity = entity[0]
+        if not inspect.isclass(entity):
+            entity = entity.__class__
 
-    @staticmethod
-    def _generate_extra(columns: list, indexes: list):
-        return f", {','.join(columns)}"
+        def mapped_fields(e):
+            return self.get_entity_columns(e)
 
-    def execute_ddl(self, entity: Type[ffd.Entity]):
-        self._execute_ddl(entity)
+        template = self._j.env.select_template([template, '/'.join(['sql', template.split('/')[1]])])
+        data = {
+            'fqtn': self._fqtn(entity),
+            '_q': self._identifier_quote_char,
+            'map_indexes': self._map_indexes,
+            'map_all': self._map_all,
+            'mapped_fields': mapped_fields,
+            'indexes': list(map(lambda e: e.name, self.get_entity_indexes(entity))),
+            'ids': entity.id_name() if isinstance(entity.id_name(), list) else [entity.id_name()],
+            'field_types': {f.name: f.type for f in fields(entity)},
+        }
+        data.update(params)
+        sql, params = self._j.prepare_query(template, data)
 
-    @abstractmethod
-    def _execute_ddl(self, entity: Type[ffd.Entity]):
-        pass
+        return " ".join(sql.split()), params
 
-    @abstractmethod
-    def raw(self, entity: Type[ffd.Entity], criteria: ffd.BinaryOp = None, limit: int = None):
-        pass
+    def create_table(self, entity_type: Type[ffd.Entity]):
+        self.execute(
+            *self._generate_query(
+                entity_type,
+                f'{self._sql_prefix}/create_table.sql',
+                {'entity': entity_type, }
+            )
+        )
 
-    def _get_relationships(self, entity: Type[ffd.Entity]):
-        cache = self._get_cache_entry(entity)
-        if 'relationships' not in cache:
-            relationships = {}
-            annotations_ = get_type_hints(entity)
-            for k, v in annotations_.items():
-                if k.startswith('_'):
-                    continue
-                if isinstance(v, type) and issubclass(v, ffd.AggregateRoot):
-                    relationships[k] = {
-                        'field_name': k,
-                        'target': v,
-                        'this_side': 'one',
-                    }
-                elif isinstance(v, type(List)) and issubclass(v.__args__[0], ffd.AggregateRoot):
-                    relationships[k] = {
-                        'field_name': k,
-                        'target': v.__args__[0],
-                        'this_side': 'many',
-                    }
-            cache['relationships'] = relationships
+    def create_schema(self, entity_type: Type[ffd.Entity]):
+        self.execute(
+            *self._generate_query(
+                entity_type,
+                f'{self._sql_prefix}/create_schema.sql',
+                {'context_name': entity_type.get_class_context()}
+            )
+        )
 
-        return cache['relationships']
-    #
-    # def _get_relationship(self, entity: Type[ffd.Entity], inverse_entity: Type[ffd.Entity]):
-    #     relationships = self._get_relationships(entity)
-    #     for k, v in relationships.items():
-    #         if v['target'] == inverse_entity:
-    #             return v
+    def _data_fields(self, entity: ffd.Entity):
+        ret = {}
+        for f in self.get_entity_columns(entity.__class__):
+            if f.name == 'document' and not hasattr(entity, 'document'):
+                ret[f.name] = self._serialize_entity(entity)
+            elif f.name == 'version':
+                try:
+                    ret['version'] = getattr(entity, '__ff_version')
+                except AttributeError:
+                    ret['version'] = 1
+            elif inspect.isclass(f.type) and issubclass(f.type, ffd.AggregateRoot):
+                ret[f.name] = getattr(entity, f.name).id_value()
+            elif ffd.is_type_hint(f.type):
+                origin = ffd.get_origin(f.type)
+                args = ffd.get_args(f.type)
+                if origin is List:
+                    if issubclass(args[0], ffd.AggregateRoot):
+                        ret[f.name] = self._serializer.serialize(
+                            list(map(lambda e: e.id_value(), getattr(entity, f.name)))
+                        )
+                    else:
+                        ret[f.name] = self._serializer.serialize(getattr(entity, f.name))
+                elif origin is Dict:
+                    if issubclass(args[1], ffd.AggregateRoot):
+                        ret[f.name] = {k: v.id_value() for k, v in getattr(entity, f.name).items()}
+                    else:
+                        ret[f.name] = self._serializer.serialize(getattr(entity, f.name))
+            elif f.type is list or f.type is dict:
+                if hasattr(entity, f.name):
+                    ret[f.name] = self._serializer.serialize(getattr(entity, f.name))
+            else:
+                ret[f.name] = getattr(entity, f.name)
+                if isinstance(ret[f.name], ffd.ValueObject):
+                    ret[f.name] = self._serializer.serialize(ret[f.name])
+        return ret
 
-    def _serialize_entity(self, entity: ffd.Entity):
-        relationships = self._get_relationships(entity.__class__)
-        if len(relationships.keys()) > 0:
-            obj = entity.to_dict(force_all=True, skip=relationships.keys())
-            for k, v in relationships.items():
-                if v['this_side'] == 'one':
-                    obj[k] = getattr(entity, k).id_value()
-                elif v['this_side'] == 'many':
-                    obj[k] = list(map(lambda kk: kk.id_value(), getattr(entity, k)))
-        else:
-            obj = entity.to_dict(force_all=True)
-
-        return self._serializer.serialize(obj)
-
-    def _get_cache_entry(self, entity: Type[ffd.Entity]):
-        return self._cache[entity] if entity in self._cache else {}
-
-    def _set_cache_entry(self, entity: Type[ffd.Entity], data: dict):
-        self._cache[entity] = data
+    def _select_list(self, entity: Type[ffd.Entity]):
+        if self._map_all:
+            return list(map(lambda c: c.name, self.get_entity_columns(entity)))
+        return ['document', 'version']

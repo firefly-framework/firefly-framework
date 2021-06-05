@@ -18,8 +18,10 @@ from .content_negotiation import *
 from .core import *
 from .crud import *
 from .entity import *
+from .files import *
 from .http import *
 from .logging import *
 from .messaging import *
+from .multithreading import *
 from .patterns import *
 from .serialization import *

@@ -14,8 +14,10 @@
 
 import firefly_test.calendar.domain as calendar
 import firefly_test.todo.domain as todo
+import pytest
 
 
+@pytest.mark.skip
 def test_create_on_event(system_bus, registry, message_factory):
     system_bus.invoke(message_factory.command('iam.CreateUser', {
         'name': 'foo',
@@ -31,6 +33,7 @@ def test_create_on_event(system_bus, registry, message_factory):
     assert len(calendars) == 1
 
 
+@pytest.mark.skip
 def test_delete_on_event(system_bus, registry, message_factory):
     system_bus.invoke(message_factory.command('iam.CreateUser', {
         'name': 'foo',
@@ -47,6 +50,7 @@ def test_delete_on_event(system_bus, registry, message_factory):
     assert len(registry(todo.TodoList)) == 0
 
 
+@pytest.mark.skip
 def test_application_service_event(system_bus, registry, message_factory):
     system_bus.invoke(message_factory.command('iam.CreateUser', {
         'name': 'foo',

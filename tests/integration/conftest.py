@@ -15,7 +15,8 @@ import os
 
 import pytest
 
-os.environ['ENV'] = 'local'
+os.environ['FF_ENVIRONMENT'] = 'local'
+os.environ['CONTEXT'] = 'todo'
 
 
 @pytest.fixture(scope="session")

@@ -67,40 +67,24 @@ class Entity(ContextAware, ValueObject):
         if not is_dataclass(self):
             raise TypeError('Entity::id_value() called on a non-dataclass entity')
 
+        ret = []
         for field_ in fields(self):
             if 'id' in field_.metadata:
-                return getattr(self, field_.name)
+                ret.append(getattr(self, field_.name))
 
-    @classmethod
-    def id_column(cls):
-        for field_ in fields(cls):
-            if 'id' in field_.metadata:
-                return field_.name
-
-    def load_dict(self, data: dict):
-        data = build_argument_list(data, self.__class__, strict=False)
-        t = typing.get_type_hints(self.__class__)
-        for name, type_ in t.items():
-            if name in data:
-                if inspect.isclass(type_) and issubclass(type_, (datetime, date)) and isinstance(data[name], str):
-                    setattr(self, name, parse(data[name], ignoretz=True))
-                else:
-                    try:
-                        if data[name] is not None:
-                            setattr(self, name, type_(data[name]))
-                        else:
-                            setattr(self, name, data[name])
-                    except TypeError:
-                        setattr(self, name, data[name])
+        return ret[0] if len(ret) == 1 else ret
 
     @classmethod
     def id_name(cls):
         if not is_dataclass(cls):
             raise TypeError('Entity::id_name() called on a non-dataclass entity')
 
+        ret = []
         for field_ in fields(cls):
             if 'id' in field_.metadata:
-                return field_.name
+                ret.append(field_.name)
+
+        return ret[0] if len(ret) == 1 else ret
 
     @classmethod
     def match_id_from_argument_list(cls, args: dict):

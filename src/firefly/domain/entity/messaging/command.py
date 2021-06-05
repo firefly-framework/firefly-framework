@@ -19,4 +19,4 @@ from firefly.domain.meta.message_meta import MessageMeta
 
 
 class Command(Message, metaclass=MessageMeta):
-    pass
+    _async: bool = False

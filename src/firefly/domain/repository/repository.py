@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import hashlib
 from abc import ABC, abstractmethod
-from typing import List, TypeVar, Generic, Union, Callable, Optional
+from typing import List, TypeVar, Generic, Union, Callable, Optional, Tuple
 
 import firefly.domain as ffd
 
@@ -33,37 +33,51 @@ class Repository(Generic[T], GenericBase, LoggerAware, ABC):
         self._entity_hashes = {}
         self._entities = []
         self._deletions = []
+        self._parent = None
 
     @abstractmethod
-    def append(self, entity: T, **kwargs):
+    def append(self, entity: Union[T, List[T], Tuple[T]], **kwargs):
         pass
 
     @abstractmethod
-    def remove(self, entity: T, **kwargs):
+    def remove(self, x: Union[T, List[T], Tuple[T], Callable, ffd.BinaryOp], **kwargs):
         pass
 
     @abstractmethod
-    def find(self, exp: Union[str, Callable], **kwargs) -> Optional[T]:
+    def find(self, x: Union[str, Callable, ffd.BinaryOp], **kwargs) -> Optional[T]:
         pass
 
     @abstractmethod
-    def filter(self, cb: Callable, **kwargs) -> List[T]:
+    def filter(self, x: Union[Callable, ffd.BinaryOp], **kwargs) -> Repository:
         pass
 
     @abstractmethod
-    def reduce(self, cb: Callable) -> Optional[T]:
+    def commit(self, **kwargs):
         pass
+
+    @abstractmethod
+    def sort(self, cb: Optional[Union[Callable, Tuple[Union[str, Tuple[str, bool]]]]], **kwargs):
+        pass
+
+    @abstractmethod
+    def clear(self):
+        pass
+
+    @abstractmethod
+    def destroy(self):
+        pass
+
+    def reset(self):
+        self._deletions = []
+        self._entities = []
+        self._entity_hashes = {}
 
     def touch(self, entity: ffd.Entity):
-        if id(entity) in self._entity_hashes:
-            self._entity_hashes[id(entity)] = ''
+        if entity.id_value() in self._entity_hashes:
+            self._entity_hashes[entity.id_value()] = ''
 
     @abstractmethod
     def __iter__(self):
-        pass
-
-    @abstractmethod
-    def __next__(self):
         pass
 
     @abstractmethod
@@ -82,33 +96,19 @@ class Repository(Generic[T], GenericBase, LoggerAware, ABC):
     def _get_hash(self, entity: ffd.Entity):
         return hashlib.md5(self._serializer.serialize(entity.to_dict(force_all=True)).encode('utf-8')).hexdigest()
 
-    def _register_entity(self, entity: ffd.Entity):
-        self._entity_hashes[id(entity)] = self._get_hash(entity)
+    def register_entity(self, entity: ffd.Entity):
+        self._entity_hashes[entity.id_value()] = self._get_hash(entity)
         self._entities.append(entity)
+        if self._parent is not None:
+            self._parent.register_entity(entity)
 
     def _has_changed(self, entity: ffd.Entity):
-        if id(entity) not in self._entity_hashes:
+        if entity.id_value() not in self._entity_hashes:
             return False
-        return self._get_hash(entity) != self._entity_hashes[id(entity)]
+        return self._get_hash(entity) != self._entity_hashes[entity.id_value()]
 
     def _new_entities(self):
-        return [e for e in self._entities if id(e) not in self._entity_hashes]
+        return [e for e in self._entities if e.id_value() not in self._entity_hashes]
 
     def _changed_entities(self):
         return [e for e in self._entities if self._has_changed(e)]
-
-    @abstractmethod
-    def commit(self, **kwargs):
-        pass
-
-    @abstractmethod
-    def execute_ddl(self):
-        pass
-
-    def reset(self):
-        self._deletions = []
-        self._entities = []
-        self._entity_hashes = {}
-
-    def raw(self, cb: Union[Callable, ffd.BinaryOp] = None, limit: int = None):
-        raise NotImplementedError()

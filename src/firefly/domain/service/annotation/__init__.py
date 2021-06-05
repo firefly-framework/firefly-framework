@@ -21,3 +21,4 @@ from .on import on
 from .query_handler import query_handler
 from .register_middleware import register_middleware
 from .rest import rest
+from .timer import timer

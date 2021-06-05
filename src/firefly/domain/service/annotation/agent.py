@@ -17,7 +17,34 @@ from __future__ import annotations
 from firefly.domain import error
 
 
+class PreDeployHook:
+    def __call__(self, for_: str):
+        def agent_wrapper(cls):
+            try:
+                cls.set_agent_extension(for_, 'add_pre_deployment_hook')
+            except AttributeError:
+                raise error.FrameworkError('@agent used on invalid target')
+            return cls
+
+        return agent_wrapper
+
+
+class PostDeployHook:
+    def __call__(self, for_: str):
+        def agent_wrapper(cls):
+            try:
+                cls.set_agent_extension(for_, 'add_post_deployment_hook')
+            except AttributeError:
+                raise error.FrameworkError('@agent used on invalid target')
+            return cls
+
+        return agent_wrapper
+
+
 class Agent:
+    pre_deploy_hook: PreDeployHook = PreDeployHook()
+    post_deploy_hook: PostDeployHook = PostDeployHook()
+
     def __call__(self, name: str):
         def agent_wrapper(cls):
             try:

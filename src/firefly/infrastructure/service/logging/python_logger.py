@@ -20,6 +20,7 @@ import firefly.domain as ffd
 
 
 class PythonLogger(ffd.Logger):
+    _serializer: ffd.Serializer = None
     _max_length: int = 5120  # ~5k
 
     def __init__(self):
@@ -27,15 +28,23 @@ class PythonLogger(ffd.Logger):
         self.log.basicConfig(format=f'%(message).{self._max_length}s', level=self.log.WARNING)
 
     def debug(self, message: str, *args, **kwargs):
+        if isinstance(message, dict):
+            message = self._serializer.serialize(message)
         self.log.debug(message, *args, **kwargs)
 
     def info(self, message: str, *args, **kwargs):
+        if isinstance(message, dict):
+            message = self._serializer.serialize(message)
         self.log.info(message, *args, **kwargs)
 
     def warning(self, message: str, *args, **kwargs):
+        if isinstance(message, dict):
+            message = self._serializer.serialize(message)
         self.log.warning(message, *args, **kwargs)
 
     def error(self, message: str, *args, **kwargs):
+        if isinstance(message, dict):
+            message = self._serializer.serialize(message)
         self.log.error(message, *args, **kwargs)
 
     def exception(self, message: str, *args, **kwargs):

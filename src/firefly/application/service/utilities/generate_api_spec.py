@@ -17,6 +17,7 @@ from __future__ import annotations
 import inspect
 import json
 from dataclasses import fields, is_dataclass
+from datetime import datetime, date
 from typing import Type, List
 
 import firefly.domain as ffd
@@ -31,7 +32,7 @@ class GenerateApiSpec(ffd.ApplicationService):
     def __init__(self):
         self._schemas = []
 
-    def __call__(self, **kwargs):
+    def __call__(self, tag: str = None, **kwargs):
         try:
             from apispec import APISpec
             from docstring_parser import parse
@@ -48,6 +49,8 @@ class GenerateApiSpec(ffd.ApplicationService):
             prefix = f'/{inflection.dasherize(context.name)}'
             for endpoint in context.endpoints:
                 if isinstance(endpoint, ffd.HttpEndpoint):
+                    if tag is not None and tag not in endpoint.tags:
+                        continue
                     docstring = parse(endpoint.service.__call__.__doc__)
                     short_description = docstring.short_description \
                         if docstring.short_description != 'Call self as a function.' else None
@@ -87,10 +90,10 @@ class GenerateApiSpec(ffd.ApplicationService):
                 ]
 
     def _request_body(self, endpoint: ffd.HttpEndpoint):
-        if not inspect.isclass(endpoint.service) or not issubclass(endpoint.service, ffd.Entity):
+        if not inspect.isclass(endpoint.service):
             return None
 
-        if endpoint.method.lower() == 'post':
+        if endpoint.method.lower() in ('post', 'put', 'patch'):
             return {
                 'required': True,
                 'content': {
@@ -100,37 +103,93 @@ class GenerateApiSpec(ffd.ApplicationService):
                 }
             }
 
-    def _add_schema(self, entity: typing.Union[Type[ffd.Entity], Type[ffd.ValueObject]]):
-        if entity.__name__ in self._schemas:
-            return entity.__name__
+    def _add_schema(self, cls: typing.Union[Type[ffd.ValueObject], Type[ffd.ApplicationService]]):
+        try:
+            if cls.__name__ in self._schemas:
+                return cls.__name__
+        except AttributeError:
+            pass
+
+        if issubclass(cls, ffd.ValueObject):
+            return self._add_entity_schema(cls)
+        elif issubclass(cls, ffd.ApplicationService):
+            return self._add_service_body_schema(cls)
+
+    def _add_service_body_schema(self, cls: Type[ffd.ApplicationService]):
         props = {}
-        hints = typing.get_type_hints(entity)
-        if not is_dataclass(entity):
+        signature = inspect.signature(cls.__call__)
+        hints = typing.get_type_hints(cls.__call__)
+        for name, param in signature.parameters.items():
+            if name == 'self' or param.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
+                continue
+            try:
+                type_ = hints[name]
+            except KeyError:
+                type_ = str
+            self._handle_type(name, type_, props)
+
+        self._spec.components.schema(cls.__name__, {'properties': props})
+        self._schemas.append(cls.__name__)
+        return cls.__name__
+
+    def _add_entity_schema(self, cls: Type[ffd.ValueObject]):
+        props = {}
+        hints = typing.get_type_hints(cls)
+        if not is_dataclass(cls):
             return None
-        for field_ in fields(entity):
+        for field_ in fields(cls):
             if field_.name.startswith('_'):
                 continue
             type_ = hints[field_.name]
+            self._handle_type(field_.name, type_, props)
 
-            if inspect.isclass(type_) and issubclass(type_, (ffd.Entity, ffd.ValueObject)):
-                props[field_.name] = {
-                    'type': {
-                        'schema': {
-                            '$ref': f'#/components/schemas/{self._add_schema(type_)}'
-                        }
+        self._spec.components.schema(cls.__name__, {'properties': props})
+        self._schemas.append(cls.__name__)
+        return cls.__name__
+
+    def _handle_type(self, name: str, type_: type, props: dict):
+        if inspect.isclass(type_) and issubclass(type_, (ffd.Entity, ffd.ValueObject)):
+            props[name] = {
+                'type': {
+                    'schema': {
+                        '$ref': f'#/components/schemas/{self._add_schema(type_)}'
                     }
                 }
-            elif isinstance(type_, type(List)):
-                t = type_.__args__[0]
-                props[field_.name] = {
-                    'type': 'array',
-                    'items': {
-                        '$ref': f'#/components/schemas/{self._add_schema(t)}'
-                    }
+            }
+        elif ffd.is_type_hint(type_) and ffd.get_origin(type_) is typing.List:
+            t = ffd.get_args(type_)[0]
+            props[name] = {
+                'type': 'array',
+                'items': {
+                    '$ref': f'#/components/schemas/{self._add_schema(t)}'
                 }
-            else:
-                props[field_.name] = {'type': str(field_.type)}
+            }
+        elif ffd.is_type_hint(type_) and ffd.get_origin(type_) is typing.Union:
+            args = ffd.get_args(type_)
+            if args[1] is None:
+                props[name] = self._map_type(args[0])
+                props[name].update({'required': False})
+        elif ffd.is_type_hint(type_) and ffd.get_origin(type_) is typing.Dict:
+            props[name] = {'type': 'object'}
+        else:
+            props[name] = self._map_type(type_)
 
-        self._spec.components.schema(entity.__name__, {'properties': props})
-        self._schemas.append(entity.__name__)
-        return entity.__name__
+    def _map_type(self, type_: type):
+        if type_ is str or type_ == 'str':
+            return {'type': 'string'}
+        elif type_ is int or type_ == 'int':
+            return {'type': 'integer'}
+        elif type_ is float or type_ == 'float':
+            return {'type': 'number'}
+        elif type_ is bool or type_ == 'bool':
+            return {'type': 'boolean'}
+        elif type_ is list or type_ == 'list':
+            return {'type': 'array'}
+        elif type_ is dict or type_ == 'dict':
+            return {'type': 'object'}
+        elif type_ is datetime or type_ == 'datetime':
+            return {'type': 'string', 'format': 'date-time'}
+        elif type_ is date or type_ == 'date':
+            return {'type': 'string', 'format': 'date'}
+
+        raise Exception(f"Don't know how to handle type: {type_}")

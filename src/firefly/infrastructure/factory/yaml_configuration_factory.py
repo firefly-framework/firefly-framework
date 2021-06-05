@@ -54,7 +54,7 @@ class YamlConfigurationFactory(ffd.ConfigurationFactory):
                 configuration.contexts[context] or {},
             )
 
-        env = os.environ['ENV']
+        env = os.environ['FF_ENVIRONMENT']
         if env in configuration.environments and isinstance(configuration.environments[env], dict):
             configuration.contexts = ffd.merge(
                 configuration.contexts,
@@ -113,7 +113,7 @@ class YamlConfigurationFactory(ffd.ConfigurationFactory):
         return config
 
     def _load_environment_vars(self):
-        env = os.environ.get('ENV', 'local')
+        env = os.environ.get('FF_ENVIRONMENT', 'local')
         try:
             dir_ = self._move_to_project_root()
         except ffd.ProjectConfigNotFound:

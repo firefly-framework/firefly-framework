@@ -14,3 +14,4 @@
 
 from .asyncio_message_transport import AsyncioMessageTransport
 from .fake_message_transport import FakeMessageTransport
+from .memory_mutex import MemoryMutex

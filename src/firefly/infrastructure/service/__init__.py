@@ -18,6 +18,7 @@ from .cli import *
 from .config import *
 from .content_negotiation import *
 from .core import *
+from .files import *
 from .http import *
 from .logging import *
 from .messaging import *
@@ -27,7 +28,7 @@ from .serialization import *
 def set_env(func):
     for i in range(len(sys.argv)):
         if sys.argv[i] in ('--env', '-e'):
-            os.environ['ENV'] = sys.argv[i + 1]
+            os.environ['FF_ENVIRONMENT'] = sys.argv[i + 1]
             return func
-    os.environ['ENV'] = 'local'
+    os.environ['FF_ENVIRONMENT'] = 'local'
     return func

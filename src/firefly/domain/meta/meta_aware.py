@@ -25,7 +25,9 @@ class MetaAware(ABC):
     _command: Dict[Type[MetaAware], ff.TypeOfCommand] = {}
     _query: Dict[Type[MetaAware], ff.TypeOfQuery] = {}
     _endpoints: Dict[Type[MetaAware], List[ff.Endpoint]] = {}
+    _timers: Dict[Type[MetaAware], ff.Timer] = {}
     _agent: Optional[str] = None
+    _agent_extension: Optional[tuple] = None
     _middleware_config: Optional[Dict] = None
     _annotations: Dict[Type[MetaAware], List[ff.ConfigurationAnnotation]] = {}
 
@@ -60,6 +62,10 @@ class MetaAware(ABC):
         cls._command[cls] = command
 
     @classmethod
+    def set_timer(cls, timer: ff.Timer):
+        cls._timers[cls] = timer
+
+    @classmethod
     def set_query(cls, query: ff.TypeOfQuery):
         cls._query[cls] = query
 
@@ -70,6 +76,10 @@ class MetaAware(ABC):
     @classmethod
     def is_command_handler(cls):
         return cls in cls._command
+
+    @classmethod
+    def has_timer(cls):
+        return cls in cls._timers
 
     @classmethod
     def is_query_handler(cls):
@@ -90,6 +100,10 @@ class MetaAware(ABC):
     @classmethod
     def get_command(cls):
         return cls._command[cls]
+
+    @classmethod
+    def get_timer(cls):
+        return cls._timers[cls]
 
     @classmethod
     def get_query(cls):
@@ -114,6 +128,18 @@ class MetaAware(ABC):
     @classmethod
     def get_agent(cls):
         return cls._agent
+
+    @classmethod
+    def is_agent_extension(cls):
+        return cls._agent_extension is not None
+
+    @classmethod
+    def set_agent_extension(cls, agent: str, step: str):
+        cls._agent_extension = (agent, step)
+
+    @classmethod
+    def get_agent_extension(cls):
+        return cls._agent_extension
 
     @classmethod
     def set_middleware_config(cls, config: dict):

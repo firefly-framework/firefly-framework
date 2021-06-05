@@ -17,6 +17,7 @@ from __future__ import annotations
 import importlib
 import inspect
 import typing
+from pprint import pprint
 from typing import List, Type
 
 import firefly.domain as ffd
@@ -90,18 +91,26 @@ class LoadApplicationLayer(ffd.ApplicationService):
                 self._deferred.append(('query', built, params))
 
     def _register_service(self, cls: Type[ffd.ApplicationService], context: ffd.Context):
-        if cls.is_agent():
-            self._agent_factory.register(cls.get_agent(), context.container.build(cls))
-
         if not cls.is_handler():
             return
 
         if cls.is_event_listener() and issubclass(cls, ffd.ApplicationService):
             for event in cls.get_events():
+                if isinstance(event, str):
+                    context_name = event.split('.')[0]
+                else:
+                    context_name = event.get_class_context()
+                if 'extends' in context.config and \
+                        (context_name == context.config.get('extends') or context_name == 'firefly'):
+                    if isinstance(event, str):
+                        event = f'{context.name}.{event.split(".")[-1]}'
+                    else:
+                        event._context = context.name
                 self._event_resolver.add_event_listener(cls, event)
                 if cls not in context.event_listeners:
                     context.event_listeners[cls] = []
-                context.event_listeners[cls].append(event)
+                if event not in context.event_listeners[cls]:
+                    context.event_listeners[cls].append(event)
 
         if cls.is_command_handler() and issubclass(cls, ffd.ApplicationService):
             if cls.get_command() is None:
@@ -109,6 +118,8 @@ class LoadApplicationLayer(ffd.ApplicationService):
             cmd = cls.get_command()
             if isinstance(cmd, str):
                 cmd = self._message_factory.command_class(cmd, typing.get_type_hints(cls.__call__))
+            if 'extends' in context.config and cmd.get_class_context() != context.name:
+                cmd._context = context.name
             self._command_resolver.add_command_handler(cls, cmd)
             context.command_handlers[cls] = cmd
 
@@ -118,11 +129,13 @@ class LoadApplicationLayer(ffd.ApplicationService):
             query = cls.get_query()
             if isinstance(query, str):
                 query = self._message_factory.query_class(query, typing.get_type_hints(cls.__call__))
+            if 'extends' in context.config and query.get_class_context() != context.name:
+                query._context = context.name
             self._query_resolver.add_query_handler(cls, query)
             context.query_handlers[cls] = query
 
     def _add_endpoints(self, cls: Type[ffd.MetaAware], context: ffd.Context):
-        if not cls.has_endpoints():
+        if not cls.has_endpoints() or (context.name != 'firefly' and context.config.get('is_extension', False)):
             return
 
         for endpoint in cls.get_endpoints():

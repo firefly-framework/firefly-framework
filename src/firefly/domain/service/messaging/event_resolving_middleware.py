@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import inspect
+from pprint import pprint
 from typing import Callable, Dict, Type, Union, List
 
 import firefly.domain as ffd
@@ -26,7 +27,7 @@ from firefly.domain.service.messaging.middleware import Middleware
 class EventResolvingMiddleware(Middleware, LoggerAware):
     _context_map: ffd.ContextMap = None
     _context: str = None
-    _env: str = None
+    _ff_environment: str = None
 
     def __init__(self, event_listeners: Dict[Union[Type[Event], str], List[ffd.ApplicationService]] = None):
         self._event_listeners = {}
@@ -50,10 +51,14 @@ class EventResolvingMiddleware(Middleware, LoggerAware):
         if not self._initialized:
             self._initialize()
 
+        self.debug('Message context: %s', message.get_context())
+        self.debug('This context: %s', self._context)
+        self.debug('Environment: %s', self._ff_environment)
         if message.get_context() != 'firefly' and \
                 message.get_context() == self._context and \
                 not message.headers.get('external', False) and \
-                self._env != 'test':
+                self._ff_environment != 'test':
+            self.debug('EventResolvingMiddleware - event originated from this context. Dispatching.')
             self._publish_message(message)
             return next_(message)
 
@@ -65,11 +70,13 @@ class EventResolvingMiddleware(Middleware, LoggerAware):
             for service in services:
                 try:
                     parsed_args = ffd.build_argument_list(args, service)
-                    self.info('Calling service with arguments: %s', parsed_args)
+                    self.info('Calling service %s with arguments: %s', service.__class__.__name__, parsed_args)
                     service(**parsed_args)
                 except TypeError as e:
                     self.exception(e)
                     raise ffd.FrameworkError(f'Error calling {service.__class__.__name__}:\n\n{str(e)}')
+        else:
+            self.info('No event listener found for message %s', message)
 
         return next_(message)
 
@@ -83,4 +90,6 @@ class EventResolvingMiddleware(Middleware, LoggerAware):
         key = event.get_fqn() if not isinstance(event, str) else event
         if key not in self._event_listeners:
             self._event_listeners[key] = []
-        self._event_listeners[key].append(handler)
+        if handler.__class__.__name__ not in list(map(lambda h: h.__class__.__name__, self._event_listeners[key])):
+
+            self._event_listeners[key].append(handler)

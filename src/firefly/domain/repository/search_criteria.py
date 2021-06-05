@@ -16,10 +16,13 @@ from __future__ import annotations
 
 from dataclasses import is_dataclass
 from datetime import datetime, date
+from pprint import pprint
 from typing import Union, List, Type
 
 import firefly.domain as ffd
 import regex
+
+T = '__FF_SKIP_TYPE'
 
 
 class EntityAttributeSpy:
@@ -39,8 +42,46 @@ class EntityAttributeSpy:
         return Attr(item)
 
 
-class AttributeString(str):
-    pass
+class AttributeString:
+    __modifiers = None
+    _value: str = None
+
+    def __init__(self, value: str):
+        if '(' in value:
+            matches = list(map(lambda rr: rr[2], regex.findall(r'((\w)\((?R)\))|(\w+)', str(value))))
+            attribute = matches.pop()
+
+            for func in reversed(matches):
+                self.add_modifier(func)
+            self._value = attribute
+        else:
+            self._value = str(value)
+
+    def add_modifier(self, modifier: str):
+        if self.__modifiers is None:
+            self.__modifiers = []
+        self.__modifiers.append(modifier)
+
+    def has_modifiers(self):
+        return self.__modifiers is not None
+
+    def get_modifiers(self):
+        return self.__modifiers
+
+    def __str__(self):
+        return str(self._value)
+
+    def __repr__(self):
+        ret = ''
+        if self.has_modifiers():
+            for modifier in self.get_modifiers():
+                ret += f'{modifier}('
+        ret += str(self)
+        if self.has_modifiers():
+            for _ in self.get_modifiers():
+                ret += ')'
+
+        return ret
 
 
 class Invalid:
@@ -56,9 +97,15 @@ class Attr:
         self.default = default
 
     def __getattribute__(self, item):
+        if item in ('has_modifiers', 'get_modifiers'):
+            return getattr(self.attr, item)
+
         try:
             return object.__getattribute__(self, item)
         except AttributeError:
+            if not item.startswith('_'):
+                self.attr = AttributeString(f'{self.attr}.{item}')
+                return self
             raise ffd.InvalidOperand(f"Use of '{item}' is not currently supported.")
 
     def is_none(self):
@@ -80,15 +127,18 @@ class Attr:
         return BinaryOp(self.attr, 'startswith', value)
 
     def lower(self):
-        self.attr = AttributeString(f'LOWER({self.attr})')
+        self.attr.add_modifier('LOWER')
         return self
 
     def upper(self):
-        self.attr = AttributeString(f'UPPER({self.attr})')
+        self.attr.add_modifier('UPPER')
         return self
 
     def endswith(self, value):
         return BinaryOp(self.attr, 'endswith', value)
+
+    def reversed(self):
+        return self.attr, True
 
     def __eq__(self, other):
         return BinaryOp(self.attr, '==', other)
@@ -109,7 +159,10 @@ class Attr:
         return BinaryOp(self.attr, '<=', other)
 
     def __repr__(self):
-        return self.attr
+        return repr(self.attr)
+
+    def __str__(self):
+        return str(self.attr)
 
 
 class AttrFactory:
@@ -132,41 +185,44 @@ class BinaryOp:
         return self._do_to_dict(self)
 
     def _do_to_dict(self, bop: BinaryOp):
-        ret = {'l': None, 'o': bop.op, 'r': None}
+        return {
+            'l': self._get_serialized_value(bop.lhv),
+            'o': bop.op,
+            'r': self._get_serialized_value(bop.rhv)
+        }
 
-        if isinstance(bop.lhv, BinaryOp):
-            ret['l'] = self._do_to_dict(bop.lhv)
-        elif isinstance(bop.lhv, (Attr, AttributeString)):
-            ret['l'] = f'a:{str(bop.lhv)}'
+    def _get_serialized_value(self, val):
+        if isinstance(val, BinaryOp):
+            return self._do_to_dict(val)
+        elif isinstance(val, (Attr, AttributeString)):
+            return f'a:{repr(val)}'
+        elif isinstance(val, datetime):
+            return f'datetime:{val}'
+        elif isinstance(val, date):
+            return f'date:{val}'
         else:
-            ret['l'] = bop.lhv
-
-        if isinstance(bop.rhv, BinaryOp):
-            ret['r'] = self._do_to_dict(bop.rhv)
-        elif isinstance(bop.rhv, (Attr, AttributeString)):
-            ret['r'] = f'a:{str(bop.rhv)}'
-        else:
-            ret['r'] = bop.rhv
-
-        return ret
+            return val
 
     @classmethod
     def from_dict(cls, data: dict):
-        if isinstance(data['l'], dict):
-            lhv = cls.from_dict(data['l'])
-        elif isinstance(data['l'], str) and data['l'].startswith('a:'):
-            lhv = Attr(data['l'].split(':')[1])
-        else:
-            lhv = data['l']
+        return BinaryOp(
+            cls._deserialize_value(data['l']),
+            data['o'],
+            cls._deserialize_value(data['r'])
+        )
 
-        if isinstance(data['r'], dict):
-            rhv = cls.from_dict(data['r'])
-        elif isinstance(data['r'], str) and data['r'].startswith('a:'):
-            rhv = Attr(data['r'].split(':')[1])
+    @classmethod
+    def _deserialize_value(cls, val):
+        if isinstance(val, dict):
+            return cls.from_dict(val)
+        elif isinstance(val, str) and val.startswith('a:'):
+            return Attr(val.split(':')[1])
+        elif isinstance(val, str) and val.startswith('datetime:'):
+            return ffd.parse(val.split(':')[1])
+        elif isinstance(val, str) and val.startswith('date:'):
+            return ffd.parse(val.split(':')[1]).date()
         else:
-            rhv = data['r']
-
-        return BinaryOp(lhv, data['o'], rhv)
+            return val
 
     def matches(self, data: Union[ffd.Entity, dict]) -> bool:
         if isinstance(data, ffd.Entity):
@@ -178,30 +234,18 @@ class BinaryOp:
         if isinstance(bop.lhv, BinaryOp):
             lhv = self._do_match(bop.lhv, data)
         elif isinstance(bop.lhv, AttributeString):
-            if '(' in bop.lhv:
-                lhv = self._parse_attribute_string(bop.lhv, data)
-            else:
-                lhv = data[bop.lhv]
+            lhv = self._parse_attribute_string(bop.lhv, data)
         elif isinstance(bop.lhv, Attr):
-            if '(' in bop.lhv.attr:
-                lhv = self._parse_attribute_string(bop.lhv.attr, data)
-            else:
-                lhv = data[bop.lhv.attr]
+            lhv = self._parse_attribute_string(bop.lhv.attr, data)
         else:
             lhv = bop.lhv
 
         if isinstance(bop.rhv, BinaryOp):
             rhv = self._do_match(bop.rhv, data)
         elif isinstance(bop.rhv, AttributeString):
-            if '(' in bop.rhv:
-                rhv = self._parse_attribute_string(bop.rhv, data)
-            else:
-                rhv = data[bop.rhv]
+            rhv = self._parse_attribute_string(bop.rhv, data)
         elif isinstance(bop.rhv, Attr):
-            if '(' in bop.rhv.attr:
-                rhv = self._parse_attribute_string(bop.rhv.attr, data)
-            else:
-                rhv = data[bop.rhv.attr]
+            rhv = self._parse_attribute_string(bop.rhv.attr, data)
         else:
             rhv = bop.rhv
 
@@ -239,16 +283,15 @@ class BinaryOp:
         return list(map(lambda rr: rr[2], regex.findall(r'((\w)\((?R)\))|(\w+)', attr))).pop()
 
     @staticmethod
-    def _parse_attribute_string(attr: str, data: dict):
-        matches = list(map(lambda rr: rr[2], regex.findall(r'((\w)\((?R)\))|(\w+)', attr)))
-        attribute = matches.pop()
-        value = data[attribute]
+    def _parse_attribute_string(attr: AttributeString, data: dict):
+        value = data[str(attr)]
 
-        for func in reversed(matches):
-            if func == 'LOWER':
-                value = value.lower()
-            elif func == 'UPPER':
-                value = value.upper()
+        if attr.has_modifiers():
+            for modifier in attr.get_modifiers():
+                if modifier == 'LOWER':
+                    value = value.lower()
+                elif modifier == 'UPPER':
+                    value = value.upper()
 
         return value
 
@@ -261,17 +304,17 @@ class BinaryOp:
     def prune(self, fields: list):
         data = self._prune(fields, self.to_dict())
         if data is INVALID:
-            data = {'l': 1, 'o': '==', 'r': 1}
+            return None
+        if data['l'] is INVALID:
+            return BinaryOp.from_dict(data['r'])
+        if data['r'] is INVALID:
+            return BinaryOp.from_dict(data['l'])
+
         return BinaryOp.from_dict(data)
 
     def _prune(self, fields: list, data: dict):
         if isinstance(data['l'], dict):
-            result = self._prune(fields, data['l'])
-            if result is INVALID:
-                if data['o'] == 'and':
-                    data['l'] = {'l': 1, 'o': '==', 'r': 1}
-                else:
-                    data['l'] = {'l': 1, 'o': '!=', 'r': 1}
+            data['l'] = self._prune(fields, data['l'])
         elif isinstance(data['l'], str) and len(data['l']) > 2:
             prop = data['l']
             if '(' in prop:
@@ -280,12 +323,7 @@ class BinaryOp:
                 return INVALID
 
         if isinstance(data['r'], dict):
-            result = self._prune(fields, data['r'])
-            if result is INVALID:
-                if data['o'] == 'and':
-                    data['r'] = {'l': 1, 'o': '==', 'r': 1}
-                else:
-                    data['r'] = {'l': 1, 'o': '!=', 'r': 1}
+            data['r'] = self._prune(fields, data['r'])
         elif isinstance(data['r'], str) and len(data['r']) > 2:
             prop = data['r']
             if '(' in prop:
@@ -293,27 +331,31 @@ class BinaryOp:
             if prop.startswith('a:') and prop[2:] not in fields:
                 return INVALID
 
-        if isinstance(data['r'], dict) and isinstance(data['l'], dict):
-            if data['l']['l'] == 1 and data['l']['r'] == 1 and data['r']['l'] == 1 and data['r']['r'] == 1:
-                return INVALID
+        if data['l'] is INVALID and data['r'] is not INVALID:
+            return data['r']
+        if data['l'] is not INVALID and data['r'] is INVALID:
+            return data['l']
+        if data['l'] is INVALID and data['r'] is INVALID:
+            return INVALID
 
         return data
 
-    def to_sql(self):
-        sql, params, counter = self._to_sql()
+    def to_sql(self, prefix: str = None):
+        sql, params, counter = self._to_sql(prefix=prefix)
         return sql, params
 
-    def _to_sql(self, counter: int = None, params: dict = None):
+    def _to_sql(self, counter: int = None, params: dict = None, prefix: str = None):
         counter = counter or 1
         params = params or {}
-        lhv, params, counter = self._process_op(self.lhv, params, counter)
+        rhv = None
+        lhv, params, counter = self._process_op(self.lhv, params, counter, prefix=prefix)
         if self.op == 'is':
             if self.rhv == 'null' or self.rhv is None:
                 rhv = 'null'
             elif self.rhv is False or self.rhv is True:
                 rhv = str(self.rhv).lower()
         else:
-            rhv, params, counter = self._process_op(self.rhv, params, counter)
+            rhv, params, counter = self._process_op(self.rhv, params, counter, prefix=prefix)
 
         ret_op = self.op
         if ret_op == 'startswith':
@@ -326,9 +368,9 @@ class BinaryOp:
         return f'({lhv} {ret_op.replace("==", "=")} {rhv})', params, counter
 
     @staticmethod
-    def _process_op(v, params: dict, counter: int):
+    def _process_op(v, params: dict, counter: int, prefix: str = None):
         if isinstance(v, BinaryOp):
-            v, p, counter = v._to_sql(counter, params)
+            v, p, counter = v._to_sql(counter, params, prefix=prefix)
             params.update(p)
         elif isinstance(v, (list, tuple)):
             placeholders = []
@@ -343,11 +385,25 @@ class BinaryOp:
             counter += 1
             params[var] = v
             v = f':{var}'
+        elif isinstance(v, (Attr, AttributeString)) and prefix is not None:
+            if isinstance(v, Attr):
+                v.attr._value = f'{prefix}."{v.attr._value}"'
+            else:
+                v._value = f'{prefix}."{v._value}"'
 
         return v, params, counter
 
     def __repr__(self):
-        return f'({self.lhv} {self.op} {self.rhv})'
+        lhv = repr(self.lhv)
+        rhv = repr(self.rhv)
+        if lhv == '1' and rhv == '1' and self.op == '==':
+            return T
+        if lhv == T and rhv != T:
+            return rhv
+        if rhv == T and lhv != T:
+            return lhv
+
+        return f'({self.lhv} {self.op} {self.rhv})'.replace('==', '=')
 
     def __eq__(self, other):
         return isinstance(other, BinaryOp) and self.to_dict() == other.to_dict()

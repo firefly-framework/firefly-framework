@@ -27,6 +27,7 @@ from ..messaging.system_bus import SystemBusAware
 
 class ApplicationService(FireflyType, MetaAware, ABC, SystemBusAware, LoggerAware):
     _event_buffer: ffd.EventBuffer = None
+    _kernel: ffd.Kernel = None
 
     @abstractmethod
     def __call__(self, **kwargs):

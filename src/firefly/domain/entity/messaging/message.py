@@ -14,6 +14,8 @@
 
 from __future__ import annotations
 
+from typing import Union, List
+
 from firefly.domain.entity.entity import dict_
 
 # __pragma__('skip')

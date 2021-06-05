@@ -22,7 +22,7 @@ from firefly import Query, Command, Event
 from .asyncio_message_transport import AsyncioMessageTransport
 
 
-class FakeMessageTransport(ffd.MessageTransport):
+class FakeMessageTransport(ffd.MessageTransport, ffd.LoggerAware):
     _serializer: ffd.Serializer = None
     _asyncio_message_transport: AsyncioMessageTransport = None
 

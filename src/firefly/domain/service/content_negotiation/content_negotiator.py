@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from typing import Callable, Dict
+from typing import Callable, Dict, Union
 
 from firefly import domain as ffd
 from firefly.domain.service.content_negotiation.content_converter import ContentConverter
@@ -24,21 +24,16 @@ from firefly.domain.service.messaging.middleware import Middleware
 
 class ContentNegotiator(Middleware, LoggerAware):
     _converters: Dict[str, ContentConverter] = None
+    _kernel: ffd.Kernel = None
 
     def __init__(self, converters: Dict[str, ContentConverter], logger: ffd.Logger):
         self._converters = converters
         self._logger = logger
 
-    def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
+    def __call__(self, message: Union[ffd.Envelope, ffd.Message], next_: Callable) -> ffd.Message:
         accept = None
-        try:
-            headers = message.headers['http_request']['headers']
-            for k, v in headers.items():
-                if k.lower() == 'accept':
-                    accept = v
-                    break
-        except (KeyError, AttributeError):
-            pass
+        if isinstance(message, ffd.Envelope):
+            accept = message.get_requested_content_type()
 
         response = next_(message)
 

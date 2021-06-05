@@ -22,10 +22,11 @@ from signal import signal
 from typing import Callable, Dict
 from urllib.parse import parse_qsl
 
+import aiohttp
 import aiohttp_cors
 import firefly.domain as ffd
 import websockets
-from aiohttp import web
+from aiohttp import web, BodyPartReader
 from firefly import TypeOfMessage
 from firefly.domain.entity.messaging.http_response import HttpResponse
 
@@ -104,7 +105,14 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
         def event_listener(message: ffd.Message, next_: Callable):
             self._broadcast(message)
             return next_(message)
-        self._system_bus.add_event_listener(event_listener)
+
+        exists = False
+        for listener in self._system_bus._event_bus._middleware:
+            if 'event_listener' in str(listener):
+                exists = True
+                break
+        if not exists:
+            self._system_bus.add_event_listener(event_listener)
 
     def _broadcast(self, message: ffd.Message):
         if message.get_context() != 'firefly':
@@ -119,6 +127,23 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
 
     def _request_handler_generator(self, msg: TypeOfMessage = None):
         async def _handle_request(request: web.Request):
+            multipart = False
+            request_data = {}
+            if 'multipart/form-data' in request.headers.get('Content-Type', ''):
+                multipart = True
+                reader = await request.multipart()
+                while True:
+                    part = await reader.next()
+                    if part is None:
+                        break
+                    if part.filename:
+                        request_data[part.name] = ffd.File(
+                            name=part.filename,
+                            content=await part.read()
+                        )
+                    else:
+                        request_data[part.name] = await part.text()
+
             self.debug('Got a request -----------------------')
             self.debug(request.headers)
             self.debug(await request.text())
@@ -136,9 +161,12 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
                     params.update(request.query)
                     message = self._message_factory.query(message_name, None, params)
                 else:
-                    text = await request.text()
-                    if text and len(text):
-                        params.update(self._serializer.deserialize(text))
+                    if multipart:
+                        params.update(request_data)
+                    else:
+                        text = await request.text()
+                        if text and len(text):
+                            params.update(self._serializer.deserialize(text))
                     message = self._message_factory.command(message_name, params)
             else:
                 if msg is not None:
@@ -178,6 +206,7 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
             try:
                 message.headers['client_id'] = request.headers['Firefly-Client-ID']
             except KeyError:
+                message.headers['client_id'] = ''
                 self.info('Request missing header Firefly-ClientID')
 
             response = None
@@ -208,6 +237,20 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
             if isinstance(response, HttpResponse):
                 body = response.body
                 headers = response.headers
+            elif isinstance(response, ffd.Envelope):
+                body = self._serializer.serialize(response.unwrap())
+                headers = {}
+                # TODO The below is deprecated. Headers should be on the envelope.
+                try:
+                    headers = body.headers
+                except AttributeError:
+                    pass
+                if response.get_range() is not None:
+                    range_ = response.get_range()
+                    headers['content-range'] = f'{range_["lower"]}-{range_["upper"]}/{range_["total"]}'
+                    if 'unit' in range_:
+                        headers['content-range'] = f'{range_["unit"]} {headers["content-range"]}'
+                    status_code = 206
             else:
                 body = self._serializer.serialize(response)
                 headers = {}
@@ -231,7 +274,6 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
                 'content_type': request.content_type,
                 'content_length': request.content_length,
                 'query': dict(request.query),
-                'post': dict(await request.post()),
                 'url': request._message.url,
             }
         }

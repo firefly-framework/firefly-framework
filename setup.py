@@ -45,8 +45,13 @@ setuptools.setup(
         'firefly-dependency-injection>=0.1',
     ],
     extras_require={
-        'OpenApi Generation': ['apispec>=3.3.0', 'docstring_parser>=0.7.1'],
-        'Frontend Support': ['transcrypt>=3.7.16']
+        'openapi': [
+            'apispec>=3.3.0',
+            'docstring_parser>=0.7.1',
+        ],
+        'docs': [
+            'Sphinx-Substitution-Extensions>=2020.9.30.0',
+        ]
     },
     packages=setuptools.PEP420PackageFinder.find('src'),
     package_dir={'': 'src'},

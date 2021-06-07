@@ -1,5 +1,3 @@
-.. |3.7| replace :: python-version
-
 Firefly Framework Documentation
 ===============================
 
@@ -10,5 +8,4 @@ Getting Started
 
 #. :ref:`overview`
 #. :ref:`installation`
-#. :ref:`primer`
-#. Initializing a Project
+#. :ref:`agents`

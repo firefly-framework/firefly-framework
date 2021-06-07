@@ -3,7 +3,10 @@
 Installation
 ============
 
-We recommend setting up a virtual environment first::
+We recommend setting up a virtual environment first:
+
+.. code-block:: bash
+    :substitutions:
 
     virtualenv --python=python|python-version| venv
     source venv/bin/activate
@@ -16,8 +19,3 @@ Bootstrap the framework::
 
     firefly generate project -n my-project -p .
 
-
-Project Files
-=============
-
-The installation instructions above will 

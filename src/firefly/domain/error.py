@@ -39,6 +39,10 @@ class FrameworkError(Exception):
     pass
 
 
+class NoSuchFile(FrameworkError):
+    pass
+
+
 class UnauthenticatedError(FrameworkError):
     pass
 

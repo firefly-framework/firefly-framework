@@ -34,11 +34,11 @@ class LoggingMiddleware(Middleware, LoggerAware):
 
         self.info(self._message, message)
         try:
-            self.info('Message properties: %s', message.to_dict())
+            self.debug('Message properties: %s', message.to_dict())
         except AttributeError:
             pass
         ret = next_(message)
-        self.info('Response: %s', str(ret))
+        self.debug('Response: %s', str(ret))
 
         if original_log_level is not None:
             self._logger.set_level(original_log_level)

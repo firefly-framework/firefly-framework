@@ -70,7 +70,7 @@ class EventResolvingMiddleware(Middleware, LoggerAware):
             for service in services:
                 try:
                     parsed_args = ffd.build_argument_list(args, service)
-                    self.info('Calling service %s with arguments: %s', service.__class__.__name__, parsed_args)
+                    self.debug('Calling service %s with arguments: %s', service.__class__.__name__, parsed_args)
                     service(**parsed_args)
                 except TypeError as e:
                     self.exception(e)

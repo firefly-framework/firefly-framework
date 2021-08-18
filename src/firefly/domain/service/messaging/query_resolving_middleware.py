@@ -51,7 +51,7 @@ class QueryResolvingMiddleware(Middleware, LoggerAware):
         for service, query_type in self._query_handlers.items():
             if message.is_this(query_type):
                 parsed_args = ffd.build_argument_list(args, service)
-                self.info('Calling service with arguments: %s', parsed_args)
+                self.debug('Calling service with arguments: %s', parsed_args)
                 return service(**parsed_args)
         raise ffd.ConfigurationError(f'No query handler registered for {message}')
 

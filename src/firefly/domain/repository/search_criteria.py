@@ -111,6 +111,9 @@ class Attr:
     def is_none(self):
         return BinaryOp(self.attr, 'is', 'null')
 
+    def is_not_none(self):
+        return BinaryOp(self.attr, 'is not', 'null')
+
     def is_false(self):
         return BinaryOp(self.attr, 'is', False)
 
@@ -119,6 +122,9 @@ class Attr:
 
     def is_in(self, set_):
         return BinaryOp(self.attr, 'in', set_)
+
+    def not_in(self, set_):
+        return BinaryOp(self.attr, 'not in', set_)
 
     def contains(self, value):
         return BinaryOp(self.attr, 'contains', value)
@@ -263,8 +269,12 @@ class BinaryOp:
             return lhv <= rhv
         if bop.op == 'is':
             return lhv is rhv if rhv != 'null' else lhv is None
+        if bop.op == 'is not':
+            return lhv is not rhv if rhv != 'null' else lhv is not None
         if bop.op == 'in':
             return lhv in rhv
+        if bop.op == 'not in':
+            return lhv not in rhv
         if bop.op == 'contains':
             return rhv in lhv
         if bop.op == 'startswith':

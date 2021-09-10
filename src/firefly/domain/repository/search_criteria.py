@@ -397,9 +397,11 @@ class BinaryOp:
             v = f':{var}'
         elif isinstance(v, (Attr, AttributeString)) and prefix is not None:
             if isinstance(v, Attr):
-                v.attr._value = f'{prefix}."{v.attr._value}"'
+                if not v.attr._value.startswith(f'{prefix}."'):
+                    v.attr._value = f'{prefix}."{v.attr._value}"'
             else:
-                v._value = f'{prefix}."{v._value}"'
+                if not v._value.startswith(f'{prefix}."'):
+                    v._value = f'{prefix}."{v._value}"'
 
         return v, params, counter
 

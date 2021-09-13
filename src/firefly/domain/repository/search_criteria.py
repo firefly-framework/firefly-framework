@@ -374,6 +374,8 @@ class BinaryOp:
         elif ret_op == 'endswith':
             ret_op = 'like'
             rhv = f"CONCAT('%', {rhv})"
+        elif 'is not' in ret_op and rhv == 'null':
+            rhv = 'null'
 
         return f'({lhv} {ret_op.replace("==", "=")} {rhv})', params, counter
 

@@ -359,7 +359,7 @@ class BinaryOp:
         params = params or {}
         rhv = None
         lhv, params, counter = self._process_op(self.lhv, params, counter, prefix=prefix)
-        if self.op == 'is':
+        if self.op in ('is', 'is not'):
             if self.rhv == 'null' or self.rhv is None:
                 rhv = 'null'
             elif self.rhv is False or self.rhv is True:
@@ -374,8 +374,6 @@ class BinaryOp:
         elif ret_op == 'endswith':
             ret_op = 'like'
             rhv = f"CONCAT('%', {rhv})"
-        elif 'is not' in ret_op and rhv == 'null':
-            rhv = 'null'
 
         return f'({lhv} {ret_op.replace("==", "=")} {rhv})', params, counter
 

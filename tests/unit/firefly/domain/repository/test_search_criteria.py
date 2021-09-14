@@ -39,6 +39,13 @@ def test_date(spy):
     assert isinstance(c.rhv, date)
 
 
+def test_is_not_none(spy):
+    def criteria(x):
+        return x.null_var.is_not_none()
+    c = criteria(spy)
+    assert 'null_var is not null' in c.to_sql()[0]
+
+
 @pytest.fixture()
 def spy():
     return ff.EntityAttributeSpy()

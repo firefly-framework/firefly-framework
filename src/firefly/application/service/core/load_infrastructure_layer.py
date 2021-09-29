@@ -19,6 +19,7 @@ import inspect
 from typing import List, Type
 
 import firefly.domain as ffd
+import inflection
 
 
 class LoadInfrastructureLayer(ffd.ApplicationService):
@@ -61,5 +62,12 @@ class LoadInfrastructureLayer(ffd.ApplicationService):
                 continue
             if issubclass(v, ffd.MetaAware):
                 ret.append(v)
+            elif issubclass(v, ffd.Dependency) and v is not ffd.Dependency:
+                name = inflection.underscore(v.__name__)
+                setattr(context.container.__class__, name, v)
+                if not hasattr(context.container.__class__, '__annotations__'):
+                    context.container.__class__.__annotations__ = {}
+                context.container.__class__.__annotations__[name] = v
+                context.container.clear_annotation_cache()
 
         return ret

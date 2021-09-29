@@ -12,7 +12,6 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-# __pragma__('skip')
 from __future__ import annotations
 
 import inspect
@@ -86,7 +85,8 @@ class ValueObject(metaclass=EntityMeta):
                     if getattr(self, field_.name) is None:
                         ret[field_.name] = None
                     else:
-                        ret[field_.name] = {k: v.to_dict() for k, v in getattr(self, field_.name).items()}
+                        ret[field_.name] = {k: v.to_dict() if hasattr(v, 'to_dict') else v for k, v in
+                                            getattr(self, field_.name).items()}
                 else:
                     ret[field_.name] = getattr(self, field_.name)
             else:
@@ -324,4 +324,3 @@ class ValueObject(metaclass=EntityMeta):
             data = d
 
         return cls(**build_argument_list(data, cls))
-    # __pragma__('noskip')

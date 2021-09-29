@@ -107,7 +107,7 @@ class Container(di.Container):
     system_bus: ffd.SystemBus = ffd.SystemBus
 
     # Storage
-    rdb_storage_interface_registry: ffi.RdbStorageInterfaceRegistry = ffi.RdbStorageInterfaceRegistry
+    rdb_storage_interface_registry: ffi.StorageInterfaceRegistry = ffi.StorageInterfaceRegistry
     file_system: ffd.FileSystem = ffi.LocalFileSystem
 
     # Messaging

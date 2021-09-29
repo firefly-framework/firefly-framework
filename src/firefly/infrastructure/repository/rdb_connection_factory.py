@@ -17,12 +17,12 @@ from __future__ import annotations
 import firefly.domain as ffd
 import firefly_di as di
 
-from .rdb_storage_interface_registry import RdbStorageInterfaceRegistry
+from .storage_interface_registry import StorageInterfaceRegistry
 
 
 class RdbConnectionFactory(ffd.ConnectionFactory):
     _container: di.Container = None
-    _rdb_storage_interface_registry: RdbStorageInterfaceRegistry = None
+    _rdb_storage_interface_registry: StorageInterfaceRegistry = None
 
     def __call__(self, **kwargs):
         driver = kwargs['driver']

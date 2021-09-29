@@ -16,9 +16,10 @@ from __future__ import annotations
 
 from abc import ABC
 
+from . import Dependency
 from ...service.logging.logger import LoggerAware
 from ...service.messaging.system_bus import SystemBusAware
 
 
-class DomainService(ABC, LoggerAware, SystemBusAware):
+class DomainService(Dependency, LoggerAware, SystemBusAware, ABC):
     pass

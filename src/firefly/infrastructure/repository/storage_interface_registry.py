@@ -20,14 +20,14 @@ import firefly.domain as ffd
 import firefly.infrastructure as ffi
 
 
-class RdbStorageInterfaceRegistry:
+class StorageInterfaceRegistry:
     def __init__(self):
-        self._interfaces: Dict[str, Type[ffi.RdbStorageInterface]] = {}
+        self._interfaces: Dict[str, Type[ffi.AbstractStorageInterface]] = {}
 
-    def add(self, name: str, interface: Type[ffi.RdbStorageInterface]):
+    def add(self, name: str, interface: Type[ffi.AbstractStorageInterface]):
         self._interfaces[name] = interface
 
-    def get(self, name: str) -> Type[ffi.RdbStorageInterface]:
+    def get(self, name: str) -> Type[ffi.AbstractStorageInterface]:
         if name not in self._interfaces:
             raise ffd.ConfigurationError(f'Storage interface with name "{name}" is not registered')
         return self._interfaces.get(name)

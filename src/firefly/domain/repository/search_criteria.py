@@ -350,22 +350,22 @@ class BinaryOp:
 
         return data
 
-    def to_sql(self, prefix: str = None):
-        sql, params, counter = self._to_sql(prefix=prefix)
+    def to_sql(self, prefix: str = None, placeholder: str = 'var'):
+        sql, params, counter = self._to_sql(prefix=prefix, placeholder=placeholder)
         return sql, params
 
-    def _to_sql(self, counter: int = None, params: dict = None, prefix: str = None):
+    def _to_sql(self, counter: int = None, params: dict = None, prefix: str = None, placeholder: str = 'var'):
         counter = counter or 1
         params = params or {}
         rhv = None
-        lhv, params, counter = self._process_op(self.lhv, params, counter, prefix=prefix)
+        lhv, params, counter = self._process_op(self.lhv, params, counter, prefix=prefix, placeholder=placeholder)
         if self.op in ('is', 'is not'):
             if self.rhv == 'null' or self.rhv is None:
                 rhv = 'null'
             elif self.rhv is False or self.rhv is True:
                 rhv = str(self.rhv).lower()
         else:
-            rhv, params, counter = self._process_op(self.rhv, params, counter, prefix=prefix)
+            rhv, params, counter = self._process_op(self.rhv, params, counter, prefix=prefix, placeholder=placeholder)
 
         ret_op = self.op
         if ret_op == 'startswith':
@@ -378,20 +378,20 @@ class BinaryOp:
         return f'({lhv} {ret_op.replace("==", "=")} {rhv})', params, counter
 
     @staticmethod
-    def _process_op(v, params: dict, counter: int, prefix: str = None):
+    def _process_op(v, params: dict, counter: int, prefix: str = None, placeholder: str = 'var'):
         if isinstance(v, BinaryOp):
             v, p, counter = v._to_sql(counter, params, prefix=prefix)
             params.update(p)
         elif isinstance(v, (list, tuple)):
             placeholders = []
             for i in v:
-                var = f'var{counter}'
+                var = f'{placeholder}{counter}'
                 counter += 1
                 placeholders.append(f':{var}')
                 params[var] = i
             v = f'({",".join(placeholders)})'
         elif not isinstance(v, (Attr, AttributeString)):
-            var = f'var{counter}'
+            var = f'{placeholder}{counter}'
             counter += 1
             params[var] = v
             v = f':{var}'

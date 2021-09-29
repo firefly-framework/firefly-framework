@@ -17,6 +17,7 @@ from typing import List, Callable
 
 from .agent_extension import AgentExtension
 from .application_service import ApplicationService
+from .dependency import Dependency
 from .device import Device
 from .domain_service import DomainService
 from .invoke_on import InvokeOn

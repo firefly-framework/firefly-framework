@@ -49,7 +49,10 @@ def test_mutability(users):
 
 
 def test_basic_crud_operations(todos):
-    todos.migrate_schema()
+    try:
+        todos.migrate_schema()
+    except AttributeError:
+        pass
 
     todos.append(TodoList(id=id_, user=TodoUser(name='Bob')))
     todos.commit()

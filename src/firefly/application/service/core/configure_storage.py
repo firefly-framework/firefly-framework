@@ -28,7 +28,7 @@ class ConfigureStorage(ffd.ApplicationService):
     _context_map: ffd.ContextMap = None
     _registry: ffd.Registry = None
     _serializer: ffd.Serializer = None
-    _rdb_storage_interface_registry: ffi.RdbStorageInterfaceRegistry = None
+    _storage_interface_registry: ffi.StorageInterfaceRegistry = None
 
     def __init__(self):
         self._connection_factories = {}
@@ -106,6 +106,7 @@ class ConfigureStorage(ffd.ApplicationService):
                     self._connection_factories[inflection.underscore(v.__name__.replace('ConnectionFactory', ''))] = v
                 elif issubclass(v, ffd.RepositoryFactory):
                     self._repository_factories[inflection.underscore(v.__name__.replace('RepositoryFactory', ''))] = v
-                elif issubclass(v, ffi.RdbStorageInterface) and v is not ffi.RdbStorageInterface:
+                elif issubclass(v, ffi.AbstractStorageInterface) and \
+                        v not in (ffi.RdbStorageInterface, ffi.AbstractStorageInterface):
                     name = inflection.underscore(k.replace('StorageInterface', ''))
-                    self._rdb_storage_interface_registry.add(name, v)
+                    self._storage_interface_registry.add(name, v)

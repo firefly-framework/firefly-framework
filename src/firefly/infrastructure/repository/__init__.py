@@ -23,5 +23,5 @@ from .rdb_connection_factory import RdbConnectionFactory
 from .rdb_repository import RdbRepository
 from .rdb_repository_factory import RdbRepositoryFactory
 from .rdb_storage_interface import RdbStorageInterface
-from .rdb_storage_interface_registry import RdbStorageInterfaceRegistry
+from .storage_interface_registry import StorageInterfaceRegistry
 from .rdb_storage_interfaces import *

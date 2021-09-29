@@ -50,7 +50,7 @@ class LoadDomainLayer(ffd.ApplicationService):
                 context.entities.append(v)
             elif issubclass(v, ffd.ValueObject):
                 v._logger = self._logger
-            elif issubclass(v, ffd.DomainService) and v is not ffd.DomainService:
+            elif issubclass(v, ffd.Dependency) and v is not ffd.Dependency:
                 v._logger = self._logger
                 v._system_bus = self._system_bus
                 name = inflection.underscore(v.__name__)

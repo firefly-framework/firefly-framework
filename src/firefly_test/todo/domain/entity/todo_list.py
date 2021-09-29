@@ -26,7 +26,7 @@ from .user import User
 class TodoList(ff.AggregateRoot, create_on='iam.UserCreated', delete_on='iam.UserDeleted'):
     id: str = ff.id_()
     user: User = ff.required()
-    name: str = ff.optional(index=True, length=128)
+    name: str = ff.optional(index=1, length=128)
     tasks: List[Task] = ff.list_()
 
     def __post_init__(self):

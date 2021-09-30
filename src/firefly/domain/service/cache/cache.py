@@ -12,17 +12,41 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from .annotation import *
-from .cache import *
-from .command_line import *
-from .content_negotiation import *
-from .core import *
-from .crud import *
-from .entity import *
-from .files import *
-from .http import *
-from .logging import *
-from .messaging import *
-from .multithreading import *
-from .patterns import *
-from .serialization import *
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+from typing import Any
+
+
+class Cache(ABC):
+    @abstractmethod
+    def set(self, key: str, value: Any, ttl: int = None, **kwargs) -> Any:
+        pass
+
+    @abstractmethod
+    def get(self, key: str, **kwargs) -> Any:
+        pass
+
+    @abstractmethod
+    def delete(self, key: str, **kwargs):
+        pass
+
+    @abstractmethod
+    def clear(self, **kwargs):
+        pass
+
+    @abstractmethod
+    def increment(self, key: str, amount: int = 1, **kwargs) -> Any:
+        pass
+
+    @abstractmethod
+    def decrement(self, key: str, amount: int = 1, **kwargs) -> Any:
+        pass
+
+    @abstractmethod
+    def add(self, key: str, value: Any, **kwargs) -> Any:
+        pass
+
+    @abstractmethod
+    def remove(self, key: str, value: Any, **kwargs) -> Any:
+        pass

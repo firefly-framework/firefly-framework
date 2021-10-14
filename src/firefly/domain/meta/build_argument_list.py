@@ -287,7 +287,10 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], 
                 elif isinstance(params[name], bytes):
                     args[name] = params[name]
                 else:
-                    args[name] = type_(params[name])
+                    try:
+                        args[name] = type_(params[name])
+                    except OverflowError:
+                        args[name] = params[name]
             except TypeError:
                 args[name] = params[name]
         elif name.endswith('_') and name.rstrip('_') in params:
@@ -299,7 +302,10 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], 
                 elif isinstance(params[sname], bytes):
                     args[name] = params[sname]
                 else:
-                    args[name] = type_(params[sname])
+                    try:
+                        args[name] = type_(params[sname])
+                    except OverflowError:
+                        args[name] = params[name]
             except TypeError:
                 args[name] = params[name.rstrip('_')]
         elif required is True and strict:

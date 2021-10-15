@@ -280,6 +280,7 @@ class Column(ffd.ValueObject):
     length: int = ffd.optional()
     is_id: bool = ffd.optional(default=False)
     is_indexed: bool = ffd.optional(default=False)
+    is_required: bool = ffd.optional(default=False)
     default: any = ffd.optional()
 
     @property

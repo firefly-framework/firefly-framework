@@ -170,7 +170,8 @@ class RdbStorageInterface(AbstractStorageInterface, ABC):
                 type=annotations_[f.name],
                 length=f.metadata.get('length', None),
                 is_id=f.metadata.get('id', False),
-                is_indexed=f.metadata.get('index', False)
+                is_indexed=f.metadata.get('index', False),
+                is_required=f.metadata.get('required', False)
             )
             if self._map_all is True:
                 ret.append(c)
@@ -333,7 +334,12 @@ class RdbStorageInterface(AbstractStorageInterface, ABC):
                 except AttributeError:
                     ret['version'] = 1
             elif inspect.isclass(f.type) and issubclass(f.type, ffd.AggregateRoot):
-                ret[f.name] = getattr(entity, f.name).id_value()
+                try:
+                    ret[f.name] = getattr(entity, f.name).id_value()
+                except AttributeError:
+                    if f.is_required:
+                        raise ffd.RepositoryError(f"{f.name} is a required field, but no value is present.")
+                    ret[f.name] = None
             elif ffd.is_type_hint(f.type):
                 origin = ffd.get_origin(f.type)
                 args = ffd.get_args(f.type)

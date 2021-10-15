@@ -75,4 +75,3 @@ def test_list_expansion(registry):
     tests.iam_fixtures(users, roles, scopes)
 
     tests.test_list_expansion(users)
-

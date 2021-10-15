@@ -27,3 +27,4 @@ class User(ff.AggregateRoot):
     name: str = ff.required()
     email: str = ff.required(index=True)
     roles: List[Role] = ff.list_()
+    special_role: Role = ff.optional()

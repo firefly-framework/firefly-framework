@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import inspect
+import os
 from typing import Union
 
 import firefly as ff
@@ -25,7 +26,7 @@ class CommandHandler:
     def __call__(self, command: Union[str, type, None] = None):
         def command_wrapper(cls):
             try:
-                cls.set_command(command)
+                cls.set_command(command or f'{os.environ.get("CONTEXT")}.{cls.__name__}')
             except AttributeError:
                 if inspect.isfunction(cls):
                     ff.set_command(cls, command)

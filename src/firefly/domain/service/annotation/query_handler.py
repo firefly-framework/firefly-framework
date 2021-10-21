@@ -30,7 +30,7 @@ class QueryHandler:
                 if inspect.isfunction(cls):
                     ff.set_query(cls, query)
                 else:
-                    raise error.FrameworkError('@command_handler used on invalid target')
+                    raise error.FrameworkError('@query_handler used on invalid target')
             return cls
 
         return query_wrapper

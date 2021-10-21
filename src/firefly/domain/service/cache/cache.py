@@ -28,7 +28,7 @@ class Cache(ABC):
         pass
 
     @abstractmethod
-    def delete(self, key: str, **kwargs):
+    def delete(self, key: str, **kwargs) -> Any:
         pass
 
     @abstractmethod

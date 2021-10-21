@@ -26,6 +26,7 @@ from firefly.domain.service.messaging.middleware import Middleware
 
 class EventResolvingMiddleware(Middleware, LoggerAware):
     _context_map: ffd.ContextMap = None
+    _batch_service: ffd.BatchService = None
     _context: str = None
     _ff_environment: str = None
 
@@ -70,8 +71,12 @@ class EventResolvingMiddleware(Middleware, LoggerAware):
             for service in services:
                 try:
                     parsed_args = ffd.build_argument_list(args, service)
-                    self.debug('Calling service %s with arguments: %s', service.__class__.__name__, parsed_args)
-                    service(**parsed_args)
+                    if self._batch_service.is_registered(service.__class__):
+                        self.debug('Deferring to batch service')
+                        return self._batch_service.handle(service.__class__, parsed_args)
+                    else:
+                        self.debug('Calling service %s with arguments: %s', service.__class__.__name__, parsed_args)
+                        service(**parsed_args)
                 except TypeError as e:
                     self.exception(e)
                     raise ffd.FrameworkError(f'Error calling {service.__class__.__name__}:\n\n{str(e)}')

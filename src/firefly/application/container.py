@@ -112,6 +112,7 @@ class Container(di.Container):
 
     # Messaging
     message_transport: ffd.MessageTransport = ffi.AsyncioMessageTransport
+    batch_service: ffd.BatchService = ffd.BatchService
 
     # API
     web_server: ffi.WebServer = ffi.WebServer

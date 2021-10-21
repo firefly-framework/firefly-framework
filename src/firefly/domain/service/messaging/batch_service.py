@@ -32,17 +32,25 @@ class BatchService(DomainService):
 
     def handle(self, service: Type[ApplicationService], params: dict):
         if '_batch' in params:
+            print("_batch is in the message. Processing.")
             return self._context_map.locate_service(service.__name__)(params['_batch'])
 
+        print("Adding message to batch")
         messages = self._cache.add(self._key(service), self._serializer.serialize(params))
+        print(f"Messages: {messages}")
+        print(len(messages))
         if len(messages) == self._batch_registry[service]['batch_size']:
+            print("We've met the batch size. Flushing.")
             return self.flush(service)
 
         return None
 
     def flush(self, service: Type[ApplicationService]):
+        print("flush: deleting messages")
         messages = self._cache.delete(self._key(service))
+        print(f"Got: {messages}")
         if messages is not None and len(messages) > 0:
+            print("processing messages")
             messages = list(map(self._serializer.deserialize, messages))
             if self._batch_registry[service]['message_type'] == 'command':
                 return self.invoke(self._batch_registry[service]['message'], data={

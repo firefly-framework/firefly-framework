@@ -22,13 +22,21 @@ import firefly.domain as ffd
 from firefly.domain.entity.messaging.event import Event
 from firefly.domain.service.logging.logger import LoggerAware
 from firefly.domain.service.messaging.middleware import Middleware
+from firefly_di import Container
 
 
 class EventResolvingMiddleware(Middleware, LoggerAware):
     _context_map: ffd.ContextMap = None
-    _batch_service: ffd.BatchService = None
+    _container: Container = None
     _context: str = None
     _ff_environment: str = None
+    _bs = None
+
+    @property
+    def _batch_service(self):
+        if self._bs is None:
+            self._bs = self._container.batch_service
+        return self._bs
 
     def __init__(self, event_listeners: Dict[Union[Type[Event], str], List[ffd.ApplicationService]] = None):
         self._event_listeners = {}
@@ -70,7 +78,7 @@ class EventResolvingMiddleware(Middleware, LoggerAware):
             services = self._event_listeners[str(message)]
             for service in services:
                 try:
-                    if self._batch_service.is_registered(service.__class__):
+                    if self._service_is_batch_capable(service) and self._batch_service.is_registered(service.__class__):
                         self.debug('Deferring to batch service')
                         return self._batch_service.handle(service.__class__, args)
                     else:
@@ -84,6 +92,9 @@ class EventResolvingMiddleware(Middleware, LoggerAware):
             self.info('No event listener found for message %s', message)
 
         return next_(message)
+
+    def _service_is_batch_capable(self, service: ffd.ApplicationService):
+        return service.__class__.is_command_handler() or service.__class__.is_event_listener()
 
     def _publish_message(self, message: ffd.Message):
         self._context_map.get_context(self._context).container.message_transport.dispatch(message)

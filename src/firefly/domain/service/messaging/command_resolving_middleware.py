@@ -22,13 +22,21 @@ import firefly.domain as ffd
 from firefly.domain.entity.messaging.command import Command
 from firefly.domain.service.logging.logger import LoggerAware
 from firefly.domain.service.messaging.middleware import Middleware
+from firefly_di import Container
 
 
 class CommandResolvingMiddleware(Middleware, LoggerAware):
     _context_map: ffd.ContextMap = None
-    _batch_service: ffd.BatchService = None
+    _container: Container = None
     _context: str = None
     _ff_environment: str = None
+    _bs = None
+
+    @property
+    def _batch_service(self):
+        if self._bs is None:
+            self._bs = self._container.batch_service
+        return self._bs
 
     def __init__(self, command_handlers: Dict[Type[Command], ffd.ApplicationService] = None):
         self._command_handlers = {}
@@ -63,13 +71,16 @@ class CommandResolvingMiddleware(Middleware, LoggerAware):
 
         service = self._command_handlers[str(message)]
 
-        if self._batch_service.is_registered(service.__class__):
+        if self._service_is_batch_capable(service) and self._batch_service.is_registered(service.__class__):
             self.debug('Deferring to batch service')
             return self._batch_service.handle(service.__class__, args)
         else:
             parsed_args = ffd.build_argument_list(args, service)
             self.debug('Calling service %s with arguments: %s', service, parsed_args)
             return service(**parsed_args)
+
+    def _service_is_batch_capable(self, service: ffd.ApplicationService):
+        return service.__class__.is_command_handler() or service.__class__.is_event_listener()
 
     def _transfer_message(self, message: ffd.Message):
         return self._context_map.get_context(self._context).container.message_transport.invoke(message)

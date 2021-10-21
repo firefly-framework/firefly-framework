@@ -63,11 +63,11 @@ class CommandResolvingMiddleware(Middleware, LoggerAware):
 
         service = self._command_handlers[str(message)]
 
-        parsed_args = ffd.build_argument_list(args, service)
         if self._batch_service.is_registered(service.__class__):
             self.debug('Deferring to batch service')
-            return self._batch_service.handle(service.__class__, parsed_args)
+            return self._batch_service.handle(service.__class__, args)
         else:
+            parsed_args = ffd.build_argument_list(args, service)
             self.debug('Calling service %s with arguments: %s', service, parsed_args)
             return service(**parsed_args)
 

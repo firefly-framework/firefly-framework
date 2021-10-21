@@ -70,11 +70,11 @@ class EventResolvingMiddleware(Middleware, LoggerAware):
             services = self._event_listeners[str(message)]
             for service in services:
                 try:
-                    parsed_args = ffd.build_argument_list(args, service)
                     if self._batch_service.is_registered(service.__class__):
                         self.debug('Deferring to batch service')
-                        return self._batch_service.handle(service.__class__, parsed_args)
+                        return self._batch_service.handle(service.__class__, args)
                     else:
+                        parsed_args = ffd.build_argument_list(args, service)
                         self.debug('Calling service %s with arguments: %s', service.__class__.__name__, parsed_args)
                         service(**parsed_args)
                 except TypeError as e:

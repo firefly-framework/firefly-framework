@@ -43,6 +43,7 @@ class BatchService(DomainService):
     def flush(self, service: Type[ApplicationService]):
         messages = self._cache.delete(self._key(service))
         if messages is not None and len(messages) > 0:
+            messages = list(map(self._serializer.deserialize, messages))
             if self._batch_registry[service]['message_type'] == 'command':
                 return self.invoke(self._batch_registry[service]['message'], data={
                     '_batch': messages,

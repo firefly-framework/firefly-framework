@@ -71,27 +71,36 @@ class ContextMap(AggregateRoot):
         return ret
 
     def locate_command_handler(self, command: ff.TypeOfCommand):
+        command_str = command
+        if not isinstance(command_str, str):
+            command_str = command.get_fqn()
         context_name = self._get_context_name_from_message(command)
         context = self.get_context(context_name)
 
         for command_handler, cmd in context.command_handlers.items():
-            if cmd == command:
+            if cmd.get_fqn() == command_str:
                 return command_handler
 
     def locate_event_listener(self, event: ff.TypeOfEvent):
+        event_str = event
+        if not isinstance(event, str):
+            event_str = event.get_fqn()
         context_name = self._get_context_name_from_message(event)
         context = self.get_context(context_name)
 
-        for event_listener, events in context.command_handlers.items():
-            if event in events:
+        for event_listener, events in context.event_listeners.items():
+            if event_str in list(map(lambda x: x.get_fqn(), events)):
                 return event_listener
 
     def locate_query_handler(self, query: ff.TypeOfQuery):
+        query_str = query
+        if not isinstance(query_str, str):
+            query_str = query.get_fqn()
         context_name = self._get_context_name_from_message(query)
         context = self.get_context(context_name)
 
-        for query_handler, qry in context.command_handlers.items():
-            if qry == query:
+        for query_handler, qry in context.query_handlers.items():
+            if qry.get_fqn() == query_str:
                 return query_handler
 
     @staticmethod

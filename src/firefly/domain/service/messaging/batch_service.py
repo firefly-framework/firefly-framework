@@ -33,7 +33,9 @@ class BatchService(DomainService):
     def handle(self, service: Type[ApplicationService], params: dict):
         if '_batch' in params:
             print("_batch is in the message. Processing.")
-            return self._context_map.locate_service(service.__name__)(params['_batch'])
+            return self._context_map.locate_service(
+                f'{service.get_class_context()}.{service.__name__}'
+            )(params['_batch'])
 
         print("Adding message to batch")
         messages = self._cache.add(self._key(service), self._serializer.serialize(params))

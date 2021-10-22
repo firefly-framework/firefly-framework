@@ -80,7 +80,7 @@ class EventResolvingMiddleware(Middleware, LoggerAware):
                 try:
                     if self._service_is_batch_capable(service) and self._batch_service.is_registered(service.__class__):
                         self.debug('Deferring to batch service')
-                        return self._batch_service.handle(service.__class__, args)
+                        return self._batch_service.handle(service, args)
                     else:
                         parsed_args = ffd.build_argument_list(args, service)
                         self.debug('Calling service %s with arguments: %s', service.__class__.__name__, parsed_args)

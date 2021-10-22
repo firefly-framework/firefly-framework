@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import inspect
 from datetime import datetime
 from typing import Type
 
@@ -30,36 +31,26 @@ class BatchService(DomainService):
     _context_map: ContextMap = None
     _batch_registry: dict = {}
 
-    def handle(self, service: Type[ApplicationService], params: dict):
+    def handle(self, service: ApplicationService, params: dict):
         if '_batch' in params:
-            print("_batch is in the message. Processing.")
-            return self._context_map.locate_service(
-                f'{service.get_class_context()}.{service.__name__}'
-            )(params['_batch'])
+            return service(params['_batch'])
 
-        print("Adding message to batch")
         messages = self._cache.add(self._key(service), self._serializer.serialize(params))
-        print(f"Messages: {messages}")
-        print(len(messages))
-        if len(messages) == self._batch_registry[service]['batch_size']:
-            print("We've met the batch size. Flushing.")
+        if len(messages) == self._batch_registry[service.__class__]['batch_size']:
             return self.flush(service)
 
         return None
 
-    def flush(self, service: Type[ApplicationService]):
-        print("flush: deleting messages")
+    def flush(self, service: ApplicationService):
         messages = self._cache.delete(self._key(service))
-        print(f"Got: {messages}")
         if messages is not None and len(messages) > 0:
-            print("processing messages")
             messages = list(map(self._serializer.deserialize, messages))
-            if self._batch_registry[service]['message_type'] == 'command':
-                return self.invoke(self._batch_registry[service]['message'], data={
+            if self._batch_registry[service.__class__]['message_type'] == 'command':
+                return self.invoke(self._batch_registry[service.__class__]['message'], data={
                     '_batch': messages,
                 }, async_=True)
             else:
-                return self.dispatch(self._batch_registry[service]['message'], data={'_batch': messages})
+                return self.dispatch(self._batch_registry[service.__class__]['message'], data={'_batch': messages})
 
         return None
 
@@ -83,5 +74,5 @@ class BatchService(DomainService):
                 self.flush(service)
         self._cache.set('flush-all-last-run', datetime.utcnow().timestamp())
 
-    def _key(self, service: Type[ApplicationService]):
-        return f'{service.__name__}Batch'
+    def _key(self, service: ApplicationService):
+        return f'{service.__class__.__name__}Batch'

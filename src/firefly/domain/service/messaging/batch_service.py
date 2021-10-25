@@ -43,19 +43,22 @@ class BatchService(DomainService):
 
     def flush(self, service: ApplicationService):
         key = self._key(service)
+        class_name = service.__class__
+        if inspect.isclass(service):
+            class_name = service
         self.info(f'Fetching {key}')
         messages = self._cache.delete(key)
         if messages is not None and len(messages) > 0:
             self.info(f'Processing batch for service: {service}')
             messages = list(map(self._serializer.deserialize, messages))
-            if self._batch_registry[service.__class__]['message_type'] == 'command':
+            if self._batch_registry[class_name]['message_type'] == 'command':
                 self.info('Invoking command')
-                return self.invoke(self._batch_registry[service.__class__]['message'], data={
+                return self.invoke(self._batch_registry[class_name]['message'], data={
                     '_batch': messages,
                 }, async_=True)
             else:
                 self.info('Dispatching event')
-                return self.dispatch(self._batch_registry[service.__class__]['message'], data={'_batch': messages})
+                return self.dispatch(self._batch_registry[class_name]['message'], data={'_batch': messages})
 
         self.info('Nothing in the batch')
 

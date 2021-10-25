@@ -44,12 +44,15 @@ class BatchService(DomainService):
     def flush(self, service: ApplicationService):
         messages = self._cache.delete(self._key(service))
         if messages is not None and len(messages) > 0:
+            self.info(f'Processing batch for service: {service}')
             messages = list(map(self._serializer.deserialize, messages))
             if self._batch_registry[service.__class__]['message_type'] == 'command':
+                self.info('Invoking command')
                 return self.invoke(self._batch_registry[service.__class__]['message'], data={
                     '_batch': messages,
                 }, async_=True)
             else:
+                self.info('Dispatching event')
                 return self.dispatch(self._batch_registry[service.__class__]['message'], data={'_batch': messages})
 
         return None
@@ -73,6 +76,7 @@ class BatchService(DomainService):
         delta = (datetime.utcnow() - last_run).seconds
         for service, config in self._batch_registry.items():
             if delta >= config.get('batch_window'):
+                self.info(f'Flushing {service}')
                 self.flush(service)
         self._cache.set('flush-all-last-run', datetime.utcnow().timestamp())
 

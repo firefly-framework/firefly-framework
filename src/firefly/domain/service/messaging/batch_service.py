@@ -87,4 +87,4 @@ class BatchService(DomainService):
         self._cache.set('flush-all-last-runs', last_runs)
 
     def _key(self, service: Union[Type[ApplicationService], ApplicationService]):
-        return f'{service.__class__.__name__}Batch' if not inspect.isclass(service) else service.__name__
+        return f'{service.__class__.__name__}Batch' if not inspect.isclass(service) else f'{service.__name__}Batch'

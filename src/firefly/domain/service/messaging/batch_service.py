@@ -67,7 +67,9 @@ class BatchService(DomainService):
         return service in self._batch_registry
 
     def flush_all(self):
-        last_run = datetime.fromtimestamp(self._cache.get('flush-all-last-run') or datetime(year=1970, month=1, day=1))
+        last_run = datetime.fromtimestamp(
+            self._cache.get('flush-all-last-run') or datetime(year=1970, month=1, day=1).timestamp()
+        )
         delta = (datetime.utcnow() - last_run).seconds
         for service, config in self._batch_registry.items():
             if delta >= config.get('batch_window'):

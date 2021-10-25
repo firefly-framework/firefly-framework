@@ -74,7 +74,7 @@ class BatchService(DomainService):
         for service, config in self._batch_registry.items():
             if service.__class__.__name__ not in last_runs:
                 last_runs[service.__class__.__name__] = datetime(year=1970, month=1, day=1).timestamp()
-            delta = (datetime.utcnow() - last_runs[service.__class__.__name__]).seconds
+            delta = (datetime.utcnow() - datetime.fromtimestamp(last_runs[service.__class__.__name__])).seconds
             if delta >= config.get('batch_window'):
                 self.info(f'Flushing {service}')
                 self.flush(service)

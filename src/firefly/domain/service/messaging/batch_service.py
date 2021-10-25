@@ -72,13 +72,14 @@ class BatchService(DomainService):
     def flush_all(self):
         last_runs = self._cache.get('flush-all-last-runs') or {}
         for service, config in self._batch_registry.items():
-            if service.__class__.__name__ not in last_runs:
-                last_runs[service.__class__.__name__] = datetime(year=1970, month=1, day=1).timestamp()
-            delta = (datetime.utcnow() - datetime.fromtimestamp(last_runs[service.__class__.__name__])).seconds
+            key = service.__name__
+            if key not in last_runs:
+                last_runs[key] = datetime(year=1970, month=1, day=1).timestamp()
+            delta = (datetime.utcnow() - datetime.fromtimestamp(last_runs[service])).seconds
             if delta >= config.get('batch_window'):
                 self.info(f'Flushing {service}')
                 self.flush(service)
-                last_runs[service.__class__.__name__] = datetime.utcnow().timestamp()
+                last_runs[key] = datetime.utcnow().timestamp()
         self._cache.set('flush-all-last-runs', last_runs)
 
     def _key(self, service: ApplicationService):

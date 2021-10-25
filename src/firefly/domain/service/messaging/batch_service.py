@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import inspect
 from datetime import datetime
-from typing import Type
+from typing import Type, Union
 
 from ..cache.cache import Cache
 from ..core.application_service import ApplicationService
@@ -82,5 +82,5 @@ class BatchService(DomainService):
                 last_runs[key] = datetime.utcnow().timestamp()
         self._cache.set('flush-all-last-runs', last_runs)
 
-    def _key(self, service: ApplicationService):
-        return f'{service.__class__.__name__}Batch'
+    def _key(self, service: Union[Type[ApplicationService], ApplicationService]):
+        return f'{service.__class__.__name__}Batch' if not inspect.isclass(service) else service.__name__

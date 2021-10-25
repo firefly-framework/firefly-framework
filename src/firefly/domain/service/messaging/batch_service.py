@@ -78,7 +78,7 @@ class BatchService(DomainService):
             if delta >= config.get('batch_window'):
                 self.info(f'Flushing {service}')
                 self.flush(service)
-                last_runs[service.__class__.__name__] = datetime.utcnow()
+                last_runs[service.__class__.__name__] = datetime.utcnow().timestamp()
         self._cache.set('flush-all-last-runs', last_runs)
 
     def _key(self, service: ApplicationService):

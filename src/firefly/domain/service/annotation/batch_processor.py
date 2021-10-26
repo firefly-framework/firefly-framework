@@ -55,7 +55,7 @@ class BatchProcessor(ConfigurationAnnotation):
             cls,
             batch_size=getattr(cls, '_batch_size'),
             batch_window=getattr(cls, '_batch_window'),
-            message_type='event' if cls.is_event_listener() else 'command',
+            message_type='command' if cls.is_command_handler() else 'event',
             message=cls.get_command() if cls.is_command_handler() else cls.get_events()[0]
         )
 

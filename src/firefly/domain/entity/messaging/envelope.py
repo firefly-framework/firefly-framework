@@ -24,6 +24,7 @@ class Envelope(Entity):
     headers: dict = dict_()
     raw_request: dict = dict_()
     body: Any = required()
+    cookies: dict = dict_()
 
     @classmethod
     def wrap(cls, body: Any) -> Envelope:
@@ -62,3 +63,10 @@ class Envelope(Entity):
     def add_forwarding_address(self, location: str):
         self.headers['location'] = location
         return self
+
+    def set_cookies(self, **kwargs):
+        self.cookies[kwargs['name']] = kwargs
+        return self
+
+    def get_cookies(self):
+        return self.cookies

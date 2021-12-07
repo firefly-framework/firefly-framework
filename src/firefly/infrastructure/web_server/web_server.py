@@ -261,7 +261,7 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
 
             resp = web.Response(**params)
             if isinstance(response, ffd.Envelope):
-                for k, v in response.get_cookies():
+                for k, v in response.get_cookies().items():
                     resp.set_cookie(**v)
 
             return resp

@@ -64,7 +64,7 @@ class Envelope(Entity):
         self.headers['location'] = location
         return self
 
-    def set_cookies(self, **kwargs):
+    def set_cookie(self, **kwargs):
         self.cookies[kwargs['name']] = kwargs
         return self
 

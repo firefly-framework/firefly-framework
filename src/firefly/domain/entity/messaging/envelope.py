@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from typing import Union, Any
+from typing import List, Union, Any
 
 from ..entity import Entity, id_, dict_, required
 
@@ -62,6 +62,11 @@ class Envelope(Entity):
 
     def add_forwarding_address(self, location: str):
         self.headers['Location'] = location
+        return self
+
+    def set_cookies(self, cookies: List[dict]):
+        for cookie in cookies:
+            self.set_cookies(cookie)
         return self
 
     def set_cookie(self, **kwargs):

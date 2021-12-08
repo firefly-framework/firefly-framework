@@ -66,7 +66,7 @@ class Envelope(Entity):
 
     def set_cookies(self, cookies: List[dict]):
         for cookie in cookies:
-            self.set_cookies(cookie)
+            self.set_cookie(cookie)
         return self
 
     def set_cookie(self, **kwargs):

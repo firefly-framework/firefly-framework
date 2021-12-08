@@ -242,7 +242,7 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
                 headers = {}
                 # TODO The below is deprecated. Headers should be on the envelope.
                 try:
-                    headers = body.headers
+                    headers = response.headers
                 except AttributeError:
                     pass
                 if response.get_range() is not None:

@@ -61,7 +61,7 @@ class Envelope(Entity):
         return self.headers.get('range')
 
     def add_forwarding_address(self, location: str):
-        self.headers['location'] = location
+        self.headers['Location'] = location
         return self
 
     def set_cookie(self, **kwargs):

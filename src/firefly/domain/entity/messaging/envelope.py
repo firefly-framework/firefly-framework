@@ -69,8 +69,8 @@ class Envelope(Entity):
             self.set_cookie(cookie)
         return self
 
-    def set_cookie(self, **kwargs):
-        self.cookies[kwargs['name']] = kwargs
+    def set_cookie(self, cookie: dict):
+        self.cookies[cookie['name']] = cookie
         return self
 
     def get_cookies(self):

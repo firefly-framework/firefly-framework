@@ -244,8 +244,6 @@ class RdbRepository(AbstractRepository[T]):
 
         entity_columns = self._interface.get_entity_columns(self._entity_type)
         table_columns = self._interface.get_table_columns(self._entity_type)
-        print('MIGRATION2', entity_columns)
-        print('MIGRATION2', table_columns)
 
         for ec in entity_columns:
             if ec not in table_columns:

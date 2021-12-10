@@ -177,13 +177,15 @@ class RdbStorageInterface(AbstractStorageInterface, ABC):
                 is_indexed=f.metadata.get('index', False),
                 is_required=f.metadata.get('required', False)
             )
+            print('WE HAVE COLUMN', c.__dict__)
             if self._map_all is True:
                 ret.append(c)
             elif self._map_indexes and f.metadata.get('index', False):
                 ret.append(c)
             elif f.metadata.get('id', False):
                 ret.append(c)
-
+        print('we have self.map_all', self._map_all)
+        print('we have self.map_all', ret)
         if not self._map_all:
             ret.insert(1, Column(name='document', type=dict))
             ret.insert(2, Column(name='__document', type=dict))
@@ -330,6 +332,8 @@ class RdbStorageInterface(AbstractStorageInterface, ABC):
     def _data_fields(self, entity: ffd.Entity):
         ret = {}
         for f in self.get_entity_columns(entity.__class__):
+            print('FOR f IN getcolumsn', f)
+            print('FOR f IN getcolumsn', f.__dict__)
             if f.name == 'document' and not hasattr(entity, 'document'):
                 ret[f.name] = self._serialize_entity(entity)
             elif f.name == 'version':

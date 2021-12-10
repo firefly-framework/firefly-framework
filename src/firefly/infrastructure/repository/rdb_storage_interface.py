@@ -47,6 +47,10 @@ class RdbStorageInterface(AbstractStorageInterface, ABC):
         if not isinstance(entity, list):
             entities = [entity]
 
+        for x in entities:
+            print(x)
+            print(x.__dict__)
+
         return self._execute(*self._generate_query(
             entity,
             f'{self._sql_prefix}/insert.sql',

@@ -55,7 +55,10 @@ class CommandResolvingMiddleware(Middleware, LoggerAware):
     def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
         if not self._initialized:
             self._initialize()
-
+        print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
+        print(message.get_context())
+        print(self._context_map)
+        print(self._context_map.__dict__)
         not_for_this_context = message.get_context() != 'firefly' and \
                                self._context_map.get_context(message.get_context()) is None
         is_async = hasattr(message, '_async') and getattr(message, '_async') is True

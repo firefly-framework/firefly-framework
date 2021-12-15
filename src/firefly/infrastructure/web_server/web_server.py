@@ -266,6 +266,8 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
                 for k, v in response.get_cookies().items():
                     resp.set_cookie(**v)
 
+            print(resp)
+            print(resp.__dict__)
             return resp
 
         return _handle_request

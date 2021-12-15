@@ -28,6 +28,7 @@ class DefaultHttpMiddleware(ffd.Middleware):
 
         if message.headers.get('origin') == 'http':
             try:
+                print('WE ARE A BIG FAT CHEATER')
                 return ffd.HttpMessage(http_headers={'status_code': '200', 'content_negotiation-type': 'application/json'},
                                        body=json.dumps(response))
             except (JSONDecodeError, TypeError):

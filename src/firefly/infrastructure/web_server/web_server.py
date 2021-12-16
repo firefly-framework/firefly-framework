@@ -263,8 +263,8 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
                 params['status'] = status_code
             resp = web.Response(**params)
             if isinstance(response, ffd.Envelope):
-                for k, v in response.get_cookies().items():
-                    resp.set_cookie(**v)
+                for c in response.get_cookies():
+                    resp.set_cookie(**c)
             return resp
 
         return _handle_request

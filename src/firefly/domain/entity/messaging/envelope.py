@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from typing import List, Union, Any
 
-from ..entity import Entity, id_, dict_, required
+from ..entity import Entity, id_, dict_, list_, required
 
 
 class Envelope(Entity):
@@ -24,7 +24,7 @@ class Envelope(Entity):
     headers: dict = dict_()
     raw_request: dict = dict_()
     body: Any = required()
-    cookies: dict = dict_()
+    cookies: list = list_()
 
     @classmethod
     def wrap(cls, body: Any) -> Envelope:
@@ -70,7 +70,7 @@ class Envelope(Entity):
         return self
 
     def set_cookie(self, cookie: dict):
-        self.cookies[cookie['name']] = cookie
+        self.cookies.append(cookie)
         return self
 
     def get_cookies(self):

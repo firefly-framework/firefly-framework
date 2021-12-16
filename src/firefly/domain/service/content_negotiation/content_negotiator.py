@@ -61,5 +61,5 @@ class ContentNegotiator(Middleware, LoggerAware):
             mime_type = str(mime_type[0]).strip()
             if mime_type in self._converters and self._converters[mime_type].can_convert(message, response):
                 return self._converters[mime_type].convert(message, response)
-        print('Are we getting here?')
+
         return response

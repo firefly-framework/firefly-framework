@@ -128,7 +128,6 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
 
     def _request_handler_generator(self, msg: TypeOfMessage = None):
         async def _handle_request(request: web.Request):
-            print('XYZXYZ')
             multipart = False
             request_data = {}
             if 'multipart/form-data' in request.headers.get('Content-Type', ''):
@@ -214,7 +213,7 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
             response = None
 
             await self._marshal_request(message, request, endpoint)
-            print('xyz1')
+
             status_code = None
             try:
                 if isinstance(message, ffd.Event):

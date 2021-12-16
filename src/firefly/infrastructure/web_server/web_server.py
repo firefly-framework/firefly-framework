@@ -246,7 +246,7 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
                     headers = response.headers
                 except AttributeError:
                     pass
-                if 'Location' in headers:
+                if 'location' in headers:
                     status_code = 303
                 elif response.get_range() is not None:
                     range_ = response.get_range()
@@ -261,15 +261,10 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
             params = {'body': body, 'headers': headers}
             if status_code:
                 params['status'] = status_code
-            print('ABC, WE BEFORE')
             resp = web.Response(**params)
-            print('ABC, WE AFTER')
             if isinstance(response, ffd.Envelope):
                 for k, v in response.get_cookies().items():
                     resp.set_cookie(**v)
-
-            print('1234567890', resp)
-            print(resp.__dict__)
             return resp
 
         return _handle_request

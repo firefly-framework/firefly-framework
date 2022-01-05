@@ -51,6 +51,7 @@ setuptools.setup(
         ],
         'docs': [
             'Sphinx-Substitution-Extensions>=2020.9.30.0',
+            'myst-parser>=0.16.1',
         ]
     },
     packages=setuptools.PEP420PackageFinder.find('src'),

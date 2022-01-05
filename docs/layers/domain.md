@@ -1,7 +1,6 @@
-.. _domain:
+&laquo; [Back](../index.md)
 
-Domain Layer
-============
+# Domain Layer
 
 The domain layer contains the business logic that is specific to your initiative's field
 of action, thought or influence. This is the "secret sauce" that your particular application

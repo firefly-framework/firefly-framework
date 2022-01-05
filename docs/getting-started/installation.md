@@ -1,15 +1,13 @@
-.. _installation:
+&laquo; [Back](../index.md)
 
-Installation
-============
+# Installation
 
 We recommend setting up a virtual environment first:
 
-.. code-block:: bash
-    :substitutions:
-
-    virtualenv --python=python|python-version| venv
-    source venv/bin/activate
+```bash
+virtualenv --python=python3.7 venv
+source venv/bin/activate
+```
 
 Then install Firefly::
 

@@ -164,7 +164,7 @@ class FetchOrder(ff.DomainService):
 
     def __call__(self, user_id: str, min_price: float):
         orders = self._registry(Order)
-        my_orders = orders.find(lambda o: (o.user == user_id) & (o.total >= min_price))
+        my_orders = orders.filter(lambda o: (o.user == user_id) & (o.total >= min_price))
 
 ```
 

@@ -58,7 +58,7 @@ So, all of these are equivalent:
 
 ```python
 import firefly as ff
-from domain import RegisterUser
+from domain import RegisterUser as MyRegisterUser
 
 
 @ff.command_handler('service_name.RegisterUser')
@@ -67,7 +67,7 @@ class RegisterUser(ff.ApplicationService):
         pass  # Register the user
 
 
-@ff.command_handler(RegisterUser)
+@ff.command_handler(MyRegisterUser)
 class RegisterUser(ff.ApplicationService):
     def __call__(self, *args, **kwargs):
         pass  # Register the user

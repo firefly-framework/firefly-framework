@@ -12,3 +12,4 @@ This is the complete reference for Firefly Framework.
 ## Topics
 
 1. [Repositories](topics/repositories.md)
+2. [Messaging](topics/messaging.md)

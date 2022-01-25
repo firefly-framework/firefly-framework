@@ -14,6 +14,7 @@
 
 from .agent import agent
 from .authenticator import authenticator
+from .authorizer import authorizer
 from .batch_processor import batch_processor
 from .cli import cli
 from .command_handler import command_handler

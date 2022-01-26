@@ -335,11 +335,14 @@ class RdbStorageInterface(AbstractStorageInterface, ABC):
                     ret['version'] = 1
             elif inspect.isclass(f.type) and issubclass(f.type, ffd.AggregateRoot):
                 try:
+                    print('aaaaaaaaaaaaaa', f.__dict__)
                     ret[f.name] = getattr(entity, f.name).id_value()
                 except AttributeError:
+                    print('bbbbbbbb', f.name)
                     if f.is_required:
                         raise ffd.RepositoryError(f"{f.name} is a required field, but no value is present.")
                     ret[f.name] = None
+                    print('dddddddddd', ret)
             elif ffd.is_type_hint(f.type):
                 origin = ffd.get_origin(f.type)
                 args = ffd.get_args(f.type)
@@ -362,6 +365,7 @@ class RdbStorageInterface(AbstractStorageInterface, ABC):
                 ret[f.name] = getattr(entity, f.name)
                 if isinstance(ret[f.name], ffd.ValueObject):
                     ret[f.name] = self._serializer.serialize(ret[f.name])
+        print('WE GOT RET', ret)
         return ret
 
     def _select_list(self, entity: Type[ffd.Entity]):

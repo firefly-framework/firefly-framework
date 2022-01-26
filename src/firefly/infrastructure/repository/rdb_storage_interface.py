@@ -326,44 +326,65 @@ class RdbStorageInterface(AbstractStorageInterface, ABC):
     def _data_fields(self, entity: ffd.Entity):
         ret = {}
         for f in self.get_entity_columns(entity.__class__):
+            print('WE GOT F', f.__dict__)
             if f.name == 'document' and not hasattr(entity, 'document'):
+                print('a', f.__dict__)
                 ret[f.name] = self._serialize_entity(entity)
             elif f.name == 'version':
                 try:
+                    print('b', f.__dict__)
                     ret['version'] = getattr(entity, '__ff_version')
                 except AttributeError:
+                    print('c', f.__dict__)
                     ret['version'] = 1
             elif inspect.isclass(f.type) and issubclass(f.type, ffd.AggregateRoot):
                 try:
+                    print('d', f.__dict__)
                     print('aaaaaaaaaaaaaa', f.__dict__)
                     ret[f.name] = getattr(entity, f.name).id_value()
                 except AttributeError:
+                    print('e', f.__dict__)
                     print('bbbbbbbb', f.name)
                     if f.is_required:
                         raise ffd.RepositoryError(f"{f.name} is a required field, but no value is present.")
+                    print('f', f.__dict__)
                     ret[f.name] = None
                     print('dddddddddd', ret)
             elif ffd.is_type_hint(f.type):
+                print('g', f.__dict__)
                 origin = ffd.get_origin(f.type)
+                print('h', f.__dict__)
                 args = ffd.get_args(f.type)
+                print('i', f.__dict__)
                 if origin is List:
+                    print('j', f.__dict__)
                     if issubclass(args[0], ffd.AggregateRoot):
+                        print('k', f.__dict__)
                         ret[f.name] = self._serializer.serialize(
                             list(map(lambda e: e.id_value(), getattr(entity, f.name)))
                         )
                     else:
+                        print('l', f.__dict__)
                         ret[f.name] = self._serializer.serialize(getattr(entity, f.name))
                 elif origin is Dict:
+                    print('m', f.__dict__)
                     if issubclass(args[1], ffd.AggregateRoot):
+                        print('n', f.__dict__)
                         ret[f.name] = {k: v.id_value() for k, v in getattr(entity, f.name).items()}
                     else:
+                        print('o', f.__dict__)
                         ret[f.name] = self._serializer.serialize(getattr(entity, f.name))
             elif f.type is list or f.type is dict:
+                print('p', f.__dict__)
                 if hasattr(entity, f.name):
+                    print('q', f.__dict__)
                     ret[f.name] = self._serializer.serialize(getattr(entity, f.name))
             else:
+                print('r', f.__dict__)
                 ret[f.name] = getattr(entity, f.name)
+                print('s', f.__dict__)
                 if isinstance(ret[f.name], ffd.ValueObject):
+                    print('t', f.__dict__)
                     ret[f.name] = self._serializer.serialize(ret[f.name])
         print('WE GOT RET', ret)
         return ret

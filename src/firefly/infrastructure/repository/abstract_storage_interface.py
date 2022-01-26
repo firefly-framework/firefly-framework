@@ -172,7 +172,10 @@ class AbstractStorageInterface(ffd.LoggerAware, ABC):
                     obj[k] = []
                     for f in getattr(entity, k):
                         try:
-                            obj[k].append(f.id_value())
+                            value = f
+                            if not isinstance(f, str):
+                                value = f.id_value()
+                            obj[k].append(value)
                         except AttributeError:
                             obj[k].append(None)
         else:

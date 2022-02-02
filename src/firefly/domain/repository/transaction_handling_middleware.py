@@ -42,6 +42,7 @@ class TransactionHandlingMiddleware(Middleware, LoggerAware, SystemBusAware):
                     self.debug(message)
                     self._reset()
                 elif self._level > 0:
+                    message.headers['nested_request'] = True
                     if isinstance(message, ffd.Event):
                         self.debug('Buffering message')
                         self._event_buffer.append(message)

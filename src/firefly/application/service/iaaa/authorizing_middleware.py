@@ -30,6 +30,6 @@ class AuthorizingMiddleware(ffd.Middleware, ffd.ChainOfResponsibility):
         self._handlers.append(self._container.build(AuthorizeScope))
 
     def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
-        if self.handle(message) is not True:
+        if message.headers.get('nested_request', False) is True and self.handle(message) is not True:
             raise ffd.UnauthorizedError()
         return next_(message)

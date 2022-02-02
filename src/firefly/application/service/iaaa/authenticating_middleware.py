@@ -21,7 +21,8 @@ import firefly.domain as ffd
 
 class AuthenticatingMiddleware(ffd.Middleware, ffd.ChainOfResponsibility):
     def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
-        self.handle(message)
+        if message.headers.get('nested_request', False) is False:
+            self.handle(message)
         return next_(message)
 
     def handle(self, message: ffd.Message):

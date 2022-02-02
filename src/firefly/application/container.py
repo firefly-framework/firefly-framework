@@ -82,26 +82,26 @@ class Container(di.Container):
     transaction_handler: ffd.TransactionHandlingMiddleware = ffd.TransactionHandlingMiddleware
     command_bus: ffd.CommandBus = lambda self: self.build(ffd.CommandBus, middleware=[
         self.build(ffd.LoggingMiddleware),
+        self.transaction_handler,
         self.authenticator,
         self.authorizer,
         self.content_negotiator,
-        self.transaction_handler,
         self.build(ffd.EventDispatchingMiddleware),
         self.command_resolver,
     ])
     event_bus: ffd.EventBus = lambda self: self.build(ffd.EventBus, middleware=[
         self.build(ffd.LoggingMiddleware),
+        self.transaction_handler,
         self.authenticator,
         self.authorizer,
-        self.transaction_handler,
         self.event_resolver,
     ])
     query_bus: ffd.QueryBus = lambda self: self.build(ffd.QueryBus, middleware=[
         self.build(ffd.LoggingMiddleware),
+        self.transaction_handler,
         self.authenticator,
         self.authorizer,
         self.content_negotiator,
-        self.transaction_handler,
         self.query_resolver,
     ])
     system_bus: ffd.SystemBus = ffd.SystemBus

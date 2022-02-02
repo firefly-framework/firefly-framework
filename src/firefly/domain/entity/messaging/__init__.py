@@ -20,6 +20,5 @@ from .message import Message
 from .network_topology import NetworkTopology
 from .query import Query
 from .queue import Queue
-from .request_context import RequestContext
 from .response import Response
 from .topic import Topic

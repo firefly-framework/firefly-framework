@@ -14,50 +14,27 @@
 
 from __future__ import annotations
 
-from typing import List, Union
+from typing import List, Optional, Union
 
 import firefly.domain as ffd
 
 from ..messaging.system_bus import SystemBusAware
+from ...entity.core.user import User
 
 CATEGORIES = ('read', 'write', 'admin')
 
 
 class Kernel(SystemBusAware):
-    _message_stack: List[ffd.RequestContext] = []
-
-    def push(self, context: ffd.RequestContext):
-        self._message_stack.append(context)
-
-    def pop(self):
-        self._message_stack.pop()
+    user: Optional[User] = None
+    required_scopes: Optional[List[str]] = None
+    http_request: Optional[dict] = None
+    secured: Optional[bool] = None
 
     def reset(self):
-        self._message_stack = []
-
-    @property
-    def required_scopes(self):
-        if len(self._message_stack) == 0:
-            return None
-        return self._message_stack[-1].required_scopes
-
-    @property
-    def user(self):
-        if len(self._message_stack) == 0:
-            return None
-        return self._message_stack[-1].user
-
-    @property
-    def secured(self):
-        if len(self._message_stack) == 0:
-            return None
-        return self._message_stack[-1].secured
-
-    @property
-    def http_request(self):
-        if len(self._message_stack) == 0:
-            return None
-        return self._message_stack[-1].http_request
+        self.user = None
+        self.required_scopes = None
+        self.http_request = None
+        self.secured = None
 
     @property
     def is_authorized(self):

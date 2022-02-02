@@ -28,7 +28,6 @@ def test_mutability(users):
 
     assert len(users) == 4
     assert len(subset) == 1
-    print(subset._entities)
     assert subset[0].name == 'Bob Loblaw'
     assert len(users.filter(lambda u: u.email.is_in(('davante@adams.com', 'bob@loblaw.com')))) == 2
     assert len(users) == 4

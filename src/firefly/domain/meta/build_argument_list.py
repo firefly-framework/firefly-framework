@@ -241,7 +241,7 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], 
             required = True
 
         type_ = types[name] if name in types else None
-        if name in params:
+        if params and name in params:
             val = _check_special_types(params[name], type_)
             if val is not None:
                 params[name] = val

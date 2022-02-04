@@ -36,6 +36,7 @@ STATUS_CODES = {
     'Forbidden': 403,
     'NotFound': 404,
     'ApiError': 500,
+    'Redirect': 303,
 }
 
 
@@ -240,12 +241,13 @@ class WebServer(ffd.SystemBusAware, ffd.LoggerAware):
             elif isinstance(response, ffd.Envelope):
                 body = self._serializer.serialize(response.unwrap())
                 headers = {}
-                # TODO The below is deprecated. Headers should be on the envelope.
                 try:
-                    headers = body.headers
+                    headers = response.headers
                 except AttributeError:
                     pass
-                if response.get_range() is not None:
+                if 'location' in headers:
+                    status_code = 303
+                elif response.get_range() is not None:
                     range_ = response.get_range()
                     headers['content-range'] = f'{range_["lower"]}-{range_["upper"]}/{range_["total"]}'
                     if 'unit' in range_:

@@ -32,7 +32,26 @@ class ReadEntity(Generic[T], ApplicationService, GenericBase, CrudOperation, Sys
     def __call__(self, **kwargs) -> Optional[Union[ffd.Message, object]]:
         type_ = self._type()
         id_arg = type_.match_id_from_argument_list(kwargs)
-        if not id_arg:
-            return list(self._registry(type_))
-        ret = self._registry(type_).find(list(id_arg.values()).pop())
-        return ret
+        if id_arg:
+            ret = self._registry(type_).find(list(id_arg.values()).pop())
+            return ret
+
+        limit = None
+        offset = None
+        if 'limit' in kwargs and 'offset' in kwargs:
+            limit = kwargs.get('limit')
+            offset = kwargs.get('offset')
+
+        entities = self._registry(type_)
+
+        if 'criteria' in kwargs:
+            criteria = ffd.BinaryOp.from_dict(kwargs.get('criteria'))
+            entities = self._registry(type_).filter(criteria)
+
+        if limit is not None and offset is not None:
+            entities = entities[offset:(offset + limit)]
+
+        if 'sort' in kwargs:
+            entities = entities.sort(lambda: kwargs.get('sort'))
+
+        return list(entities)

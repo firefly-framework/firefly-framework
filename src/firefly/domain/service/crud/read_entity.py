@@ -48,10 +48,19 @@ class ReadEntity(Generic[T], ApplicationService, GenericBase, CrudOperation, Sys
             criteria = ffd.BinaryOp.from_dict(kwargs.get('criteria'))
             entities = self._registry(type_).filter(criteria)
 
+        paginated = False
+        count = None
         if limit is not None and offset is not None:
+            count = len(entities)
             entities = entities[offset:(offset + limit)]
+            paginated = True
 
         if 'sort' in kwargs:
             entities = entities.sort(lambda: kwargs.get('sort'))
+
+        if paginated:
+            return ffd.Envelope.wrap(list(entities)).set_range(
+                offset, limit, count - 1
+            )
 
         return list(entities)

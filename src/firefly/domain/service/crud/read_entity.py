@@ -30,6 +30,7 @@ class ReadEntity(Generic[T], ApplicationService, GenericBase, CrudOperation, Sys
     _registry: ffd.Registry = None
 
     def __call__(self, **kwargs) -> Optional[Union[ffd.Message, object]]:
+        print(kwargs)
         type_ = self._type()
         id_arg = type_.match_id_from_argument_list(kwargs)
         if id_arg:
@@ -39,28 +40,34 @@ class ReadEntity(Generic[T], ApplicationService, GenericBase, CrudOperation, Sys
         limit = None
         offset = None
         if 'limit' in kwargs and 'offset' in kwargs:
+            print('paginated!!')
             limit = kwargs.get('limit')
             offset = kwargs.get('offset')
 
         entities = self._registry(type_)
 
         if 'criteria' in kwargs:
+            print('we have criteria')
             criteria = ffd.BinaryOp.from_dict(kwargs.get('criteria'))
             entities = self._registry(type_).filter(criteria)
 
         paginated = False
         count = None
         if limit is not None and offset is not None:
+            print('paginating response')
             count = len(entities)
             entities = entities[offset:(offset + limit)]
             paginated = True
 
         if 'sort' in kwargs:
+            print('sorting response')
             entities = entities.sort(lambda: kwargs.get('sort'))
 
         if paginated:
+            print('returning an envelope')
             return ffd.Envelope.wrap(list(entities)).set_range(
                 offset, limit, count - 1
             )
 
+        print('returning normal')
         return list(entities)

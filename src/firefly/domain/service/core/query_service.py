@@ -32,13 +32,34 @@ class QueryService(Generic[T], GenericBase, ApplicationService):
         try:
             if self._type().id_name() in kwargs:
                 return self._registry(self._type()).find(kwargs[self._type().id_name()])
-
-            if 'criteria' in kwargs:
-                criteria = kwargs['criteria']
-                if isinstance(criteria, str):
-                    criteria = self._serializer.deserialize(criteria)
-                return list(self._registry(self._type()).filter(ffd.BinaryOp.from_dict(criteria)))
-            else:
-                return list(self._registry(self._type()))
         except KeyError:
             raise ffd.MissingArgument(self._type().id_name())
+
+        limit = None
+        offset = None
+        if 'limit' in kwargs and 'offset' in kwargs:
+            limit = kwargs.get('limit')
+            offset = kwargs.get('offset')
+
+        entities = self._registry(self._type())
+
+        if 'criteria' in kwargs:
+            criteria = ffd.BinaryOp.from_dict(kwargs.get('criteria'))
+            entities = self._registry(self._type()).filter(criteria)
+
+        paginated = False
+        count = None
+        if limit is not None and offset is not None:
+            count = len(entities)
+            entities = entities[offset:(offset + limit)]
+            paginated = True
+
+        if 'sort' in kwargs:
+            entities = entities.sort(lambda: kwargs.get('sort'))
+
+        if paginated:
+            return ffd.Envelope.wrap(list(entities)).set_range(
+                offset, limit, count - 1
+            )
+
+        return list(entities)

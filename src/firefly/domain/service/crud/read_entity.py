@@ -27,6 +27,9 @@ T = TypeVar('T')
 
 
 class ReadEntity(Generic[T], ApplicationService, GenericBase, CrudOperation, SystemBusAware):
+    """
+    DEPRECATED. I don't think this is actually used.
+    """
     _registry: ffd.Registry = None
 
     def __call__(self, **kwargs) -> Optional[Union[ffd.Message, object]]:

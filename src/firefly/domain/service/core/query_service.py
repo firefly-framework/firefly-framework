@@ -44,7 +44,10 @@ class QueryService(Generic[T], GenericBase, ApplicationService):
         entities = self._registry(self._type())
 
         if 'criteria' in kwargs:
-            criteria = ffd.BinaryOp.from_dict(kwargs.get('criteria'))
+            criteria = kwargs.get('criteria')
+            if isinstance(criteria, str):
+                criteria = self._serializer.deserialize(criteria)
+            criteria = ffd.BinaryOp.from_dict(criteria)
             entities = self._registry(self._type()).filter(criteria)
 
         paginated = False

@@ -257,11 +257,17 @@ class RdbStorageInterface(AbstractStorageInterface, ABC):
 
         for k, v in self._get_relationships(entity).items():
             if v['this_side'] == 'one':
-                data[k] = self._registry(v['target']).find(data[k])
+                try:
+                    data[k] = self._registry(v['target']).find(data[k])
+                except KeyError:
+                    pass
             elif v['this_side'] == 'many':
-                data[k] = list(self._registry(v['target']).filter(
-                    lambda ee: getattr(ee, v['target'].id_name()).is_in(data[k])
-                ))
+                try:
+                    data[k] = list(self._registry(v['target']).filter(
+                        lambda ee: getattr(ee, v['target'].id_name()).is_in(data[k])
+                    ))
+                except KeyError:
+                    pass
 
         ret = entity.from_dict(data)
         if version is not None:

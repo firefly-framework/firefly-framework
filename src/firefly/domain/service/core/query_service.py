@@ -61,8 +61,11 @@ class QueryService(Generic[T], GenericBase, ApplicationService):
             entities = entities.sort(lambda: kwargs.get('sort'))
 
         if paginated:
-            return ffd.Envelope.wrap(list(entities)).set_range(
-                offset, limit, count - 1
-            )
+            return {
+                'offset': offset,
+                'limit': limit,
+                'count': count,
+                'data': list(entities),
+            }
 
         return list(entities)

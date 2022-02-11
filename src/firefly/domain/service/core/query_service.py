@@ -38,8 +38,8 @@ class QueryService(Generic[T], GenericBase, ApplicationService):
         limit = None
         offset = None
         if 'limit' in kwargs and 'offset' in kwargs:
-            limit = kwargs.get('limit')
-            offset = kwargs.get('offset')
+            limit = int(kwargs.get('limit'))
+            offset = int(kwargs.get('offset'))
 
         entities = self._registry(self._type())
 

@@ -13,4 +13,3 @@
 #  <http://www.gnu.org/licenses/>.
 
 from .cli import *
-# from .http import *

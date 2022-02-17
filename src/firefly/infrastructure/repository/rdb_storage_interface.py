@@ -59,8 +59,9 @@ class RdbStorageInterface(AbstractStorageInterface, ABC):
         for field_ in fields(entity):
             if inspect.isclass(types[field_.name]) and issubclass(types[field_.name], ffd.AggregateRoot):
                 sub_entity = getattr(entity, field_.name)
-                self._registry(types[field_.name]).append(sub_entity)
-                setattr(entity, field_.name, sub_entity.id_value())
+                if sub_entity is not None:
+                    self._registry(types[field_.name]).append(sub_entity)
+                    setattr(entity, field_.name, sub_entity.id_value())
 
     def _generate_select(self, entity_type: Type[ffd.Entity], criteria: ffd.BinaryOp = None, limit: int = None,
                          offset: int = None, sort: Tuple[Union[str, Tuple[str, bool]]] = None, count: bool = False):

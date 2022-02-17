@@ -54,7 +54,7 @@ class QueryService(Generic[T], GenericBase, ApplicationService):
         count = None
         if limit is not None and offset is not None:
             count = len(entities)
-            entities = entities[offset:(offset + limit)]
+            entities = entities[offset:(offset + limit - 1)]
             paginated = True
 
         if 'sort' in kwargs:

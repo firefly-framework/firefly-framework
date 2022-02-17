@@ -47,21 +47,11 @@ class RdbStorageInterface(AbstractStorageInterface, ABC):
         if not isinstance(entity, list):
             entities = [entity]
 
-        list(map(self._extract_aggregates, entities))
         return self._execute(*self._generate_query(
             entity,
             f'{self._sql_prefix}/insert.sql',
             {'data': list(map(self._data_fields, entities))}
         ))
-
-    def _extract_aggregates(self, entity: ffd.Entity):
-        types = get_type_hints(entity.__class__)
-        for field_ in fields(entity):
-            if inspect.isclass(types[field_.name]) and issubclass(types[field_.name], ffd.AggregateRoot):
-                sub_entity = getattr(entity, field_.name)
-                if sub_entity is not None:
-                    self._registry(types[field_.name]).append(sub_entity)
-                    setattr(entity, field_.name, sub_entity.id_value())
 
     def _generate_select(self, entity_type: Type[ffd.Entity], criteria: ffd.BinaryOp = None, limit: int = None,
                          offset: int = None, sort: Tuple[Union[str, Tuple[str, bool]]] = None, count: bool = False):

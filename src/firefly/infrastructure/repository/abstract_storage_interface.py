@@ -149,7 +149,7 @@ class AbstractStorageInterface(ffd.LoggerAware, ABC):
     def _load_relationships(self, entity: Type[ffd.Entity], data: dict):
         for k, v in self._get_relationships(entity).items():
             if v['this_side'] == 'one':
-                if data[k] is not None:
+                if k in data and data[k] is not None:
                     data[k] = self._registry(v['target']).find(data[k])
             elif v['this_side'] == 'many':
                 data[k] = list(self._registry(v['target']).filter(
@@ -165,13 +165,17 @@ class AbstractStorageInterface(ffd.LoggerAware, ABC):
             for k, v in relationships.items():
                 if v['this_side'] == 'one':
                     try:
-                        obj[k] = getattr(entity, k).id_value()
+                        sub_entity = getattr(entity, k)
+                        if sub_entity is not None:
+                            self._registry(v['target']).append(sub_entity)
+                            obj[k] = sub_entity.id_value()
                     except AttributeError:
                         obj[k] = None
                 elif v['this_side'] == 'many':
                     obj[k] = []
                     for f in getattr(entity, k):
                         try:
+                            self._registry(v['target']).append(f)
                             obj[k].append(f.id_value())
                         except AttributeError:
                             obj[k].append(None)

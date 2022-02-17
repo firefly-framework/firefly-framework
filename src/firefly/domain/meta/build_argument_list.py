@@ -77,7 +77,13 @@ def _handle_type_hint(params: typing.Any, t: type, key: str = None, required: bo
         elif inspect.isclass(args[0]) and issubclass(args[0], ffd.ValueObject):
             try:
                 if key is not None:
-                    ret[key] = list(map(lambda a: _build_value_object(a, args[0], required), params[key]))
+                    ret[key] = []
+                    for v in params[key]:
+                        parameter = _build_value_object(v, args[0], required)
+                        if parameter is not None:
+                            ret[key].append(parameter)
+                    if len(ret[key]) == 0:
+                        del ret[key]
                 else:
                     ret = list(map(lambda a: _build_value_object(a, args[0], required), params[key]))
             except TypeError:
@@ -172,11 +178,14 @@ def _generate_model(args: dict, model_type: type, strict: bool = False):
             except RuntimeError:
                 continue
 
-    entity_args = build_argument_list(args, model_type)
+    entity_args = build_argument_list(args, model_type, strict=False)
     if strict:
         for k in args.keys():
             if k not in entity_args:
                 raise RuntimeError()
+
+    if len(entity_args.keys()) == 0:
+        raise ffd.MissingArgument()
 
     return model_type(**entity_args)
 

@@ -158,7 +158,7 @@ class AbstractStorageInterface(ffd.LoggerAware, ABC):
 
         return data
 
-    def _serialize_entity(self, entity: ffd.Entity):
+    def _serialize_entity(self, entity: ffd.Entity, add_new: bool = False):
         relationships = self._get_relationships(entity.__class__)
         if len(relationships.keys()) > 0:
             obj = entity.to_dict(force_all=True, skip=list(relationships.keys()))
@@ -167,7 +167,8 @@ class AbstractStorageInterface(ffd.LoggerAware, ABC):
                     try:
                         sub_entity = getattr(entity, k)
                         if sub_entity is not None:
-                            self._registry(v['target']).append(sub_entity)
+                            if add_new:
+                                self._registry(v['target']).append(sub_entity)
                             obj[k] = sub_entity.id_value()
                     except AttributeError:
                         obj[k] = None
@@ -175,7 +176,8 @@ class AbstractStorageInterface(ffd.LoggerAware, ABC):
                     obj[k] = []
                     for f in getattr(entity, k):
                         try:
-                            self._registry(v['target']).append(f)
+                            if add_new:
+                                self._registry(v['target']).append(f)
                             obj[k].append(f.id_value())
                         except AttributeError:
                             obj[k].append(None)

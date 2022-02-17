@@ -47,10 +47,13 @@ class RdbStorageInterface(AbstractStorageInterface, ABC):
         if not isinstance(entity, list):
             entities = [entity]
 
+        data = []
+        for e in entities:
+            data.append(self._data_fields(e, add_new=True))
         return self._execute(*self._generate_query(
             entity,
             f'{self._sql_prefix}/insert.sql',
-            {'data': list(map(self._data_fields, entities))}
+            {'data': data}
         ))
 
     def _generate_select(self, entity_type: Type[ffd.Entity], criteria: ffd.BinaryOp = None, limit: int = None,
@@ -116,10 +119,28 @@ class RdbStorageInterface(AbstractStorageInterface, ABC):
 
     def _remove(self, entity: Union[ffd.Entity, List[ffd.Entity], Callable]):
         criteria = entity
+        relationships = {}
         if isinstance(entity, list):
             criteria = ffd.Attr(entity[0].id_name()).is_in([e.id_value() for e in entity])
+            relationships = self._get_relationships(entity[0].__class__)
         elif not isinstance(entity, ffd.BinaryOp):
             criteria = ffd.Attr(entity.id_name()) == entity.id_value()
+            relationships = self._get_relationships(entity.__class__)
+
+        entities = entity
+        if not isinstance(entity, ffd.BinaryOp):
+            if not isinstance(entity, list):
+                entities = [entity]
+            for e in entities:
+                for k, v in relationships.items():
+                    if v['this_side'] == 'one':
+                        sub_entity = getattr(e, k)
+                        if sub_entity is not None:
+                            self._registry(v['target']).remove(sub_entity)
+                    elif v['this_side'] == 'many':
+                        for sub_entity in getattr(e, k):
+                            if sub_entity is not None:
+                                self._registry(v['target']).remove(sub_entity)
 
         self._execute(*self._generate_query(entity, f'{self._sql_prefix}/delete.sql', {
             'criteria': criteria
@@ -329,11 +350,11 @@ class RdbStorageInterface(AbstractStorageInterface, ABC):
             )
         )
 
-    def _data_fields(self, entity: ffd.Entity):
+    def _data_fields(self, entity: ffd.Entity, add_new: bool = False):
         ret = {}
         for f in self.get_entity_columns(entity.__class__):
             if f.name == 'document' and not hasattr(entity, 'document'):
-                ret[f.name] = self._serialize_entity(entity)
+                ret[f.name] = self._serialize_entity(entity, add_new=add_new)
             elif f.name == 'version':
                 try:
                     ret['version'] = getattr(entity, '__ff_version')

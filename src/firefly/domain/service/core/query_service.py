@@ -48,6 +48,11 @@ class QueryService(Generic[T], GenericBase, ApplicationService):
             if isinstance(criteria, str):
                 criteria = self._serializer.deserialize(criteria)
             criteria = ffd.BinaryOp.from_dict(criteria)
+            if '__include_deleted' not in kwargs and hasattr(self._type(), 'deleted_on'):
+                criteria &= ffd.Attr('deleted_on').is_none()
+            entities = self._registry(self._type()).filter(criteria)
+        elif '__include_deleted' not in kwargs and hasattr(self._type(), 'deleted_on'):
+            criteria = ffd.Attr('deleted_on').is_none()
             entities = self._registry(self._type()).filter(criteria)
 
         paginated = False

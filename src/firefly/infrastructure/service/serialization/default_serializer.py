@@ -18,7 +18,6 @@ import inspect
 import json
 from datetime import datetime, date, time
 from json import JSONEncoder
-from pprint import pprint
 
 import firefly.domain as ffd
 import firefly_di as di
@@ -34,6 +33,8 @@ class FireflyEncoder(JSONEncoder):
             return None
         elif isinstance(o, (datetime, date, time)):
             return o.isoformat()
+        elif isinstance(o, (bytes, bytearray)):
+            return o.decode('utf-8')
         elif not inspect.isclass(o) and isinstance(o, ffd.Message):
             try:
                 dic = o.to_dict()

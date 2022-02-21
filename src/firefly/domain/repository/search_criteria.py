@@ -14,10 +14,11 @@
 
 from __future__ import annotations
 
-from dataclasses import is_dataclass
+import inspect
+from dataclasses import is_dataclass, fields
 from datetime import datetime, date
 from pprint import pprint
-from typing import Union, List, Type
+from typing import Union, List, Type, get_type_hints
 
 import firefly.domain as ffd
 import regex
@@ -231,25 +232,36 @@ class BinaryOp:
             return val
 
     def matches(self, data: Union[ffd.Entity, dict]) -> bool:
+        metadata = {}
         if isinstance(data, ffd.Entity):
+            types = get_type_hints(data.__class__)
+            for field_ in fields(data):
+                if inspect.isclass(types[field_.name]) and issubclass(types[field_.name], ffd.AggregateRoot):
+                    metadata[field_.name] = {
+                        'id_property': types[field_.name].id_name()
+                    }
             data = data.to_dict(force_all=True)
 
-        return self._do_match(self, data)
+        return self._do_match(self, data, metadata)
 
-    def _do_match(self, bop: BinaryOp, data: dict) -> bool:
+    def _do_match(self, bop: BinaryOp, data: dict, metadata: dict = None) -> bool:
         if isinstance(bop.lhv, BinaryOp):
-            lhv = self._do_match(bop.lhv, data)
+            lhv = self._do_match(bop.lhv, data, metadata)
         elif isinstance(bop.lhv, AttributeString):
             lhv = self._parse_attribute_string(bop.lhv, data)
+            if str(bop.lhv) in metadata and isinstance(lhv, dict):
+                lhv = lhv[metadata[str(bop.lhv)]['id_property']]
         elif isinstance(bop.lhv, Attr):
             lhv = self._parse_attribute_string(bop.lhv.attr, data)
         else:
             lhv = bop.lhv
 
         if isinstance(bop.rhv, BinaryOp):
-            rhv = self._do_match(bop.rhv, data)
+            rhv = self._do_match(bop.rhv, data, metadata)
         elif isinstance(bop.rhv, AttributeString):
             rhv = self._parse_attribute_string(bop.rhv, data)
+            if str(bop.rhv) in metadata and isinstance(rhv, dict):
+                rhv = rhv[metadata[str(bop.rhv)]['id_property']]
         elif isinstance(bop.rhv, Attr):
             rhv = self._parse_attribute_string(bop.rhv.attr, data)
         else:

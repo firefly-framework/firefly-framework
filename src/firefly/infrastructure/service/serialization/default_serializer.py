@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import base64
 import inspect
 import json
 from datetime import datetime, date, time
@@ -34,7 +35,7 @@ class FireflyEncoder(JSONEncoder):
         elif isinstance(o, (datetime, date, time)):
             return o.isoformat()
         elif isinstance(o, (bytes, bytearray)):
-            return o.decode('utf-8')
+            return base64.b64encode(o).decode('ascii')
         elif not inspect.isclass(o) and isinstance(o, ffd.Message):
             try:
                 dic = o.to_dict()

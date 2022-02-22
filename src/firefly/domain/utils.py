@@ -18,7 +18,7 @@ import importlib
 import inspect
 import sys
 import typing
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from time import sleep
 
 import firefly as ff
@@ -104,6 +104,54 @@ if sys.version_info[1] == 7:
             return obj.__args__
         except AttributeError:
             return None
+
+
+def is_aggregate_reference(t: typing.Any):
+    if is_type_hint(t):
+        hint_type = get_origin(t)
+        args = get_args(t)
+        if hint_type in (typing.List, typing.Dict):
+            if hint_type is typing.List and inspect.isclass(args[0]) and issubclass(args[0], ff.AggregateRoot):
+                return True
+            if hint_type is typing.Dict and inspect.isclass(args[1]) and issubclass(args[1], ff.AggregateRoot):
+                return True
+        elif hint_type is typing.Union:
+            for a in args:
+                if is_aggregate_reference(a):
+                    return True
+
+    return inspect.isclass(t) and issubclass(t, ff.AggregateRoot)
+
+
+def apply_aggregate(data, t: typing.Any, cb):
+    if is_type_hint(t):
+        hint_type = get_origin(t)
+        args = get_args(t)
+        if hint_type in (typing.List, typing.Dict):
+            if hint_type is typing.List and inspect.isclass(args[0]) and issubclass(args[0], ff.AggregateRoot):
+                for item, i in enumerate(data):
+                    data[i] = cb(item, args[0])
+            if hint_type is typing.Dict and inspect.isclass(args[1]) and issubclass(args[1], ff.AggregateRoot):
+                for k, item in data.items():
+                    data[k] = cb(item, args[1])
+        elif hint_type is typing.Union:
+            for a in args:
+                if is_aggregate_reference(a):
+                    apply_aggregate(data, a, cb)
+
+    if inspect.isclass(t) and issubclass(t, ff.AggregateRoot):
+        return cb(data, t)
+
+
+def walk_aggregates(entity, cb):
+    hints = typing.get_type_hints(entity.__class__)
+    for field_ in fields(entity.__class__):
+        if is_aggregate_reference(hints[field_.name]):
+            value = apply_aggregate(getattr(entity, field_.name), hints[field_.name], cb)
+            print(value)
+            exit()
+            if value is not None:
+                setattr(entity, field_.name, value)
 
 
 def can_be_type(x, t):

@@ -14,8 +14,9 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict
-from typing import TypeVar, Generic, Type
+import inspect
+from dataclasses import asdict, fields
+from typing import TypeVar, Generic, Type, get_type_hints
 
 import firefly.domain as ffd
 
@@ -33,18 +34,28 @@ class CreateEntity(Generic[T], ApplicationService, GenericBase, CrudOperation, S
 
     def __call__(self, **kwargs) -> ffd.Entity:
         type_ = self._type()
+
+        hints = get_type_hints(type_)
+        for field_ in fields(type_):
+            if ffd.is_aggregate_reference(hints[field_.name]):
+                value = ffd.apply_aggregate(kwargs[field_.name], hints[field_.name], self._load_aggregate_reference)
+                if value is not None:
+                    kwargs[field_.name] = value
+
         method = self._find_factory_method(type_)
         if method is not None:
             entity = method(type_, **kwargs)
         else:
-            try:
-                entity = type_(**ffd.build_argument_list(kwargs, type_))
-            except ffd.MissingArgument as e:
-                raise ffd.MissingArgument(f'In CreateEntity[{self._type()}]: {str(e)}')
+            entity = type_(**ffd.build_argument_list(kwargs, type_))
+
         self._registry(type_).append(entity)
         self.dispatch(self._build_event(type_, 'create', entity.to_dict(), entity.get_class_context()))
 
         return entity
+
+    def _load_aggregate_reference(self, data, type_):
+        if isinstance(data, str):
+            return self._registry(type_).find(data)
 
     @staticmethod
     def _find_factory_method(type_: Type[ffd.Entity]):

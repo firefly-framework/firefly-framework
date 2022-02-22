@@ -17,6 +17,7 @@ from __future__ import annotations
 import inspect
 from abc import ABC, abstractmethod
 from dataclasses import fields
+from pprint import pprint
 from typing import Type, get_type_hints, List, Union, Callable, Dict, Tuple
 
 import firefly.domain as ffd
@@ -84,6 +85,7 @@ class RdbStorageInterface(AbstractStorageInterface, ABC):
 
     def _all(self, entity_type: Type[ffd.Entity], criteria: ffd.BinaryOp = None, limit: int = None, offset: int = None,
              sort: Tuple[Union[str, Tuple[str, bool]]] = None, raw: bool = False, count: bool = False):
+        self._cache = {}
         sql, params = self._generate_select(
             entity_type, criteria, limit=limit, offset=offset, sort=sort, count=count
         )
@@ -279,21 +281,39 @@ class RdbStorageInterface(AbstractStorageInterface, ABC):
         for k, v in self._get_relationships(entity).items():
             if v['this_side'] == 'one':
                 try:
-                    data[k] = self._registry(v['target']).find(data[k])
+                    data[k] = self._cache['aggregates'][v['target']][data[k]]
                 except (KeyError, TypeError):
-                    pass
+                    try:
+                        id_ = data[k]
+                        data[k] = self._registry(v['target']).find(data[k])
+                        self._cache_aggregate(v['target'], id_, data[k])
+                    except (KeyError, TypeError):
+                        pass
             elif v['this_side'] == 'many':
                 try:
-                    data[k] = list(self._registry(v['target']).filter(
-                        lambda ee: getattr(ee, v['target'].id_name()).is_in(data[k])
-                    ))
+                    data[k] = list(map(lambda e: self._cache['aggregates'][v['target']][e], data[k]))
                 except (KeyError, TypeError):
-                    pass
+                    try:
+                        data[k] = list(self._registry(v['target']).filter(
+                            lambda ee: getattr(ee, v['target'].id_name()).is_in(data[k])
+                        ))
+                        list(map(lambda e: self._cache_aggregate(v['target'], e.id_value(), e), data[k]))
+                    except (KeyError, TypeError):
+                        pass
 
         ret = entity.from_dict(data)
         if version is not None:
             setattr(ret, '__ff_version', version)
         return ret
+
+    def _cache_aggregate(self, type_: type, id_: str, value: ffd.AggregateRoot):
+        if not isinstance(self._cache, dict):
+            self._cache = {}
+        if 'aggregates' not in self._cache:
+            self._cache['aggregates'] = {}
+        if type_ not in self._cache['aggregates']:
+            self._cache['aggregates'][type_] = {}
+        self._cache['aggregates'][type_][id_] = value
 
     @staticmethod
     def _generate_index(name: str):

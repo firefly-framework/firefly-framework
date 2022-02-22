@@ -237,6 +237,7 @@ class RdbRepository(AbstractRepository[T]):
         super().reset()
         self._query_details = {}
         self._state = 'empty'
+        self._interface._cache = {}
 
     def migrate_schema(self):
         self._interface.create_schema(self._entity_type)

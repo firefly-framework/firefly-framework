@@ -18,7 +18,7 @@ import inspect
 from abc import ABC, abstractmethod
 from dataclasses import fields
 from datetime import datetime
-from typing import Type, get_type_hints, List, Union, Callable, Dict, Tuple
+from typing import Type, get_type_hints, List, Union, Callable, Dict, Tuple, Any
 
 import firefly.domain as ffd
 import inflection
@@ -168,7 +168,17 @@ class AbstractStorageInterface(ffd.LoggerAware, ABC):
                         sub_entity = getattr(entity, k)
                         if sub_entity is not None:
                             if add_new:
-                                self._registry(v['target']).append(sub_entity)
+                                exists = self._cache_get(
+                                    f'aggregate_references.{sub_entity.__class__}.{sub_entity.id_value()}'
+                                )
+                                if exists is None:
+                                    e = self._registry(v['target']).find(sub_entity.id_value())
+                                    if e is not None:
+                                        self._cache_set(
+                                            f'aggregate_references.{sub_entity.__class__}.{sub_entity.id_value()}', True
+                                        )
+                                    else:
+                                        self._registry(v['target']).append(sub_entity)
                             obj[k] = sub_entity.id_value()
                     except AttributeError:
                         obj[k] = None
@@ -177,7 +187,15 @@ class AbstractStorageInterface(ffd.LoggerAware, ABC):
                     for f in getattr(entity, k):
                         try:
                             if add_new:
-                                self._registry(v['target']).append(f)
+                                exists = self._cache_get(f'aggregate_references.{f.__class__}.{f.id_value()}')
+                                if exists is None:
+                                    e = self._registry(v['target']).find(f.id_value())
+                                    if e is not None:
+                                        self._cache_set(
+                                            f'aggregate_references.{f.__class__}.{f.id_value()}', True
+                                        )
+                                    else:
+                                        self._registry(v['target']).append(f)
                             obj[k].append(f.id_value())
                         except AttributeError:
                             obj[k].append(None)
@@ -185,3 +203,29 @@ class AbstractStorageInterface(ffd.LoggerAware, ABC):
             obj = entity.to_dict(force_all=True)
 
         return self._serializer.serialize(obj)
+
+    def _cache_set(self, key: str, value: Any):
+        if not isinstance(self._cache, dict):
+            self._cache = {}
+
+        parts = key.split('.')
+        cache = self._cache
+        while len(parts) > 0:
+            p = parts.pop(0)
+            if p not in cache and len(parts) > 0:
+                cache[p] = {}
+                cache = cache[p]
+            elif len(parts) == 0:
+                cache[p] = value
+
+    def _cache_get(self, key: str):
+        parts = key.split('.')
+        cache = self._cache
+        while len(parts) > 0:
+            p = parts.pop(0)
+            if len(parts) > 0:
+                if not isinstance(cache, dict) or p not in cache:
+                    return None
+                cache = cache[p]
+            else:
+                return cache[p] if p in cache else None

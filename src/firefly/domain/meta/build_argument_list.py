@@ -292,7 +292,8 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], 
         elif isinstance(params, dict) and name in params:
             try:
                 if params[name] is None:
-                    args[name] = None
+                    if not is_dc:
+                        args[name] = None
                 elif isinstance(params[name], bytes):
                     args[name] = params[name]
                 else:
@@ -307,7 +308,8 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], 
             try:
                 sname = name.rstrip('_')
                 if params[sname] is None:
-                    args[name] = None
+                    if not is_dc:
+                        args[name] = None
                 elif isinstance(params[sname], bytes):
                     args[name] = params[sname]
                 else:

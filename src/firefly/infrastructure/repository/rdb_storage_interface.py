@@ -23,6 +23,7 @@ from typing import Type, get_type_hints, List, Union, Callable, Dict, Tuple
 import firefly.domain as ffd
 import inflection
 # noinspection PyDataclass
+import jinja2
 from jinjasql import JinjaSql
 
 from .abstract_storage_interface import AbstractStorageInterface
@@ -257,9 +258,12 @@ class RdbStorageInterface(AbstractStorageInterface, ABC):
         pass
 
     def create_functions(self):
-        template = self._j.env.select_template([f'{self._sql_prefix}/functions.sql'])
-        sql, _ = self._j.prepare_query(template, {})
-        self.execute(sql)
+        try:
+            template = self._j.env.select_template([f'{self._sql_prefix}/functions.sql'])
+            sql, _ = self._j.prepare_query(template, {})
+            self.execute(sql)
+        except jinja2.exceptions.TemplatesNotFound:
+            pass
 
     def create_index(self, entity: Type[ffd.Entity], index: Index):
         self.execute(

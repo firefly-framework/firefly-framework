@@ -256,6 +256,11 @@ class RdbStorageInterface(AbstractStorageInterface, ABC):
     def _get_table_indexes(self, entity: Type[ffd.Entity]):
         pass
 
+    def create_functions(self):
+        template = self._j.env.select_template([f'{self._sql_prefix}/functions.sql'])
+        sql, _ = self._j.prepare_query(template, {})
+        self.execute(sql)
+
     def create_index(self, entity: Type[ffd.Entity], index: Index):
         self.execute(
             *self._generate_query(entity, f'{self._sql_prefix}/add_index.sql', {'index': index})

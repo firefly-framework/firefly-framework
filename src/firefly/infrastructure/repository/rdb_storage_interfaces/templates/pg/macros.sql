@@ -5,9 +5,9 @@
     {% elif other_hand is true or other_hand is false %}
         (document->>'{{ c_str | sqlsafe }}')::boolean
     {% elif field_types[c_str] == 'datetime' %}
-        (document->>'{{ c_str | sqlsafe }}')::timestamp
+        ff_datetime(document->>'{{ c_str | sqlsafe }}')
     {% elif field_types[c_str] == 'date' %}
-        (document->>'{{ c_str | sqlsafe }}')::date
+        ff_date(document->>'{{ c_str | sqlsafe }}')
     {% else %}
         {% if c.has_modifiers() %}
             {% for modifier in c.get_modifiers() %}{{ modifier | sqlsafe }}({% endfor %}

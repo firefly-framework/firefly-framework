@@ -1,0 +1,9 @@
+CREATE OR REPLACE FUNCTION ff_datetime(text)
+RETURNS timestamptz AS
+$$SELECT to_timestamp($1, 'YYYY-MM-DD\THH24:MI:SS.US')$$
+  LANGUAGE sql IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION ff_date(text)
+RETURNS date AS
+$$SELECT to_date($1, 'YYYY-MM-DD')$$
+  LANGUAGE sql IMMUTABLE;

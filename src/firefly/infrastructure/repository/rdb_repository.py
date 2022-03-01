@@ -241,6 +241,7 @@ class RdbRepository(AbstractRepository[T]):
         self._interface._cache = {}
 
     def migrate_schema(self):
+        self._interface.create_functions()
         self._interface.create_schema(self._entity_type)
         self._interface.create_table(self._entity_type)
 

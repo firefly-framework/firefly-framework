@@ -102,7 +102,7 @@ class ValueObject(metaclass=EntityMeta):
         return ret
 
     def load_dict(self, d: dict):
-        data = build_argument_list(d.copy(), self.__class__, strict=False)
+        data = build_argument_list(d.copy(), self.__class__, strict=False, include_none_parameters=True)
         t = typing.get_type_hints(self.__class__)
         for name, type_ in t.items():
             if name in data:

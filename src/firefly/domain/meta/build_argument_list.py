@@ -16,15 +16,12 @@ from __future__ import annotations
 
 import inspect
 import keyword
-import logging
 import typing
+# __pragma__('skip')
+from dataclasses import is_dataclass, fields
 from datetime import datetime, date
 
 import firefly.domain as ffd
-
-# __pragma__('skip')
-from dataclasses import is_dataclass, fields
-from abc import ABC
 # __pragma__('noskip')
 # __pragma__ ('ecom')
 from dateparser import parse
@@ -175,13 +172,14 @@ def _generate_model(args: dict, model_type: type, strict: bool = False):
         for subclass in subclasses:
             try:
                 return _generate_model(args, subclass, strict=True)
-            except RuntimeError:
+            except (RuntimeError, ffd.MissingArgument):
                 continue
 
     entity_args = build_argument_list(args, model_type, strict=False)
+    fields_ = {f.name: f for f in fields(model_type)}
     if strict:
         for k in args.keys():
-            if k not in entity_args:
+            if k not in entity_args and k in fields_ and fields_[k].metadata.get('required', True) is True:
                 raise RuntimeError()
 
     if len(entity_args.keys()) == 0:
@@ -197,7 +195,8 @@ def _check_special_types(value: typing.Any, type_: type):
         return parse(value).replace(tzinfo=None).date()
 
 
-def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], strict: bool = True):
+def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], strict: bool = True,
+                        include_none_parameters: bool = False):
     # logging.debug('Building argument list for %s with params: %s, strict: %s', obj, params, strict)
     args = {}
     field_dict = {}
@@ -292,7 +291,7 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], 
         elif isinstance(params, dict) and name in params:
             try:
                 if params[name] is None:
-                    if not is_dc:
+                    if not is_dc or include_none_parameters is True:
                         args[name] = None
                 elif isinstance(params[name], bytes):
                     args[name] = params[name]
@@ -308,7 +307,7 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], 
             try:
                 sname = name.rstrip('_')
                 if params[sname] is None:
-                    if not is_dc:
+                    if not is_dc or include_none_parameters is True:
                         args[name] = None
                 elif isinstance(params[sname], bytes):
                     args[name] = params[sname]

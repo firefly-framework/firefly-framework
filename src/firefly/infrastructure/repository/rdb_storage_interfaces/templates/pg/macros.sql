@@ -44,7 +44,15 @@
                     {% endif %}
                     )::jsonb from {{ v['fqtn'] | sqlsafe }} _{{ counter | sqlsafe }} where {{ v['target'].id_name() | sqlsafe }}::text in (select jsonb_array_elements_text(_{{ (counter - 1) | sqlsafe }}.document->'{{ k | sqlsafe }}')))
                 {% else %}
-                    (select document from {{ v['fqtn'] | sqlsafe }} _{{ counter | sqlsafe }} where {{ v['target'].id_name() | sqlsafe }} = (_{{ (counter - 1) | sqlsafe }}.document->>'{{ k | sqlsafe }}'){% if v['is_uuid'] %}::uuid{% endif %})
+                    (select
+                        case
+                            when (_{{ (counter - 1) | sqlsafe }}.document->>'{{ k | sqlsafe }}' is null) then 'null'::jsonb
+                            else document
+                        end
+                    from {{ v['fqtn'] | sqlsafe }} _{{ counter | sqlsafe }}
+                    where {{ v['target'].id_name() | sqlsafe }} = (_{{ (counter - 1) | sqlsafe }}.document->>'{{ k | sqlsafe }}'){% if v['is_uuid'] %}::uuid{% endif %}
+                        or _{{ (counter - 1) | sqlsafe }}.document->>'{{ k | sqlsafe }}' is null
+                    limit 1)
                 {% endif %}
             )
         {% endif %}

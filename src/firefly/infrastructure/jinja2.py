@@ -30,3 +30,7 @@ def is_uuid(x):
         return True
     except ValueError:
         return False
+
+
+def is_list(x):
+    return isinstance(x, list)

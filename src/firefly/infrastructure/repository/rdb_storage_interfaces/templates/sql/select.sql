@@ -6,13 +6,18 @@ select
     {% for column in columns %}
         {% if ' as ' in column %}
             {{ column | sqlsafe }}
+        {% elif column == 'document' %}
+            {% block document %}
+                {% import "sql/macros.sql" as macros %}
+                {{ macros.document(relationships) }},
+            {% endblock %}
         {% else %}
             {{ _q | sqlsafe }}{{ column | sqlsafe }}{{ _q | sqlsafe }}{% if not loop.last %},{% endif %}
         {% endif %}
     {% endfor %}
 {% endif %}
 
-from {% block fqtn %}{{ fqtn | sqlsafe }}{% endblock %}
+from {% block fqtn %}{{ fqtn | sqlsafe }}{% endblock %} _0
 
 {% if criteria %}
     where

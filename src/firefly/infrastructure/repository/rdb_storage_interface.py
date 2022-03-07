@@ -82,6 +82,8 @@ class RdbStorageInterface(AbstractStorageInterface, ABC):
         if offset is not None:
             data['offset'] = offset
 
+        data['relationships'] = self._get_relationships(entity_type)
+
         return self._generate_query(entity_type, f'{self._sql_prefix}/select.sql', data)
 
     def _all(self, entity_type: Type[ffd.Entity], criteria: ffd.BinaryOp = None, limit: int = None, offset: int = None,
@@ -108,7 +110,8 @@ class RdbStorageInterface(AbstractStorageInterface, ABC):
             f'{self._sql_prefix}/select.sql',
             {
                 'columns': self._select_list(entity_type),
-                'criteria': ffd.Attr(entity_type.id_name()) == uuid
+                'criteria': ffd.Attr(entity_type.id_name()) == uuid,
+                'relationships': self._get_relationships(entity_type),
             }
         ))
 
@@ -286,29 +289,6 @@ class RdbStorageInterface(AbstractStorageInterface, ABC):
         if self._map_all is False:
             version = data['version']
             data = self._serializer.deserialize(data['document'])
-
-        for k, v in self._get_relationships(entity).items():
-            if v['this_side'] == 'one':
-                try:
-                    data[k] = self._cache['aggregates'][v['target']][data[k]]
-                except (KeyError, TypeError):
-                    try:
-                        id_ = data[k]
-                        data[k] = self._registry(v['target']).find(data[k])
-                        self._cache_aggregate(v['target'], id_, data[k])
-                    except (KeyError, TypeError):
-                        pass
-            elif v['this_side'] == 'many':
-                try:
-                    data[k] = list(map(lambda e: self._cache['aggregates'][v['target']][e], data[k]))
-                except (KeyError, TypeError):
-                    try:
-                        data[k] = list(self._registry(v['target']).filter(
-                            lambda ee: getattr(ee, v['target'].id_name()).is_in(data[k])
-                        ))
-                        list(map(lambda e: self._cache_aggregate(v['target'], e.id_value(), e), data[k]))
-                    except (KeyError, TypeError):
-                        pass
 
         ret = entity.from_dict(data)
         if version is not None:

@@ -110,7 +110,7 @@ class Entity(ContextAware, ValueObject):
 
 
 def id_(is_uuid: bool = True, **kwargs):
-    metadata = {'id': True, 'required': True, 'type': str}
+    metadata = {'id': True, 'required': True, 'type': str, 'is_uuid': is_uuid}
     if is_uuid:
         metadata['length'] = 36
     metadata.update(kwargs)

@@ -21,7 +21,7 @@ import firefly.domain as ffd
 import firefly.infrastructure as ffi
 import firefly.infrastructure.repository.rdb_storage_interfaces as rsi
 import firefly_di as di
-from firefly.infrastructure.jinja2 import is_attribute, is_criteria, is_uuid
+from firefly.infrastructure.jinja2 import is_attribute, is_criteria, is_uuid, is_list
 from jinja2 import Environment, FileSystemLoader
 from jinjasql import JinjaSql
 
@@ -31,6 +31,7 @@ def build_jinja(self):
     env.tests['attribute'] = is_attribute
     env.tests['criteria'] = is_criteria
     env.tests['uuid'] = is_uuid
+    env.tests['list'] = is_list
 
     def serialized(entity):
         return self.serializer.serialize(entity)

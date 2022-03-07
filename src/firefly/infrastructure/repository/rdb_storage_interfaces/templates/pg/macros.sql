@@ -19,6 +19,38 @@
     {% endif %}
 {% endmacro %}
 
+{% macro document(relationships, counter) %}
+    {% for k, v in relationships.items() %}
+        {% set counter = counter | default(1) %}
+
+        {% if loop.first %}
+            jsonb_set(
+                {% set remaining = relationships.copy() %}
+                {% set _ = remaining.pop(k) %}
+                {% if remaining.items()|length > 0 %}
+                    {{ document(remaining, counter) }},
+                {% else %}
+                    document,
+                {% endif %}
+
+                '{ {{ k | sqlsafe }} }',
+
+                {% if v['this_side'] == 'many' %}
+                    (select json_agg(
+                    {% if v['relationships'].keys()|length > 0 %}
+                        {{ document(v['relationships'], counter + 1) }}
+                    {% else %}
+                        document
+                    {% endif %}
+                    )::jsonb from {{ v['fqtn'] | sqlsafe }} _{{ counter | sqlsafe }} where {{ v['target'].id_name() | sqlsafe }}::text in (select jsonb_array_elements_text(_{{ (counter - 1) | sqlsafe }}.document->'{{ k | sqlsafe }}')))
+                {% else %}
+                    (select document from {{ v['fqtn'] | sqlsafe }} _{{ counter | sqlsafe }} where {{ v['target'].id_name() | sqlsafe }} = (_{{ (counter - 1) | sqlsafe }}.document->>'{{ k | sqlsafe }}'){% if v['is_uuid'] %}::uuid{% endif %})
+                {% endif %}
+            )
+        {% endif %}
+    {% endfor %}
+{% endmacro %}
+
 {% macro value(v, ids, other_hand) %}
     {%  set other_hand_str = other_hand | string %}
     {{ v }}{% if other_hand_str in ids and v is uuid %}::uuid{% endif %}

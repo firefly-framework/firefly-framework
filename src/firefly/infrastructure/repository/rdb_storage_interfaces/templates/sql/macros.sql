@@ -52,6 +52,10 @@
     {% endif %}
 {% endmacro %}
 
+{% macro document(relationships) %}
+    {{ _q | sqlsafe }}document{{ _q | sqlsafe }}
+{% endmacro %}
+
 {% macro default_attribute_macro(c, ids, other_hand, field_types) %}
     {{ _q | sqlsafe }}{{ c | string | sqlsafe }}{{ _q | sqlsafe }}
 {% endmacro %}

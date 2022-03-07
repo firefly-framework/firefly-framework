@@ -128,6 +128,9 @@ class AbstractStorageInterface(ffd.LoggerAware, ABC):
                     'field_name': k,
                     'target': v,
                     'this_side': 'one',
+                    'relationships': self._get_relationships(v),
+                    'fqtn': self._fqtn(v),
+                    'is_uuid': self._id_is_a_uuid(v),
                 }
             elif ffd.is_type_hint(v):
                 origin = ffd.get_origin(v)
@@ -137,8 +140,21 @@ class AbstractStorageInterface(ffd.LoggerAware, ABC):
                         'field_name': k,
                         'target': args[0],
                         'this_side': 'many',
+                        'relationships': self._get_relationships(args[0]),
+                        'fqtn': self._fqtn(args[0]),
+                        'is_uuid': self._id_is_a_uuid(args[0]),
                     }
         return relationships
+
+    def _id_is_a_uuid(self, entity_type: Type[ffd.Entity]):
+        for f in fields(entity_type):
+            if f.metadata.get('id') and f.metadata.get('is_uuid'):
+                return True
+        return False
+
+    @staticmethod
+    def _fqtn(entity: Type[ffd.Entity]):
+        return inflection.tableize(entity.get_fqn())
 
     def _get_relationship(self, entity: Type[ffd.Entity], inverse_entity: Type[ffd.Entity]):
         relationships = self._get_relationships(entity)

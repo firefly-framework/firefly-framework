@@ -63,7 +63,7 @@ class QueryService(Generic[T], GenericBase, ApplicationService):
             paginated = True
 
         if 'sort' in kwargs:
-            entities = entities.sort(lambda: kwargs.get('sort'))
+            entities = entities.sort(lambda x: kwargs.get('sort'))
 
         if paginated:
             return {

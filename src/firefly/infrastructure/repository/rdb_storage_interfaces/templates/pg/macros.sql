@@ -47,7 +47,12 @@
                     (select
                         case
                             when (_{{ (counter - 1) | sqlsafe }}.document->>'{{ k | sqlsafe }}' is null) then 'null'::jsonb
-                            else document
+                            else
+                                {% if v['relationships'].keys()|length > 0 %}
+                                    {{ document(v['relationships'], counter + 1) }}
+                                {% else %}
+                                    document
+                                {% endif %}
                         end
                     from {{ v['fqtn'] | sqlsafe }} _{{ counter | sqlsafe }}
                     where {{ v['target'].id_name() | sqlsafe }} = (_{{ (counter - 1) | sqlsafe }}.document->>'{{ k | sqlsafe }}'){% if v['is_uuid'] %}::uuid{% endif %}

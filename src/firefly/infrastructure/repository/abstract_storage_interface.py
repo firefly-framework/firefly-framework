@@ -77,7 +77,7 @@ class AbstractStorageInterface(ffd.LoggerAware, ABC):
         for entity in entities:
             if hasattr(entity, 'deleted_on') and not force:
                 entity.deleted_on = datetime.now()
-                self._update(entity)
+                self.update(entity)
             else:
                 deletions.append(entity)
 

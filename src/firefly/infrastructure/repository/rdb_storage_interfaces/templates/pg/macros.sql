@@ -36,18 +36,18 @@
                 '{ {{ k | sqlsafe }} }',
 
                 {% if v['this_side'] == 'many' %}
-                    (select json_agg(
-                    {% if v['relationships'].keys()|length > 0 %}
-                        {{ document(v['relationships'], counter + 1) }}
-                    {% else %}
-                        document
-                    {% endif %}
-                    )::jsonb from {{ v['fqtn'] | sqlsafe }} _{{ counter | sqlsafe }} where {{ v['target'].id_name() | sqlsafe }}::text in (select jsonb_array_elements_text(
-                        case when _{{ (counter - 1) | sqlsafe }}.document->>'{{ k | sqlsafe }}' = '[]'
-                            or _{{ (counter - 1) | sqlsafe }}.document->>'{{ k | sqlsafe }}' is null
-                        then '[""]'::jsonb
-                        else _{{ (counter - 1) | sqlsafe }}.document->'{{ k | sqlsafe }}' end)
-                    ))
+                    coalesce(
+                        (select json_agg(
+                        {% if v['relationships'].keys()|length > 0 %}
+                            {{ document(v['relationships'], counter + 1) }}
+                        {% else %}
+                            document
+                        {% endif %}
+                        )::jsonb from {{ v['fqtn'] | sqlsafe }} _{{ counter | sqlsafe }} where {{ v['target'].id_name() | sqlsafe }}::text in
+                            (select jsonb_array_elements_text(_{{ (counter - 1) | sqlsafe }}.document->'{{ k | sqlsafe }}'))
+                        ),
+                        '[]'::jsonb
+                    )
                 {% else %}
                     (select
                         case

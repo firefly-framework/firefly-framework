@@ -278,6 +278,20 @@ class RdbStorageInterface(AbstractStorageInterface, ABC):
             *self._generate_query(entity, f'{self._sql_prefix}/drop_index.sql', {'index': index})
         )
 
+    def _register_aggregate_references(self, entity: ffd.Entity):
+        for k, v in self._get_relationships(entity.__class__).items():
+            val = getattr(entity, k)
+            if v['this_side'] == 'one':
+                self._do_register_entity(val)
+                self._register_aggregate_references(val)
+            else:
+                list(map(self._do_register_entity, val or []))
+                list(map(self._register_aggregate_references, val or []))
+
+    def _do_register_entity(self, entity):
+        if isinstance(entity, ffd.AggregateRoot):
+            self._registry(entity.__class__).register_entity(entity)
+
     def _build_entity(self, entity: Type[ffd.Entity], data, raw: bool = False):
         if raw is True:
             if self._map_all is True:
@@ -293,6 +307,9 @@ class RdbStorageInterface(AbstractStorageInterface, ABC):
         ret = entity.from_dict(data)
         if version is not None:
             setattr(ret, '__ff_version', version)
+
+        self._register_aggregate_references(ret)
+
         return ret
 
     def _cache_aggregate(self, type_: type, id_: str, value: ffd.AggregateRoot):

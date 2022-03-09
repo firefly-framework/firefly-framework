@@ -255,6 +255,11 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], 
                 params[name] = val
 
         if isinstance(type_, type) and issubclass(type_, ffd.ValueObject):
+            if params is None:
+                if required is False:
+                    continue
+                raise ffd.MissingArgument(name)
+
             if name in params and isinstance(params[name], type_):
                 args[name] = params[name]
                 continue

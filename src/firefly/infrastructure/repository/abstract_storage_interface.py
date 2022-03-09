@@ -88,6 +88,11 @@ class AbstractStorageInterface(ffd.LoggerAware, ABC):
     def _remove(self, entity: Union[ffd.Entity, List[ffd.Entity], Callable]):
         pass
 
+    def _get_field_definition(self, entity: Type[ffd.Entity], name: str):
+        for field_ in fields(entity):
+            if field_.name == name:
+                return field_
+
     def update(self, entity: ffd.Entity):
         self._check_prerequisites(entity.__class__)
         if hasattr(entity, 'updated_on'):

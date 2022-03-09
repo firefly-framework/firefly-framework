@@ -141,12 +141,17 @@ class RdbStorageInterface(AbstractStorageInterface, ABC):
                 for k, v in relationships.items():
                     if v['this_side'] == 'one':
                         sub_entity = getattr(e, k)
-                        if sub_entity is not None:
+                        if sub_entity is not None and \
+                                self._get_field_definition(e.__class__, k).metadata.get('on_delete') == 'cascade':
                             self._registry(v['target']).remove(sub_entity)
+                            self._registry(v['target']).commit()
                     elif v['this_side'] == 'many':
                         for sub_entity in getattr(e, k):
-                            if sub_entity is not None:
+                            if sub_entity is not None and \
+                                    self._get_field_definition(e.__class__, k)\
+                                    .metadata.get('on_delete') == 'cascade':
                                 self._registry(v['target']).remove(sub_entity)
+                                self._registry(v['target']).commit()
 
         self._execute(*self._generate_query(entity, f'{self._sql_prefix}/delete.sql', {
             'criteria': criteria

@@ -28,7 +28,7 @@ T = TypeVar('T')
 
 class ReadEntity(Generic[T], ApplicationService, GenericBase, CrudOperation, SystemBusAware):
     """
-    DEPRECATED. I don't think this is actually used.
+    DEPRECATED. I don't think this is actually used. See query_service.py instead.
     """
     _registry: ffd.Registry = None
 

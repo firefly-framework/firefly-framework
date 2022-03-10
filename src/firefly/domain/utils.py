@@ -129,7 +129,7 @@ def apply_aggregate(data, t: typing.Any, cb):
         args = get_args(t)
         if hint_type in (typing.List, typing.Dict):
             if hint_type is typing.List and inspect.isclass(args[0]) and issubclass(args[0], ff.AggregateRoot):
-                for item, i in enumerate(data):
+                for i, item in enumerate(data):
                     data[i] = cb(item, args[0])
             if hint_type is typing.Dict and inspect.isclass(args[1]) and issubclass(args[1], ff.AggregateRoot):
                 for k, item in data.items():

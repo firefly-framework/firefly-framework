@@ -27,6 +27,7 @@ T = TypeVar('T')
 class QueryService(Generic[T], GenericBase, ApplicationService):
     _registry: ffd.Registry = None
     _serializer: ffd.Serializer = None
+    _context: str = None
 
     def __call__(self, **kwargs):
         try:
@@ -73,4 +74,4 @@ class QueryService(Generic[T], GenericBase, ApplicationService):
                 'data': list(entities),
             }
 
-        return list(entities)
+        return list(map(lambda e: e.to_dict(force_all=self._kernel.is_admin(self._context)), entities))

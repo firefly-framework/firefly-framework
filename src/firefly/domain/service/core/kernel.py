@@ -52,6 +52,16 @@ class Kernel(SystemBusAware):
 
         return False
 
+    def is_admin(self, service: str):
+        if not self.user or not self.user.scopes or len(self.user.scopes) == 0:
+            return False
+
+        for scope in self.user.scopes:
+            if scope.lower() == f'{service}.admin':
+                return True
+
+        return False
+
     @staticmethod
     def _has_grant(scope: str, user_scope: str):
         parts = scope.lower().split('.')

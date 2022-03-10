@@ -49,13 +49,15 @@ class CreateEntity(Generic[T], ApplicationService, GenericBase, CrudOperation, S
             entity = type_(**ffd.build_argument_list(kwargs, type_))
 
         self._registry(type_).append(entity)
-        self.dispatch(self._build_event(type_, 'create', entity.to_dict(), entity.get_class_context()))
+        self.dispatch(self._build_event(type_, 'create', entity.to_dict(force_all=True), entity.get_class_context()))
 
         return entity
 
     def _load_aggregate_reference(self, data, type_):
         if isinstance(data, str):
             return self._registry(type_).find(data)
+
+        return data
 
     @staticmethod
     def _find_factory_method(type_: Type[ffd.Entity]):

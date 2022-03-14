@@ -31,6 +31,13 @@ class Kernel(SystemBusAware, LoggerAware):
     http_request: Optional[dict] = None
     secured: Optional[bool] = None
 
+    __instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if not cls.__instance:
+            cls.__instance = super(Kernel, cls).__new__(cls, *args, **kwargs)
+        return cls.__instance
+
     def reset(self):
         self.user = None
         self.required_scopes = None

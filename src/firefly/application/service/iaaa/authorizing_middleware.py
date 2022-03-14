@@ -22,7 +22,7 @@ import firefly_di as di
 from .authorize_scope import AuthorizeScope
 
 
-class AuthorizingMiddleware(ffd.Middleware, ffd.ChainOfResponsibility):
+class AuthorizingMiddleware(ffd.Middleware, ffd.ChainOfResponsibility, ffd.LoggerAware):
     _container: di.Container = None
 
     def __init__(self):
@@ -30,6 +30,8 @@ class AuthorizingMiddleware(ffd.Middleware, ffd.ChainOfResponsibility):
         self._handlers.append(self._container.build(AuthorizeScope))
 
     def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
+        self.info('Authorizing')
+        self.info(f'Nested request: {message.headers.get("nested_request", False)}')
         if message.headers.get('nested_request', False) is True and self.handle(message) is not True:
             raise ffd.UnauthorizedError()
         return next_(message)

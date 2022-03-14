@@ -18,13 +18,14 @@ from typing import List, Optional, Union
 
 import firefly.domain as ffd
 
+from ...service.logging import LoggerAware
 from ..messaging.system_bus import SystemBusAware
 from ...entity.core.user import User
 
 CATEGORIES = ('read', 'write', 'admin')
 
 
-class Kernel(SystemBusAware):
+class Kernel(SystemBusAware, LoggerAware):
     user: Optional[User] = None
     required_scopes: Optional[List[str]] = None
     http_request: Optional[dict] = None
@@ -38,17 +39,26 @@ class Kernel(SystemBusAware):
 
     @property
     def is_authorized(self):
+        self.info('Calling is_authorized')
         if self.required_scopes is None or len(self.required_scopes) == 0:
+            self.info(f'Required scopes: {self.required_scopes}')
+            if self.required_scopes is not None:
+                self.info(f'len(self.required_scopes): {len(self.required_scopes)}')
             return True  # No required scopes, return True
 
         if self.user is None:
+            self.info("User is none")
             return self.secured is False
 
         if len(self.user.scopes) > 0:
             for scope in self.required_scopes:
                 for user_scope in self.user.scopes:
+                    self.info(f'{user_scope} in {self.user.scopes}')
                     if self._has_grant(scope, user_scope):
+                        self.info('has grant')
                         return True
+
+        self.info("not authorized")
 
         return False
 

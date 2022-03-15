@@ -31,7 +31,12 @@ class AuthorizingMiddleware(ffd.Middleware, ffd.ChainOfResponsibility, ffd.Logge
 
     def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
         self.info('Authorizing')
-        self.info(f'Nested request: {message.headers.get("nested_request", False)}')
-        if message.headers.get('nested_request', False) is False and self.handle(message) is not True:
-            raise ffd.UnauthorizedError()
+
+        if self._container.kernel.secured is True:
+            self.info(f'Nested request: {message.headers.get("nested_request", False)}')
+            if message.headers.get('nested_request', False) is False and self.handle(message) is not True:
+                raise ffd.UnauthorizedError()
+        else:
+            self.info('Insecure endpoint')
+
         return next_(message)

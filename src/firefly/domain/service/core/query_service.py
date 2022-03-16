@@ -71,7 +71,7 @@ class QueryService(Generic[T], GenericBase, ApplicationService):
                 'offset': offset,
                 'limit': limit,
                 'count': count,
-                'data': list(entities),
+                'data': list(map(lambda e: e.to_dict(force_all=self._kernel.is_admin(self._context)), entities)),
             }
 
         return list(map(lambda e: e.to_dict(force_all=self._kernel.is_admin(self._context)), entities))

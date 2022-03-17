@@ -168,7 +168,7 @@ class RdbStorageInterface(AbstractStorageInterface, ABC):
             entity,
             f'{self._sql_prefix}/update.sql',
             {
-                'data': self._data_fields(entity),
+                'data': self._data_fields(entity, add_new=True),
                 'criteria': criteria
             }
         ))

@@ -24,6 +24,9 @@ import firefly_di as di
 from firefly.infrastructure.jinja2 import is_attribute, is_criteria, is_uuid, is_list
 from jinja2 import Environment, FileSystemLoader
 from jinjasql import JinjaSql
+from sqlalchemy import MetaData
+from sqlalchemy.engine import Engine, Connection
+from sqlalchemy.orm import sessionmaker, Session
 
 
 def build_jinja(self):
@@ -110,6 +113,13 @@ class Container(di.Container):
     # Storage
     rdb_storage_interface_registry: ffi.RdbStorageInterfaceRegistry = ffi.RdbStorageInterfaceRegistry
     file_system: ffd.FileSystem = ffi.LocalFileSystem
+    sqlalchemy_engine_factory: ffi.EngineFactory = ffi.EngineFactory
+    sqlalchemy_engine: Engine = lambda self: self.sqlalchemy_engine_factory(False)
+    sqlalchemy_connection: Connection = lambda self: self.sqlalchemy_engine.connect()
+    sqlalchemy_sessionmaker: sessionmaker = lambda self: sessionmaker(bind=self.sqlalchemy_engine)
+    sqlalchemy_session: Session = lambda self: self.sqlalchemy_sessionmaker()
+    sqlalchemy_metadata: MetaData = lambda self: MetaData(bind=self.sqlalchemy_engine)
+    sqlalchemy_storage_interface: ffi.SqlalchemyStorageInterface = ffi.SqlalchemyStorageInterface
 
     # Messaging
     message_transport: ffd.MessageTransport = ffi.AsyncioMessageTransport

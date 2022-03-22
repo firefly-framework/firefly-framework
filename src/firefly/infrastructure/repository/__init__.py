@@ -25,3 +25,8 @@ from .rdb_repository_factory import RdbRepositoryFactory
 from .rdb_storage_interface import RdbStorageInterface
 from .rdb_storage_interface_registry import RdbStorageInterfaceRegistry
 from .rdb_storage_interfaces import *
+from .sqlalchemy import *
+from .sqlalchemy_connection_factory import SqlalchemyConnectionFactory
+from .sqlalchemy_repository import SqlalchemyRepository
+from .sqlalchemy_repository_factory import SqlalchemyRepositoryFactory
+from .sqlalchemy_storage_interface import SqlalchemyStorageInterface

@@ -18,6 +18,7 @@ import importlib
 import inspect
 import sys
 import typing
+from abc import ABC
 from dataclasses import dataclass, fields
 from time import sleep
 
@@ -261,3 +262,36 @@ def merge(a, b, path=None):
 
 def chunk(array: list, n: int):
     return [array[x:x+n] for x in range(0, len(array), n)]
+
+
+class HasMemoryCache(ABC):
+    _cache: dict = {}
+
+    def _cache_set(self, key: str, value: Any):
+        if not isinstance(self._cache, dict):
+            self._cache = {}
+
+        parts = key.split('.')
+        cache = self._cache
+        while len(parts) > 0:
+            p = parts.pop(0)
+            if p not in cache and len(parts) > 0:
+                cache[p] = {}
+                cache = cache[p]
+            elif len(parts) == 0:
+                cache[p] = value
+
+    def _cache_get(self, key: str):
+        parts = key.split('.')
+        cache = self._cache
+        while len(parts) > 0:
+            p = parts.pop(0)
+            if len(parts) > 0:
+                if not isinstance(cache, dict) or p not in cache:
+                    return None
+                cache = cache[p]
+            else:
+                return cache[p] if p in cache else None
+
+    def _cache_clear(self):
+        self._cache = {}

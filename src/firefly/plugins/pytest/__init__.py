@@ -98,29 +98,35 @@ def serializer(container):
 
 @pytest.fixture(scope="function")
 def registry(container, request) -> ff.Registry:
+    container.sqlalchemy_metadata.drop_all()
+    container.sqlalchemy_metadata.create_all()
     registry = container.registry
 
-    for context in container.context_map.contexts:
-        for entity in context.entities:
-            if issubclass(entity, ff.AggregateRoot) and entity is not ff.AggregateRoot:
-                try:
-                    repository = registry(entity)
-                    if isinstance(repository, ffi.RdbRepository):
-                        repository.migrate_schema()
-                except ff.FrameworkError:
-                    pass
-
-    def teardown():
-        for context in container.context_map.contexts:
-            for entity in context.entities:
-                if issubclass(entity, ff.AggregateRoot) and entity is not ff.AggregateRoot:
-                    try:
-                        registry(entity).destroy()
-                    except ff.FrameworkError:
-                        pass
-
-    request.addfinalizer(teardown)
-    registry.clear_cache()
+    # for context in container.context_map.contexts:
+    #     for entity in context.entities:
+    #         if issubclass(entity, ff.AggregateRoot) and entity is not ff.AggregateRoot:
+    #             try:
+    #                 repository = container.registry(entity)
+    #                 if isinstance(repository, ffi.SqlalchemyRepository):
+    #                     repository.destroy()
+    #                     repository.migrate_schema()
+    #                     break
+    #                 elif isinstance(repository, ffi.RdbRepository):
+    #                     repository.migrate_schema()
+    #             except ff.FrameworkError:
+    #                 pass
+    #
+    # def teardown():
+    #     for context in container.context_map.contexts:
+    #         for entity in context.entities:
+    #             if issubclass(entity, ff.AggregateRoot) and entity is not ff.AggregateRoot:
+    #                 try:
+    #                     registry(entity).destroy()
+    #                 except ff.FrameworkError:
+    #                     pass
+    #
+    # request.addfinalizer(teardown)
+    # registry.clear_cache()
     return registry
 
 

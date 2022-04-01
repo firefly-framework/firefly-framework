@@ -114,7 +114,7 @@ class Container(di.Container):
     rdb_storage_interface_registry: ffi.RdbStorageInterfaceRegistry = ffi.RdbStorageInterfaceRegistry
     file_system: ffd.FileSystem = ffi.LocalFileSystem
     sqlalchemy_engine_factory: ffi.EngineFactory = ffi.EngineFactory
-    sqlalchemy_engine: Engine = lambda self: self.sqlalchemy_engine_factory(False)
+    sqlalchemy_engine: Engine = lambda self: self.sqlalchemy_engine_factory(True)
     sqlalchemy_connection: Connection = lambda self: self.sqlalchemy_engine.connect()
     sqlalchemy_sessionmaker: sessionmaker = lambda self: sessionmaker(bind=self.sqlalchemy_engine)
     sqlalchemy_session: Session = lambda self: self.sqlalchemy_sessionmaker()

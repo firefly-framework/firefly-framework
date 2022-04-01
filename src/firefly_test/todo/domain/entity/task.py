@@ -17,6 +17,7 @@ from __future__ import annotations
 from datetime import datetime
 
 import firefly as ff
+import firefly_test.todo as todo
 
 
 class Task(ff.Entity):
@@ -24,6 +25,7 @@ class Task(ff.Entity):
     name: str = ff.required()
     due_date: datetime = ff.required()
     complete: bool = ff.optional(default=False)
+    todo_list: todo.TodoList = ff.required()
 
     def complete_task(self):
         self.complete = True

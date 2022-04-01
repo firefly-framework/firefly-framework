@@ -14,34 +14,15 @@
 
 from __future__ import annotations
 
-# __pragma__('skip')
 from abc import ABCMeta
-from dataclasses import dataclass, fields
-
-import firefly as ff
-# __pragma__('noskip')
-# __pragma__ ('ecom')
-"""?
-from firefly.presentation.web.polyfills import ABCMeta, ABC, dataclass, fields
-?"""
-# __pragma__ ('noecom')
-
-import firefly.domain as ffd
+from dataclasses import dataclass
 
 
 class EntityMeta(ABCMeta):
     def __new__(mcs, name, bases, dct, **kwargs):
-        # __pragma__('skip')
         ret = super().__new__(mcs, name, bases, dct)
-        # __pragma__('noskip')
-        # __pragma__ ('ecom')
-        """?
-        ret = type.__new__(type, name, bases, dct)
-        ?"""
-        # __pragma__ ('noecom')
         ret = dataclass(ret, eq=False)
 
-        # __pragma__('skip')
         is_aggregate = False
         for c in bases:
             # We can't import AggregateRoot for a proper issubclass check without getting a circular reference.
@@ -60,20 +41,8 @@ class EntityMeta(ABCMeta):
                 ret._create_on = f"{kwargs['sync_with']}Created"
                 ret._delete_on = f"{kwargs['sync_with']}Deleted"
                 ret._update_on = f"{kwargs['sync_with']}Updated"
-        # __pragma__('noskip')
 
         return ret
 
     def __init__(cls, name, bases, dct, **kwargs):
         super().__init__(name, bases, dct)
-        cls._c = None
-
-    # __pragma__('skip')
-    # noinspection PyDataclass
-    @property
-    def c(cls):
-        if cls._c is None:
-            from firefly.domain.repository.search_criteria import AttrFactory
-            cls._c = AttrFactory([x.name for x in fields(cls)])
-        return cls._c
-    # __pragma__('noskip')

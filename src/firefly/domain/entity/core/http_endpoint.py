@@ -33,10 +33,10 @@ from firefly.domain.entity.entity import optional, required, list_
 
 
 class HttpEndpoint(Endpoint):
-    gateway: str = optional(str)
-    route: str = required(str)
-    method: str = optional(str, default='GET')
-    query_params: dict = optional(dict)
+    gateway: str = optional()
+    route: str = required()
+    method: str = optional(default='GET')
+    query_params: dict = optional()
     service: type = optional()
     secured: bool = optional(default=True)
     scopes: List[str] = list_()

@@ -14,16 +14,16 @@
 
 from __future__ import annotations
 
-from dataclasses import fields
 from typing import List, Any
 
 import firefly.domain.entity as e
 import inflection
 
 from .aggregate_root import AggregateRoot
-from .entity import id_, required, hidden, IsOneOf, IsMultipleOf, IsLessThanOrEqualTo, IsLessThan, \
-    IsGreaterThanOrEqualTo, IsGreaterThan, HasMaxLength, HasMinLength, MatchesPattern, Entity, list_
+from .entity import id_, required, hidden, Entity, list_
 from .json_schema import JsonSchema
+from ..entity.validation.validators import IsOneOf, IsMultipleOf, IsLessThanOrEqualTo, IsLessThan, \
+    IsGreaterThanOrEqualTo, IsGreaterThan, HasMaxLength, HasMinLength, MatchesPattern
 from ..meta.entity_meta import EntityMeta
 
 

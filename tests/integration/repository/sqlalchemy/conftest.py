@@ -46,37 +46,5 @@ def config():
                     'default': 'sqlalchemy',
                 },
             },
-            'iam': {
-                'entity_module': 'firefly_test.iam.domain',
-                'container_module': 'firefly_test.iam.application',
-                'application_module': 'firefly_test.iam.application',
-                'storage': {
-                    'services': {
-                        'sqlalchemy': {
-                            'connection': {
-                                'driver': 'sqlalchemy',
-                                'host': 'localhost',
-                                'db': 'postgresql',
-                            }
-                        },
-                    },
-                    'default': 'sqlalchemy',
-                },
-            },
-            'calendar': {
-                'entity_module': 'firefly_test.calendar.domain',
-                'storage': {
-                    'services': {
-                        'sqlalchemy': {
-                            'connection': {
-                                'driver': 'sqlalchemy',
-                                'host': 'localhost',
-                                'db': 'postgresql',
-                            }
-                        },
-                    },
-                    'default': 'sqlalchemy',
-                },
-            },
         },
     }

@@ -15,47 +15,33 @@
 from __future__ import annotations
 
 import inspect
-import typing
+import uuid
+from dataclasses import is_dataclass, fields, field, MISSING
 from datetime import datetime, date
+from typing import get_type_hints
 
 import inflection
-
-from .validation import *
-from firefly.domain.value_object import ValueObject, Empty
 from firefly.domain.meta.context_aware import ContextAware
-from firefly.domain.meta.build_argument_list import build_argument_list
-from firefly.domain.utils import is_type_hint, get_origin, get_args
-
-# __pragma__('skip')
-import uuid
-
-from dataclasses import is_dataclass, fields, field, MISSING
-from typing import List, Callable
-from abc import ABC
-# __pragma__('noskip')
-# __pragma__ ('ecom')
-"""?
-from firefly.presentation.web.polyfills import is_dataclass, fields, field, MISSING, asdict, List, Callable, uuid
-?"""
-# __pragma__ ('noecom')
-# __pragma__('kwargs')
+from firefly.domain.value_object import ValueObject, Empty
 
 
 # noinspection PyDataclass
 class Entity(ContextAware, ValueObject):
     _logger = None
 
-    def __init__(self, **kwargs):
-        pass
-
     def __post_init__(self):
         if is_dataclass(self):
             missing = []
+            types = get_type_hints(self.__class__)
             for field_ in fields(self):
-                if 'required' in field_.metadata and isinstance(getattr(self, field_.name), Empty):
+                is_required = field_.metadata.get('required', False) is True
+                has_no_value = getattr(self, field_.name) is None
+                is_entity = inspect.isclass(types[field_.name]) and issubclass(types[field_.name], Entity)
+                if is_required and has_no_value and not is_entity:
                     missing.append(field_.name)
             if len(missing) > 0:
-                raise TypeError(f'__init__ missing {len(missing)} required argument(s): {", ".join(missing)}')
+                raise TypeError(f'{self.__class__.__name__}.__init__ missing {len(missing)} '
+                                f'required argument(s): {", ".join(missing)}')
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
@@ -142,7 +128,7 @@ def required(type_: type = None, **kwargs):
     if type_ is not None:
         kwargs['type'] = type_
     kwargs['required'] = True
-    return field(default_factory=lambda: Empty(), metadata=kwargs)
+    return field(default=None, metadata=kwargs)
 
 
 def optional(type_: type = None, default=MISSING, **kwargs):

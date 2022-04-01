@@ -14,9 +14,35 @@
 
 from __future__ import annotations
 
+from typing import List
+
 import firefly as ff
+import firefly_test.todo.domain as domain
 
 
-class User(ff.Entity):
+class Settings(ff.Entity):
+    id: str = ff.id_()
+    user: User = ff.required()
+    send_email: bool = ff.optional(default=True)
+
+
+class Profile(ff.AggregateRoot):
+    id: str = ff.id_()
+    user: User = ff.required()
+    title: str = ff.optional()
+
+
+class Address(ff.AggregateRoot):
+    id: str = ff.id_()
+    street: str = ff.required()
+    number: int = ff.required()
+    residents: List[User] = ff.list_()
+
+
+class User(ff.AggregateRoot):
     id: str = ff.id_()
     name: str = ff.required()
+    todo_lists: List[domain.TodoList] = ff.list_()
+    settings: Settings = ff.required()
+    profile: Profile = ff.required()
+    addresses: List[Address] = ff.list_()

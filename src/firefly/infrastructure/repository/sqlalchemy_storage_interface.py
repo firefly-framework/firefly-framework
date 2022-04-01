@@ -30,22 +30,14 @@ from sqlalchemy.exc import InvalidRequestError, ProgrammingError
 from sqlalchemy.orm import Session, mapper, relationship
 from sqlalchemy.sql.ddl import CreateSchema
 
-TYPE_MAPPINGS = {
-    float: lambda: Float(48),
-    int: lambda: Integer,
-    datetime: lambda: DateTime,
-    date: lambda: Date,
-    bool: lambda: Boolean,
-}
-
 
 # noinspection PyDataclass
 class SqlalchemyStorageInterface(ffd.HasMemoryCache, ffd.LoggerAware):
     _context_map: ffd.ContextMap = None
+    _map_entities: ffd.MapEntities = None
     _metadata: MetaData = None
     _session: Session = None
     _engine: Engine = None
-    _stack: list = None
 
     def __init__(self):
         if not self._cache_get('initialized'):
@@ -53,284 +45,24 @@ class SqlalchemyStorageInterface(ffd.HasMemoryCache, ffd.LoggerAware):
             self._cache_set('initialized', True)
 
     def _initialize(self):
-        self._stack = []
-        for context in self._context_map.contexts:
-            if context.name == 'firefly':
-                continue
-            for entity in context.entities:
-                self._map_entity(entity)
+        self._map_entities()
         self._metadata.create_all()
-
-    def _map_entity(self, entity: Type[ffd.Entity]):
-        self.debug(f'_map_entity: {entity}')
-        if entity in self._stack:
-            self.debug(f'Entity {entity} is already mapped or being mapped. Bailing out.')
-            return
-        self._stack.append(entity)
-
-        schema, table_name = self._fqtn(entity).split('.')
-        try:
-            self._engine.execute(CreateSchema(schema))
-        except ProgrammingError as e:
-            if 'already exists' not in str(e):
-                raise e
-        args = [table_name, self._metadata]
-        kwargs = {
-            'schema': schema,
-        }
-        types = get_type_hints(entity)
-        indexes = {}
-        relationships = self._get_relationships(entity)
-        join_table = None
-
-        for field in fields(entity):
-            if field.name.startswith('_'):
-                self.debug(f'Skipping private property {field.name}')
-                continue
-
-            t = types[field.name]
-            column_args = [field.name]
-            column_kwargs = {}
-
-            if inspect.isclass(t) and issubclass(t, ffd.Entity):
-                self._map_entity(t)
-                column_args[0] = column_args[0] + '_id'
-                column_args.append(UUID)
-
-            elif ffd.is_type_hint(t) and ffd.get_origin(t) is List:
-                self._map_entity(ffd.get_args(t)[0])
-                if relationships[field.name]['target_property'] is not None and \
-                        relationships[field.name]['other_side'] == 'many':
-                    names = [table_name, self._fqtn(relationships[field.name]['target']).split('.')[-1]]
-                    names.sort()
-                    join_table = Table(
-                        f'{names[0]}_{names[1]}',
-                        self._metadata,
-                        Column(inflection.underscore(entity.__name__)),
-                        Column(inflection.underscore(relationships[field.name]['target'].__name__))
-                    )
-                self.debug(f'property {field.name} is a list... not adding any columns')
-                continue
-
-            elif t is str:
-                self.debug(f'{field.name} is a string')
-                length = field.metadata.get('length')
-                if length is None:
-                    self.debug('No length... mapping as text field')
-                    column_args.append(Text)
-                else:
-                    self.debug('Has a length... mapping as varchar')
-                    column_args.append(String(length=length))
-
-            else:
-                self.debug(f'Default type mapping: {TYPE_MAPPINGS[t]()}')
-                column_args.append(TYPE_MAPPINGS[t]())
-
-            if field.metadata.get('id') is True:
-                self.debug(f'{field.name} is an id')
-                if field.metadata.get('is_uuid') is True:
-                    self.debug(f'column is a uuid, changing type to UUID')
-                    column_args[1] = UUID
-                column_kwargs['primary_key'] = True
-
-            if field.metadata.get('required') is True:
-                self.debug(f'{field.name} is required. Setting nullable to false')
-                column_kwargs['nullable'] = False
-
-            if inspect.isclass(t) and issubclass(t, ffd.Entity):
-                self.debug(f'{field.name} is an Entity reference. Adding a foreign key.')
-                column_args.append(ForeignKey(f'{self._fqtn(t)}.{t.id_name()}'))
-
-            c = Column(*column_args, **column_kwargs)
-            self.debug(f'Adding column {str(c)}')
-            args.append(c)
-
-            idx = field.metadata.get('index')
-            if idx is not None:
-                self.debug(f'{field.name} is an index')
-                if idx is True:
-                    indexes[
-                        f'idx_{entity.get_class_context()}_{inflection.tableize(entity.__name__)}_{field.name}'
-                    ] = field.name
-                else:
-                    if idx not in indexes:
-                        indexes[idx] = [field.name]
-                    else:
-                        indexes[idx].append(field.name)
-
-        self._add_indexes(args, indexes, entity.get_class_context(), inflection.tableize(entity.__name__))
-
-        try:
-            table = Table(*args, **kwargs)
-        except InvalidRequestError as e:
-            if 'already defined' in str(e):
-                self._stack.pop()
-                return
-            raise e
-
-        properties = {}
-        for k, v in relationships.items():
-            kwargs = {}
-            if v['other_side'] is not None:
-                kwargs['back_populates'] = v['target_property']
-            if v['metadata'].get('cascade') is not None:
-                kwargs['cascade'] = v['metadata'].get('cascade')
-
-            if v['this_side'] == 'one':
-                properties[k] = relationship(v['target'], **kwargs)
-
-            elif v['this_side'] == 'many':
-                properties[k] = relationship(v['target'], **kwargs)
-
-        for k, v in properties.items():
-            print(v)
-        mapper(entity, table, properties=properties)
-        self._stack.pop()
 
     def create_functions(self):
         pass
 
-    def _get_relationships(self, entity: Type[ffd.Entity], caller: Type[ffd.Entity] = None):
-        relationships = {}
-        annotations_ = get_type_hints(entity)
-        for field in fields(entity):
-            k = field.name
-            v = annotations_[k]
-
-            if k.startswith('_'):
-                continue
-
-            if isinstance(v, type) and issubclass(v, ffd.Entity):
-                relationships[k] = {
-                    'field_name': k,
-                    'target': v,
-                    'this_side': 'one',
-                    'relationships': self._get_relationships(v, entity) if v is not caller else {},
-                    'fqtn': self._fqtn(v),
-                    'metadata': field.metadata,
-                }
-
-                relationships[k]['other_side'] = None
-                relationships[k]['target_property'] = None
-                for child_k, child_v in relationships[k]['relationships'].items():
-                    if child_v is entity:
-                        relationships[k]['other_side'] = 'one'
-                        relationships[k]['target_property'] = child_k
-                    elif ffd.is_type_hint(child_v) and child_v is List and ffd.get_args(child_v)[0] is entity:
-                        relationships[k]['other_side'] = 'many'
-                        relationships[k]['target_property'] = child_k
-
-            elif ffd.is_type_hint(v):
-                origin = ffd.get_origin(v)
-                args = ffd.get_args(v)
-                if origin is List and issubclass(args[0], ffd.Entity):
-                    relationships[k] = {
-                        'field_name': k,
-                        'target': args[0],
-                        'this_side': 'many',
-                        'relationships': self._get_relationships(args[0], entity) if args[0] is not caller else {},
-                        'fqtn': self._fqtn(args[0]),
-                        'metadata': field.metadata,
-                    }
-
-                    relationships[k]['other_side'] = None
-                    relationships[k]['target_property'] = None
-                    for child_k, child_v in relationships[k]['relationships'].items():
-                        if child_v is entity:
-                            relationships[k]['other_side'] = 'one'
-                            relationships[k]['target_property'] = child_k
-                        elif ffd.is_type_hint(child_v) and child_v is List and ffd.get_args(child_v)[0] is entity:
-                            relationships[k]['other_side'] = 'many'
-                            relationships[k]['target_property'] = child_k
-
-        return relationships
-
-    @staticmethod
-    def _add_indexes(args: list, indexes: dict, context: str, table: str):
-        for k, v in indexes.items():
-            if str(k).startswith('idx_'):
-                args.append(Index(k, v))
-            else:
-                idx_args = [f'idx_{context}_{table}']
-                for column in v:
-                    idx_args[0] += f'_{column}'
-                    idx_args.append(column)
-                args.append(Index(*idx_args))
-
-    @staticmethod
-    def _fqtn(entity: Type[ffd.Entity]):
-        return inflection.tableize(entity.get_fqn())
-
-    def _add(self, entity: Union[ffd.Entity, List[ffd.Entity]]):
+    def add(self, entity: Union[ffd.Entity, List[ffd.Entity]]):
         list(map(
             lambda e: self._session.add(e),
             [entity] if not isinstance(entity, list) else entity
         ))
 
-    def _generate_select(self, entity_type: Type[ffd.Entity], criteria: ffd.BinaryOp = None, limit: int = None,
-                         offset: int = None, sort: Tuple[Union[str, Tuple[str, bool]]] = None, count: bool = False):
-        indexes = [f.name for f in fields(entity_type)
-                   if f.metadata.get('index') is True or f.metadata.get('id') is True]
-        data = {
-                'columns': self._select_list(entity_type),
-                'count': count,
-            }
-        if criteria is not None:
-            data['criteria'] = criteria
-
-        if sort is not None:
-            sort_fields = []
-            for s in sort:
-                if str(s[0]) in indexes or self._map_indexes is False:
-                    sort_fields.append(s)
-            data['sort'] = sort_fields
-
-        if limit is not None:
-            data['limit'] = limit
-
-        if offset is not None:
-            data['offset'] = offset
-
-        data['relationships'] = self._get_relationships(entity_type)
-
-        return self._generate_query(entity_type, f'{self._sql_prefix}/select.sql', data)
-
-    def _all(self, entity_type: Type[ffd.Entity], criteria: ffd.BinaryOp = None, limit: int = None, offset: int = None,
+    def all(self, entity_type: Type[ffd.Entity], criteria: ffd.BinaryOp = None, limit: int = None, offset: int = None,
              sort: Tuple[Union[str, Tuple[str, bool]]] = None, raw: bool = False, count: bool = False):
-        self._cache = {}
-        sql, params = self._generate_select(
-            entity_type, criteria, limit=limit, offset=offset, sort=sort, count=count
-        )
-        results = self._execute(sql, params)
+        return self._session.query(entity_type).all()
 
-        ret = []
-        if count:
-            return results[0]['c']
-
-        for row in results:
-            self.debug('Result row: %s', dict(row))
-            ret.append(self._build_entity(entity_type, row, raw=raw))
-
-        return ret
-
-    def _find(self, uuid: str, entity_type: Type[ffd.Entity]):
-        results = self._execute(*self._generate_query(
-            entity_type,
-            f'{self._sql_prefix}/select.sql',
-            {
-                'columns': self._select_list(entity_type),
-                'criteria': ffd.Attr(entity_type.id_name()) == uuid,
-                'relationships': self._get_relationships(entity_type),
-            }
-        ))
-
-        if len(results) == 0:
-            return None
-
-        if len(results) > 1:
-            raise ffd.MultipleResultsFound()
-
-        return self._build_entity(entity_type, results[0])
+    def find(self, uuid: str, entity_type: Type[ffd.Entity]):
+        return self._session.query(entity_type).get(uuid)
 
     def _remove(self, entity: Union[ffd.Entity, List[ffd.Entity], Callable]):
         if isinstance(entity, (ffd.Entity, list)):

@@ -11,9 +11,30 @@
 #
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
+from pprint import pprint
 
-from firefly_test.iam import User
+import firefly_test.todo.domain as domain
+from firefly import ParseRelationships
+import pytest
 
 
-def test_something(registry):
-        users = registry(User)
+def test_one_to_one(sut):
+    relationships = sut(domain.User)
+
+    assert 'settings' in relationships
+    assert relationships['settings']['this_side'] == 'one'
+    assert relationships['settings']['other_side'] == 'one'
+    assert relationships['todo_lists']['other_side'] == 'one'
+    assert relationships['todo_lists']['target_property'] == 'user'
+
+
+def test_many_to_one(sut):
+    relationships = sut(domain.TodoList)
+
+    print()
+    pprint(relationships)
+
+
+@pytest.fixture()
+def sut():
+    return ParseRelationships()

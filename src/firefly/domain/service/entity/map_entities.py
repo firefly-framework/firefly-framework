@@ -43,6 +43,10 @@ TYPE_MAPPINGS = {
 
 
 class MapEntities(DomainService, HasMemoryCache):
+    """
+    TODO: Add support for association objects?
+    TODO: Hash mapping?
+    """
     _get_relationships: ParseRelationships = None
     _engine: Engine = None
     _metadata: MetaData = None

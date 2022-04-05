@@ -14,19 +14,19 @@
 
 from __future__ import annotations
 
-from pprint import pprint
 from typing import List, Callable, Union, Tuple, Optional
 
-import firefly.domain as ffd
-import firefly.infrastructure as ffi
-import inflection
-from firefly.domain.repository.repository import T
+from firefly.domain.entity.entity import Entity, optional, list_
+from firefly.domain.repository.repository import T, Repository
+from firefly.domain.repository.search_criteria import BinaryOp, EntityAttributeSpy
+from firefly.domain.value_object import ValueObject
+from firefly.infrastructure.repository.abstract_storage_interface import AbstractStorageInterface
 
 DEFAULT_LIMIT = 999999999999999999
 
 
-class AbstractRepository(ffd.Repository[T]):
-    def __init__(self, interface: ffi.AbstractStorageInterface):
+class AbstractRepository(Repository[T]):
+    def __init__(self, interface: AbstractStorageInterface):
         super().__init__()
 
         self._entity_type = self._type()
@@ -46,7 +46,7 @@ class AbstractRepository(ffd.Repository[T]):
                 self.debug('Entity added to repository: %s', str(e))
         self._state = 'partial'
 
-    def remove(self, x: Union[T, List[T], Tuple[T], Callable, ffd.BinaryOp], **kwargs):
+    def remove(self, x: Union[T, List[T], Tuple[T], Callable, BinaryOp], **kwargs):
         if self._parent is not None:
             self._parent.remove(x)
 
@@ -57,10 +57,10 @@ class AbstractRepository(ffd.Repository[T]):
         for x in xs:
             self.debug('Entity removed from repository: %s', str(x))
             self._deletions.append(x)
-            if isinstance(x, ffd.Entity) and x in self._entities:
+            if isinstance(x, Entity) and x in self._entities:
                 self._entities.remove(x)
 
-    def find(self, x: Union[str, Callable, ffd.BinaryOp], **kwargs) -> T:
+    def find(self, x: Union[str, Callable, BinaryOp], **kwargs) -> T:
         ret = None
         if isinstance(x, str):
             entity = self._find_checked_out_entity(x)
@@ -68,7 +68,7 @@ class AbstractRepository(ffd.Repository[T]):
                 return entity
             ret = self._interface.find(x, self._entity_type)
         else:
-            if not isinstance(x, ffd.BinaryOp):
+            if not isinstance(x, BinaryOp):
                 x = self._get_search_criteria(x)
             results = self._interface.all(self._entity_type, x)
             if len(results) > 0:
@@ -81,16 +81,16 @@ class AbstractRepository(ffd.Repository[T]):
 
         return ret
 
-    def filter(self, x: Union[Callable, ffd.BinaryOp], **kwargs) -> AbstractRepository:
+    def filter(self, x: Union[Callable, BinaryOp], **kwargs) -> AbstractRepository:
         self._query_details.update(kwargs)
         self._query_details['criteria'] = x
 
         return self.copy()
 
-    def _do_filter(self, criteria: Union[Callable, ffd.BinaryOp], limit: int = None, offset: int = None,
+    def _do_filter(self, criteria: Union[Callable, BinaryOp], limit: int = None, offset: int = None,
                    raw: bool = False, sort: tuple = None) -> List[T]:
         if criteria is not None:
-            criteria = self._get_search_criteria(criteria) if not isinstance(criteria, ffd.BinaryOp) else criteria
+            criteria = self._get_search_criteria(criteria) if not isinstance(criteria, BinaryOp) else criteria
         if self._state == 'full':
             entities = list(filter(lambda e: criteria.matches(e), self._entities))
         else:
@@ -116,7 +116,7 @@ class AbstractRepository(ffd.Repository[T]):
             return list(self).sort(**kwargs)
 
         if not isinstance(cb, tuple):
-            cb = cb(ffd.EntityAttributeSpy(self._entity_type))
+            cb = cb(EntityAttributeSpy(self._entity_type))
             if not isinstance(cb, tuple):
                 cb = [(cb,)]
         self._query_details['sort'] = cb
@@ -153,7 +153,7 @@ class AbstractRepository(ffd.Repository[T]):
 
     def __len__(self):
         params = self._query_details.copy()
-        if 'criteria' in params and not isinstance(params['criteria'], ffd.BinaryOp):
+        if 'criteria' in params and not isinstance(params['criteria'], BinaryOp):
             params['criteria'] = self._get_search_criteria(params['criteria'])
         return self._interface.all(self._entity_type, count=True, **params)
 
@@ -248,11 +248,11 @@ class AbstractRepository(ffd.Repository[T]):
                 self._interface.drop_index(self._entity_type, ti)
 
 
-class Index(ffd.ValueObject):
-    name: str = ffd.optional()
-    table: str = ffd.optional()
-    columns: List[str] = ffd.list_()
-    unique: bool = ffd.optional(default=False)
+class Index(ValueObject):
+    name: str = optional()
+    table: str = optional()
+    columns: List[str] = list_()
+    unique: bool = optional(default=False)
 
     def __post_init__(self):
         if self.name is None:

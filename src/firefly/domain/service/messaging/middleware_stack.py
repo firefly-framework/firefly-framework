@@ -16,15 +16,11 @@ from __future__ import annotations
 
 from typing import List, Callable
 
-from firefly.domain.service.messaging.middleware import Middleware
 import firefly.domain as ffd
-
-# __pragma__('kwargs')
-# __pragma__('opov')
 
 
 class MiddlewareStack:
-    def __init__(self, middleware: List[Middleware]):
+    def __init__(self, middleware: List[ffd.Middleware]):
         self._middleware = middleware
 
     @property

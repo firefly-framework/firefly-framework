@@ -12,15 +12,15 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-# from .api_gateway import ApiGateway
-# from .cli_endpoint import CliEndpoint
-# from .configuration import Configuration
-# from .context import Context
-# from .context_map import ContextMap
-# from .deployment import Deployment
-# from .endpoint import Endpoint
-# from .http_endpoint import HttpEndpoint
-# from .mutex import Mutex
-# from .service import Service
-# from .timer import Timer
-# from .user import User
+from __future__ import annotations
+
+from typing import Type
+
+import firefly.domain as ffd
+
+
+class EntityRegistry(ffd.DomainService):
+    _entities: dict = {}
+
+    def register(self, entity: Type[ffd.Entity]):
+        self._entities[entity] = {}

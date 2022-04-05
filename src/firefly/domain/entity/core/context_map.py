@@ -12,24 +12,15 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations
-
 from typing import List, Union
 
 import firefly as ff
 import firefly.domain as ffd
-import firefly_di as di
-from firefly.domain.entity.core.cli_app import CliApp
-from firefly.domain.entity.core.cli_endpoint import CliEndpoint
-
-from ..aggregate_root import AggregateRoot
-from ..entity import list_, hidden
 
 
-class ContextMap(AggregateRoot):
-    contexts: List[ffd.Context] = list_()
-    _config: ffd.Configuration = hidden()
-    _firefly_container: di.Container = hidden()
+class ContextMap(ffd.AggregateRoot):
+    contexts: List[ffd.Context] = ffd.list_()
+    _config: ffd.Configuration = ffd.hidden()
 
     def __post_init__(self):
         for name, config in self._config.contexts.items():
@@ -109,10 +100,10 @@ class ContextMap(AggregateRoot):
             return message.split('.')[0]
         return message.get_context()
 
-    def get_cli_app(self, name: str):
-        app = CliApp(name=name)
-        for context in self.contexts:
-            for endpoint in context.endpoints:
-                if isinstance(endpoint, CliEndpoint) and endpoint.app == name:
-                    app.endpoints.append(endpoint)
-        return app
+    # def get_cli_app(self, name: str):
+    #     app = CliApp(name=name)
+    #     for context in self.contexts:
+    #         for endpoint in context.endpoints:
+    #             if isinstance(endpoint, CliEndpoint) and endpoint.app == name:
+    #                 app.endpoints.append(endpoint)
+    #     return app

@@ -40,7 +40,7 @@ class MigrateRepositories(ff.ApplicationService):
             if context.is_extension:
                 continue
 
-            for entity in context.entities:
+            for entity in context._entities:
                 if not issubclass(entity, ff.AggregateRoot):
                     continue
 

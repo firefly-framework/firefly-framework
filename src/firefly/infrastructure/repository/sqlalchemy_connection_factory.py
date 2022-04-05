@@ -24,14 +24,12 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations
-
-import firefly.domain as ffd
-import firefly.infrastructure as ffi
+from firefly.domain.repository.connection_factory import ConnectionFactory
+from firefly.infrastructure.repository.sqlalchemy_storage_interface import SqlalchemyStorageInterface
 
 
-class SqlalchemyConnectionFactory(ffd.ConnectionFactory):
-    _sqlalchemy_storage_interface: ffi.SqlalchemyStorageInterface = None
+class SqlalchemyConnectionFactory(ConnectionFactory):
+    _sqlalchemy_storage_interface: SqlalchemyStorageInterface = None
 
     def __call__(self, **kwargs):
         return self._sqlalchemy_storage_interface

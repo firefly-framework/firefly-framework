@@ -60,7 +60,7 @@ class MapEntities(DomainService, HasMemoryCache):
             for context in self._context_map.contexts:
                 if context.name == 'firefly':
                     continue
-                entities.extend(context.entities)
+                entities.extend(context._entities)
 
         self._add_relationship_metadata(entities)
         list(map(lambda e: self._map_entity(e), entities))

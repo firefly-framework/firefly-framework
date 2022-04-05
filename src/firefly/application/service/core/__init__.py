@@ -12,11 +12,11 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from .auto_generate_aggregate_apis import AutoGenerateAggregateApis
-from .configure_deployment import ConfigureDeployment
-from .configure_storage import ConfigureStorage
-from .load_application_layer import LoadApplicationLayer
-from .load_containers import LoadContainers
-from .load_domain_layer import LoadDomainLayer
-from .load_infrastructure_layer import LoadInfrastructureLayer
-from .load_presentation_layer import LoadPresentationLayer
+# from .auto_generate_aggregate_apis import AutoGenerateAggregateApis
+# from .configure_deployment import ConfigureDeployment
+# from .configure_storage import ConfigureStorage
+# from .load_application_layer import LoadApplicationLayer
+# from .load_containers import LoadContainers
+# from .load_domain_layer import LoadDomainLayer
+# from .load_infrastructure_layer import LoadInfrastructureLayer
+# from .load_presentation_layer import LoadPresentationLayer

@@ -16,25 +16,20 @@ from __future__ import annotations
 
 import inspect
 from dataclasses import fields
-from datetime import datetime, date
-from pprint import pprint
 from typing import Type, get_type_hints, List, Union, Callable, Dict, Tuple
 
-import firefly.domain as ffd
 import inflection
-from sqlalchemy import MetaData, Float, Integer, DateTime, Text, String, Boolean, Date, ForeignKey, Column, Table, \
-    Index
-from sqlalchemy.dialects.postgresql import UUID
+from firefly.domain.service.logging.logger import LoggerAware
+from firefly.domain.utils import HasMemoryCache
+from sqlalchemy import MetaData, Column, Index
 from sqlalchemy.engine import Engine
-from sqlalchemy.exc import InvalidRequestError, ProgrammingError
-from sqlalchemy.orm import Session, mapper, relationship
-from sqlalchemy.sql.ddl import CreateSchema
+from sqlalchemy.orm import Session
 
 
 # noinspection PyDataclass
-class SqlalchemyStorageInterface(ffd.HasMemoryCache, ffd.LoggerAware):
-    _context_map: ffd.ContextMap = None
-    _map_entities: ffd.MapEntities = None
+class SqlalchemyStorageInterface(HasMemoryCache, LoggerAware):
+    _context_map: ContextMap = None
+    _map_entities: MapEntities = None
     _metadata: MetaData = None
     _session: Session = None
     _engine: Engine = None
@@ -51,30 +46,30 @@ class SqlalchemyStorageInterface(ffd.HasMemoryCache, ffd.LoggerAware):
     def create_functions(self):
         pass
 
-    def add(self, entity: Union[ffd.Entity, List[ffd.Entity]]):
+    def add(self, entity: Union[Entity, List[Entity]]):
         list(map(
             lambda e: self._session.add(e),
             [entity] if not isinstance(entity, list) else entity
         ))
 
-    def all(self, entity_type: Type[ffd.Entity], criteria: ffd.BinaryOp = None, limit: int = None, offset: int = None,
+    def all(self, entity_type: Type[Entity], criteria: BinaryOp = None, limit: int = None, offset: int = None,
              sort: Tuple[Union[str, Tuple[str, bool]]] = None, raw: bool = False, count: bool = False):
         return self._session.query(entity_type).all()
 
-    def find(self, uuid: str, entity_type: Type[ffd.Entity]):
+    def find(self, uuid: str, entity_type: Type[Entity]):
         return self._session.query(entity_type).get(uuid)
 
-    def _remove(self, entity: Union[ffd.Entity, List[ffd.Entity], Callable]):
-        if isinstance(entity, (ffd.Entity, list)):
+    def _remove(self, entity: Union[Entity, List[Entity], Callable]):
+        if isinstance(entity, (Entity, list)):
             list(map(
                 lambda e: self._session.delete(e),
                 [entity] if not isinstance(entity, list) else entity
             ))
 
-    def _update(self, entity: ffd.Entity):
-        criteria = ffd.Attr(entity.id_name()) == entity.id_value()
+    def _update(self, entity: Entity):
+        criteria = Attr(entity.id_name()) == entity.id_value()
         try:
-            criteria &= ffd.Attr('version') == getattr(entity, '__ff_version')
+            criteria &= Attr('version') == getattr(entity, '__ff_version')
         except AttributeError:
             pass
 
@@ -87,20 +82,20 @@ class SqlalchemyStorageInterface(ffd.HasMemoryCache, ffd.LoggerAware):
             }
         ))
 
-    def clear(self, entity: Type[ffd.Entity]):
+    def clear(self, entity: Type[Entity]):
         self.execute(*self._generate_query(entity, f'{self._sql_prefix}/truncate_table.sql'))
 
-    def destroy(self, entity: Type[ffd.Entity]):
+    def destroy(self, entity: Type[Entity]):
         self.execute(*self._generate_query(entity, f'{self._sql_prefix}/drop_table.sql'))
 
     @staticmethod
-    def _fqtn(entity: Type[ffd.Entity]):
+    def _fqtn(entity: Type[Entity]):
         return inflection.tableize(entity.get_fqn())
 
-    def _check_prerequisites(self, entity: Type[ffd.Entity]):
+    def _check_prerequisites(self, entity: Type[Entity]):
         self._ensure_connected()
 
-    def get_entity_columns(self, entity: Type[ffd.Entity]):
+    def get_entity_columns(self, entity: Type[Entity]):
         ret = []
         annotations_ = get_type_hints(entity)
         for f in fields(entity):
@@ -129,20 +124,20 @@ class SqlalchemyStorageInterface(ffd.HasMemoryCache, ffd.LoggerAware):
 
         return ret
 
-    def get_table_columns(self, entity: Type[ffd.Entity]):
+    def get_table_columns(self, entity: Type[Entity]):
         return self._get_table_columns(entity)
 
-    def add_column(self, entity: Type[ffd.Entity], column: Column):
+    def add_column(self, entity: Type[Entity], column: Column):
         self.execute(
             *self._generate_query(entity, f'{self._sql_prefix}/add_column.sql', {'column': column})
         )
 
-    def drop_column(self, entity: Type[ffd.Entity], column: Column):
+    def drop_column(self, entity: Type[Entity], column: Column):
         self.execute(
             *self._generate_query(entity, f'{self._sql_prefix}/drop_column.sql', {'column': column})
         )
 
-    def get_entity_indexes(self, entity: Type[ffd.Entity]):
+    def get_entity_indexes(self, entity: Type[Entity]):
         ret = []
         table = self._fqtn(entity).replace('.', '_')
         for field_ in fields(entity):
@@ -164,20 +159,20 @@ class SqlalchemyStorageInterface(ffd.HasMemoryCache, ffd.LoggerAware):
 
         return ret
 
-    def get_table_indexes(self, entity: Type[ffd.Entity]):
+    def get_table_indexes(self, entity: Type[Entity]):
         return self._get_table_indexes(entity)
 
-    def create_index(self, entity: Type[ffd.Entity], index: Index):
+    def create_index(self, entity: Type[Entity], index: Index):
         self.execute(
             *self._generate_query(entity, f'{self._sql_prefix}/add_index.sql', {'index': index})
         )
 
-    def drop_index(self, entity: Type[ffd.Entity], index: Index):
+    def drop_index(self, entity: Type[Entity], index: Index):
         self.execute(
             *self._generate_query(entity, f'{self._sql_prefix}/drop_index.sql', {'index': index})
         )
 
-    def _register_aggregate_references(self, entity: ffd.Entity):
+    def _register_aggregate_references(self, entity: Entity):
         for k, v in self._get_relationships(entity.__class__).items():
             val = getattr(entity, k)
             if v['this_side'] == 'one':
@@ -188,10 +183,10 @@ class SqlalchemyStorageInterface(ffd.HasMemoryCache, ffd.LoggerAware):
                 list(map(self._register_aggregate_references, val or []))
 
     def _do_register_entity(self, entity):
-        if isinstance(entity, ffd.AggregateRoot):
+        if isinstance(entity, AggregateRoot):
             self._registry(entity.__class__).register_entity(entity)
 
-    def _build_entity(self, entity: Type[ffd.Entity], data, raw: bool = False):
+    def _build_entity(self, entity: Type[Entity], data, raw: bool = False):
         if raw is True:
             if self._map_all is True:
                 return data
@@ -211,7 +206,7 @@ class SqlalchemyStorageInterface(ffd.HasMemoryCache, ffd.LoggerAware):
 
         return ret
 
-    def _cache_aggregate(self, type_: type, id_: str, value: ffd.AggregateRoot):
+    def _cache_aggregate(self, type_: type, id_: str, value: AggregateRoot):
         if not isinstance(self._cache, dict):
             self._cache = {}
         if 'aggregates' not in self._cache:
@@ -227,7 +222,7 @@ class SqlalchemyStorageInterface(ffd.HasMemoryCache, ffd.LoggerAware):
     def execute(self, sql: str, params: dict = None):
         self._execute(sql, params)
 
-    def _generate_query(self, entity: Union[ffd.Entity, List[ffd.Entity], Type[ffd.Entity]], template: str, params: dict = None):
+    def _generate_query(self, entity: Union[Entity, List[Entity], Type[Entity]], template: str, params: dict = None):
         params = params or {}
         if isinstance(entity, list):
             entity = entity[0]
@@ -253,7 +248,7 @@ class SqlalchemyStorageInterface(ffd.HasMemoryCache, ffd.LoggerAware):
 
         return " ".join(sql.split()), params
 
-    def create_table(self, entity_type: Type[ffd.Entity]):
+    def create_table(self, entity_type: Type[Entity]):
         self.execute(
             *self._generate_query(
                 entity_type,
@@ -262,10 +257,10 @@ class SqlalchemyStorageInterface(ffd.HasMemoryCache, ffd.LoggerAware):
             )
         )
 
-    def create_schema(self, entity_type: Type[ffd.Entity]):
+    def create_schema(self, entity_type: Type[Entity]):
         print('create_schema')
 
-    def _data_fields(self, entity: ffd.Entity, add_new: bool = False):
+    def _data_fields(self, entity: Entity, add_new: bool = False):
         ret = {}
         for f in self.get_entity_columns(entity.__class__):
             if f.name == 'document' and not hasattr(entity, 'document'):
@@ -275,25 +270,25 @@ class SqlalchemyStorageInterface(ffd.HasMemoryCache, ffd.LoggerAware):
                     ret['version'] = getattr(entity, '__ff_version')
                 except AttributeError:
                     ret['version'] = 1
-            elif inspect.isclass(f.type) and issubclass(f.type, ffd.AggregateRoot):
+            elif inspect.isclass(f.type) and issubclass(f.type, AggregateRoot):
                 try:
                     ret[f.name] = getattr(entity, f.name).id_value()
                 except AttributeError:
                     if f.is_required:
-                        raise ffd.RepositoryError(f"{f.name} is a required field, but no value is present.")
+                        raise RepositoryError(f"{f.name} is a required field, but no value is present.")
                     ret[f.name] = None
-            elif ffd.is_type_hint(f.type):
-                origin = ffd.get_origin(f.type)
-                args = ffd.get_args(f.type)
+            elif is_type_hint(f.type):
+                origin = get_origin(f.type)
+                args = get_args(f.type)
                 if origin is List:
-                    if issubclass(args[0], ffd.AggregateRoot):
+                    if issubclass(args[0], AggregateRoot):
                         ret[f.name] = self._serializer.serialize(
                             list(map(lambda e: e.id_value(), getattr(entity, f.name)))
                         )
                     else:
                         ret[f.name] = self._serializer.serialize(getattr(entity, f.name))
                 elif origin is Dict:
-                    if issubclass(args[1], ffd.AggregateRoot):
+                    if issubclass(args[1], AggregateRoot):
                         ret[f.name] = {k: v.id_value() for k, v in getattr(entity, f.name).items()}
                     else:
                         ret[f.name] = self._serializer.serialize(getattr(entity, f.name))
@@ -302,11 +297,11 @@ class SqlalchemyStorageInterface(ffd.HasMemoryCache, ffd.LoggerAware):
                     ret[f.name] = self._serializer.serialize(getattr(entity, f.name))
             else:
                 ret[f.name] = getattr(entity, f.name)
-                if isinstance(ret[f.name], ffd.ValueObject):
+                if isinstance(ret[f.name], ValueObject):
                     ret[f.name] = self._serializer.serialize(ret[f.name])
         return ret
 
-    def _select_list(self, entity: Type[ffd.Entity]):
+    def _select_list(self, entity: Type[Entity]):
         if self._map_all:
             return list(map(lambda c: c.name, self.get_entity_columns(entity)))
         return ['document', 'version']

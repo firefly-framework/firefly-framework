@@ -14,16 +14,18 @@
 
 from __future__ import annotations
 
-import inspect
 from typing import Union, List
 
-import firefly as ff
+import firefly.domain.constants as const
 import firefly.domain.error as error
 
 
 class On:
     def __call__(self, event: Union[str, type, List[Union[str, type]]]):
         def on_wrapper(cls):
+            if not hasattr(cls, const.EVENTS):
+                setattr(cls, const.EVENTS, [])
+
             if isinstance(event, (list, tuple)):
                 for e in event:
                     self._apply_event(cls, e)
@@ -36,12 +38,9 @@ class On:
     @staticmethod
     def _apply_event(cls, event: Union[str, type]):
         try:
-            cls.add_event(event)
+            getattr(cls, const.EVENTS).append(event)
         except AttributeError:
-            if inspect.isfunction(cls):
-                ff.add_event(cls, event)
-            else:
-                raise error.FrameworkError('@on used on invalid target')
+            raise error.FrameworkError('@on used on invalid target')
 
 
 on = On()

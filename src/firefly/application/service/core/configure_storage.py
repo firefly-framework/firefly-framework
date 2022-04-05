@@ -81,7 +81,7 @@ class ConfigureStorage(ffd.ApplicationService):
                     registered_aggregates.append(entity)
                     self._registry.register_factory(entity, factories[service])
             if 'default' in storage:
-                for entity in context.entities:
+                for entity in context._entities:
                     if issubclass(entity, ffd.AggregateRoot) and entity is not ffd.AggregateRoot \
                             and entity not in registered_aggregates:
                         self._registry.register_factory(entity, factories[storage.get('default')])

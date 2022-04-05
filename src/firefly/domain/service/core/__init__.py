@@ -15,13 +15,13 @@
 from abc import ABC, abstractmethod
 from typing import List, Callable
 
-from .agent_extension import AgentExtension
-from .application_service import ApplicationService
-from .device import Device
-from .domain_service import DomainService
-from .invoke_on import InvokeOn
-from .kernel import Kernel
-from .query_service import QueryService
+# from .agent_extension import AgentExtension
+# from .application_service import ApplicationService
+# from .device import Device
+# from .domain_service import DomainService
+# from .invoke_on import InvokeOn
+# from .kernel import Kernel
+# from .query_service import QueryService
 from ...entity.core.deployment import Deployment
 from ...meta.meta_aware import MetaAware
 

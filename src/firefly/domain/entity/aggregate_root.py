@@ -17,14 +17,14 @@ from __future__ import annotations
 from abc import ABC
 
 import firefly as ff
-from firefly.domain.entity.entity import Entity, hidden
+import firefly.domain as ffd
 from firefly.domain.meta.meta_aware import MetaAware
 
 
-class AggregateRoot(Entity, MetaAware, ABC):
-    _create_on: ff.TypeOfEvent = hidden()
-    _delete_on: ff.TypeOfEvent = hidden()
-    _update_on: ff.TypeOfEvent = hidden()
+class AggregateRoot(ffd.Entity, MetaAware, ABC):
+    _create_on: ff.TypeOfEvent = ffd.hidden()
+    _delete_on: ff.TypeOfEvent = ffd.hidden()
+    _update_on: ff.TypeOfEvent = ffd.hidden()
 
     @classmethod
     def get_create_on(cls):

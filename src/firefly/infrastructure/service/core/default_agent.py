@@ -56,7 +56,7 @@ class DefaultAgent(ffd.ApplicationService, ffd.LoggerAware):
 
     def _execute_ddl(self):
         for context in self._context_map.contexts:
-            for entity in context.entities:
+            for entity in context._entities:
                 if issubclass(entity, ffd.AggregateRoot) and entity is not ffd.AggregateRoot:
                     try:
                         repository = self._registry(entity)

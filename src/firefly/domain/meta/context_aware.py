@@ -14,14 +14,7 @@
 
 from __future__ import annotations
 
-# __pragma__('skip')
 from abc import ABC
-# __pragma__('noskip')
-# __pragma__ ('ecom')
-"""?
-from firefly.presentation.web.polyfills import ABC
-?"""
-# __pragma__ ('noecom')
 
 
 class ContextAware(ABC):

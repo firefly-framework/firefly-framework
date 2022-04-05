@@ -14,32 +14,15 @@
 
 from __future__ import annotations
 
-# __pragma__('skip')
 from abc import ABCMeta
-
 from dataclasses import dataclass
-
-# __pragma__('noskip')
-# __pragma__('ecom')
-"""?
-from firefly.presentation.web.polyfills import ABCMeta, dataclass
-?"""
-# __pragma__('noecom')
 
 import firefly.domain as ffd
 
 
-# __pragma__('kwargs')
 class MessageMeta(ABCMeta):
     def __new__(mcs, name, bases, dct, **kwargs):
-        # __pragma__('skip')
         my_dict = dct.copy()
-        # __pragma__('noskip')
-        # __pragma__('ecom')
-        """?
-        my_dict = dct
-        ?"""
-        # __pragma__('noecom')
 
         if 'fields_' in kwargs and 'annotations_' in kwargs:
             for k, v in kwargs['fields_'].items():
@@ -57,4 +40,3 @@ class MessageMeta(ABCMeta):
         if self is ffd.Message:
             return True
         return self in instance.__class__.__bases__
-# __pragma__('nokwargs')

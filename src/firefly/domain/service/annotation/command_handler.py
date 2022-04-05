@@ -14,11 +14,10 @@
 
 from __future__ import annotations
 
-import inspect
 import os
 from typing import Union
 
-import firefly as ff
+import firefly.domain.constants as const
 import firefly.domain.error as error
 
 
@@ -26,12 +25,10 @@ class CommandHandler:
     def __call__(self, command: Union[str, type, None] = None):
         def command_wrapper(cls):
             try:
-                cls.set_command(command or f'{os.environ.get("CONTEXT")}.{cls.__name__}')
+                setattr(cls, const.COMMAND, [command or f'{os.environ.get("CONTEXT")}.{cls.__name__}'])
             except AttributeError:
-                if inspect.isfunction(cls):
-                    ff.set_command(cls, command)
-                else:
-                    raise error.FrameworkError('@command_handler used on invalid target')
+                raise error.FrameworkError('@command_handler used on invalid target')
+
             return cls
 
         return command_wrapper

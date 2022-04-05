@@ -37,11 +37,11 @@ class AutoGenerateAggregateApis(ApplicationService, LoggerAware):
 
     def __call__(self, **kwargs):
         for context in self._context_map.contexts:
-            for entity in context.entities:
+            for entity in context._entities:
                 self._process_entity(context, entity)
             if 'extends' in context.config:
                 base_context = self._context_map.get_context(context.config['extends'])
-                for entity in base_context.entities:
+                for entity in base_context._entities:
                     entity._context = context.name
                     self._process_entity(context, entity)
 

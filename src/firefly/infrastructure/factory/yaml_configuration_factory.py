@@ -17,16 +17,17 @@ from __future__ import annotations
 import importlib
 import os
 import re
-from pprint import pprint
 
-import firefly.domain as ffd
 import inflection
 import yaml
 from dotenv import load_dotenv
 from firefly.domain.entity.core.configuration import Configuration
+from firefly.domain.error import ProjectConfigNotFound, ConfigurationError
+from firefly.domain.factory.configuration_factory import ConfigurationFactory
+from firefly.domain.utils import merge
 
 
-class YamlConfigurationFactory(ffd.ConfigurationFactory):
+class YamlConfigurationFactory(ConfigurationFactory):
     def __call__(self) -> Configuration:
         configuration = Configuration(_config=self._load_config())
         for context, config in configuration.contexts.items():
@@ -49,14 +50,14 @@ class YamlConfigurationFactory(ffd.ConfigurationFactory):
             except FileNotFoundError:
                 continue
 
-            configuration.contexts[context] = ffd.merge(
+            configuration.contexts[context] = merge(
                 context_config['contexts'].get(context) or {},
                 configuration.contexts[context] or {},
             )
 
         env = os.environ['FF_ENVIRONMENT']
         if env in configuration.environments and isinstance(configuration.environments[env], dict):
-            configuration.contexts = ffd.merge(
+            configuration.contexts = merge(
                 configuration.contexts,
                 configuration.environments[env]
             )
@@ -90,7 +91,7 @@ class YamlConfigurationFactory(ffd.ConfigurationFactory):
             match = path_matcher.match(value)
             env_var = match.groups()[1]
             if env_var not in os.environ:
-                raise ffd.ConfigurationError(f'Environment variable {env_var} is used in config, but is not set')
+                raise ConfigurationError(f'Environment variable {env_var} is used in config, but is not set')
             return str(value).replace(f'${{{env_var}}}', os.environ.get(env_var))
 
         yaml.add_implicit_resolver('!path', path_matcher, None, yaml.SafeLoader)
@@ -103,7 +104,7 @@ class YamlConfigurationFactory(ffd.ConfigurationFactory):
 
         try:
             original_dir = self._move_to_project_root()
-        except ffd.ProjectConfigNotFound:
+        except ProjectConfigNotFound:
             return {}
 
         with open('firefly.yml', 'r') as fp:
@@ -130,6 +131,6 @@ class YamlConfigurationFactory(ffd.ConfigurationFactory):
             os.chdir('..')
 
         if not os.path.exists('firefly.yml'):
-            raise ffd.ProjectConfigNotFound()
+            raise ProjectConfigNotFound()
 
         return original_dir

@@ -14,9 +14,9 @@
 
 from __future__ import annotations
 
-from firefly.domain.entity.messaging.message import Message
+import firefly.domain as ffd
 from firefly.domain.meta.message_meta import MessageMeta
 
 
-class Command(Message, metaclass=MessageMeta):
+class Command(ffd.Message, metaclass=MessageMeta):
     _async: bool = False

@@ -12,26 +12,18 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations
-
-import inspect
 from abc import ABC, abstractmethod
 from dataclasses import fields
 from datetime import datetime
-from typing import Type, get_type_hints, List, Union, Callable, Dict, Tuple, Any
+from typing import Type, get_type_hints, List, Union, Callable, Tuple, Any
 
-import firefly.domain as ffd
 import inflection
-# noinspection PyDataclass
-from jinjasql import JinjaSql
-
-from .rdb_repository import Index, Column
 
 
 # noinspection PyDataclass
-class AbstractStorageInterface(ffd.LoggerAware, ABC):
-    _serializer: ffd.Serializer = None
-    _registry: ffd.Registry = None
+class AbstractStorageInterface(LoggerAware, ABC):
+    _serializer: Serializer = None
+    _registry: Registry = None
     _cache: dict = {}
 
     def disconnect(self):

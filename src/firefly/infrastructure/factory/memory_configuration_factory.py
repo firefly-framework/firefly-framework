@@ -14,10 +14,9 @@
 
 from __future__ import annotations
 
-import firefly.domain as ffd
-from firefly.domain.entity.core.configuration import Configuration
+import firefly as ff
 
 
-class MemoryConfigurationFactory(ffd.ConfigurationFactory):
-    def __call__(self, config: dict) -> Configuration:
-        return Configuration(_config=config)
+class MemoryConfigurationFactory(ff.ConfigurationFactory):
+    def __call__(self, config: dict) -> ff.Configuration:
+        return ff.Configuration(_config=config)

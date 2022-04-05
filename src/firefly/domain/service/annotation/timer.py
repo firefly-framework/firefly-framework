@@ -39,6 +39,7 @@
 from __future__ import annotations
 
 import firefly as ff
+import firefly.domain.constants as const
 import firefly.domain.error as error
 from firefly.domain.error import ConfigurationError
 
@@ -62,9 +63,12 @@ class Timer:
         cron = ' '.join(parts)
 
         def wrapper(cls):
+            if not hasattr(cls, const.TIMERS):
+                setattr(cls, const.TIMERS, [])
+
             t = ff.Timer(cron=cron, environment=environment, command=cls)
             try:
-                cls.set_timer(t)
+                getattr(cls, const.TIMERS).append(t)
             except AttributeError:
                 raise error.FrameworkError('@timer used on invalid target')
             return cls

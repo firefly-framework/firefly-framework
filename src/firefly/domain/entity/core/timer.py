@@ -16,13 +16,12 @@ from __future__ import annotations
 
 from typing import Union, Type
 
-from ..entity import Entity, id_, optional, required
-from ..messaging.command import Command
+import firefly.domain as ffd
 
 
-class Timer(Entity):
-    id: str = id_()
-    command: Union[str, Type[Command]] = required()
-    environment: str = optional()
-    cron: str = optional()
+class Timer(ffd.Entity):
+    id: str = ffd.id_()
+    command: Union[str, Type[ffd.Command]] = ffd.required()
+    environment: str = ffd.optional()
+    cron: str = ffd.optional()
     # rate: str = optional()

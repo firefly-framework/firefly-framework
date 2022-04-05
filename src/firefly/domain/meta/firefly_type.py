@@ -15,17 +15,9 @@
 from __future__ import annotations
 
 import typing
-
-from firefly.domain.meta.context_aware import ContextAware
-
-# __pragma__('skip')
 from abc import ABC
-# __pragma__('noskip')
-# __pragma__ ('ecom')
-"""?
-from firefly.presentation.web.polyfills import ABC
-?"""
-# __pragma__ ('noecom')
+
+from .context_aware import ContextAware
 
 
 class FireflyType(ContextAware, ABC):

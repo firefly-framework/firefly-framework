@@ -34,8 +34,6 @@ setuptools.setup(
         'dateparser>=0.7.4',
         'dirsync>=2.2.3',
         'inflection>=0.3.1',
-        'Jinja2==2.11.3',
-        'jinjasql>=0.1.8',
         'psycopg2>=2.9.3',
         'python-dateutil>=2.8.1',
         'python-dotenv>=0.10.3',
@@ -55,7 +53,7 @@ setuptools.setup(
         'infrastructure/repository/rdb_storage_interfaces/templates/**/*.sql',
     ]},
     classifiers=[
-        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.9",
         "Operating System :: OS Independent",
     ]
 )

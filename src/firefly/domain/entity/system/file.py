@@ -16,11 +16,10 @@ from __future__ import annotations
 
 from typing import Union
 
-from .. import ValueObject
-from ..entity import required, optional
+import firefly.domain as ffd
 
 
-class File(ValueObject):
-    name: str = required()
-    content: Union[bytes, str] = optional()  # Base64-Encoded
-    content_type: str = optional()
+class File(ffd.ValueObject):
+    name: str = ffd.required()
+    content: Union[bytes, str] = ffd.optional()  # Base64-Encoded
+    content_type: str = ffd.optional()

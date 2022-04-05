@@ -14,29 +14,16 @@
 
 from __future__ import annotations
 
-from typing import Union, List
-
-from firefly.domain.entity.entity import dict_
-
-# __pragma__('skip')
 import uuid
-
 from dataclasses import asdict, fields
-# __pragma__('noskip')
-# __pragma__('ecom')
-"""?
-from firefly.presentation.web.polyfills import uuid, asdict, fields
-?"""
-# __pragma__('noecom')
 
 import firefly.domain as ffd
-
 from firefly.domain.meta.firefly_type import FireflyType
 from firefly.domain.meta.message_meta import MessageMeta
 
 
 class Message(FireflyType, metaclass=MessageMeta):
-    headers: dict = dict_()
+    headers: dict = ffd.dict_()
     _id: str = None
     _context: str = None
 

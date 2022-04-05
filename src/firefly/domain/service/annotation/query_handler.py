@@ -14,10 +14,10 @@
 
 from __future__ import annotations
 
-import inspect
+import os
 from typing import Union
 
-import firefly as ff
+import firefly.domain.constants as const
 import firefly.domain.error as error
 
 
@@ -25,12 +25,10 @@ class QueryHandler:
     def __call__(self, query: Union[str, type, None] = None):
         def query_wrapper(cls):
             try:
-                cls.set_query(query)
+                setattr(cls, const.HTTP_ENDPOINTS, [query or f'{os.environ.get("CONTEXT")}.{cls.__name__}'])
             except AttributeError:
-                if inspect.isfunction(cls):
-                    ff.set_query(cls, query)
-                else:
-                    raise error.FrameworkError('@query_handler used on invalid target')
+                raise error.FrameworkError('@query_handler used on invalid target')
+
             return cls
 
         return query_wrapper

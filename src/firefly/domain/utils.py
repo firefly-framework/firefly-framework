@@ -84,27 +84,27 @@ def generate_dc(base: type, _cls, **kwargs):
     return wrapper(_cls)
 
 
-# Python 3.7
-if sys.version_info[1] == 7:
-    def is_type_hint(obj):
-        return isinstance(obj, (typing._GenericAlias, typing._SpecialForm))
+def is_type_hint(obj):
+    return isinstance(obj, (typing._GenericAlias, typing._SpecialForm))
 
-    def get_origin(obj):
-        try:
-            ret = obj.__origin__
-            if hasattr(ret, '__name__') and ret.__name__ in typing._normalize_alias:
-                return getattr(typing, typing._normalize_alias[ret.__name__])
-            return ret
-        except AttributeError:
-            return None
 
-    def get_args(obj):
-        if not is_type_hint(obj):
-            return None
-        try:
-            return obj.__args__
-        except AttributeError:
-            return None
+def get_origin(obj):
+    try:
+        ret = obj.__origin__
+        if hasattr(ret, '__name__') and ret.__name__ in typing._normalize_alias:
+            return getattr(typing, typing._normalize_alias[ret.__name__])
+        return ret
+    except AttributeError:
+        return None
+
+
+def get_args(obj):
+    if not is_type_hint(obj):
+        return None
+    try:
+        return obj.__args__
+    except AttributeError:
+        return None
 
 
 def is_aggregate_reference(t: typing.Any):
@@ -174,75 +174,6 @@ class ValueMeta(type):
         return dataclass(ret, frozen=True)
 
 
-def has_meta(cls):
-    return hasattr(cls, '__FIREFLY__')
-
-
-def check_for_meta(cls):
-    if not has_meta(cls):
-        cls.__FIREFLY__ = type.__new__(type, f'{cls.__name__}Meta', (ff.MetaAware,), {})
-
-
-def add_endpoint(cls, endpoint: ff.Endpoint):
-    check_for_meta(cls)
-    cls.__FIREFLY__.add_endpoint(endpoint)
-
-
-def add_event(cls, event: ff.TypeOfEvent):
-    check_for_meta(cls)
-    cls.__FIREFLY__.add_event(event)
-
-
-def set_command(cls, command: ff.TypeOfCommand):
-    check_for_meta(cls)
-    cls.__FIREFLY__.set_command(command)
-
-
-def set_query(cls, query: ff.TypeOfQuery):
-    check_for_meta(cls)
-    cls.__FIREFLY__.set_query(query)
-
-
-def get_endpoints(cls):
-    check_for_meta(cls)
-    return cls.__FIREFLY__.get_endpoints()
-
-
-def get_events(cls):
-    check_for_meta(cls)
-    return cls.__FIREFLY__.get_events()
-
-
-def get_command(cls):
-    check_for_meta(cls)
-    return cls.__FIREFLY__.get_command()
-
-
-def get_query(cls):
-    check_for_meta(cls)
-    return cls.__FIREFLY__.get_query()
-
-
-def has_endpoints(cls):
-    check_for_meta(cls)
-    return cls.__FIREFLY__.has_endpoints()
-
-
-def is_event_listener(cls):
-    check_for_meta(cls)
-    return cls.__FIREFLY__.is_event_listener()
-
-
-def is_command_handler(cls):
-    check_for_meta(cls)
-    return cls.__FIREFLY__.is_command_handler()
-
-
-def is_query_handler(cls):
-    check_for_meta(cls)
-    return cls.__FIREFLY__.is_query_handler()
-
-
 def merge(a, b, path=None):
     if path is None:
         path = []
@@ -267,7 +198,7 @@ def chunk(array: list, n: int):
 class HasMemoryCache(ABC):
     _cache: dict = {}
 
-    def _cache_set(self, key: str, value: Any):
+    def _cache_set(self, key: str, value: typing.Any):
         if not isinstance(self._cache, dict):
             self._cache = {}
 

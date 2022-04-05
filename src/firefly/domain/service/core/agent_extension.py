@@ -16,10 +16,10 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-import firefly.domain as ffd
+from firefly.domain.meta.meta_aware import MetaAware
 
 
-class AgentExtension(ffd.MetaAware, ABC):
+class AgentExtension(MetaAware, ABC):
     @abstractmethod
     def __call__(self, *args, **kwargs):
         pass

@@ -12,19 +12,20 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations
-
-from firefly.infrastructure import set_env
+from firefly.infrastructure.service import set_env
 
 
 @set_env
 def main():
-    from firefly.application import Container
-    container = Container()
-    container.kernel.boot()
-    container.cli_executor.run(
-        container.context_map.get_cli_app('firefly')
-    )
+    from firefly import Kernel
+    kernel = Kernel()
+    kernel.boot()
+    # from firefly.application import Container
+    # container = Container()
+    # container.kernel.boot()
+    # container.cli_executor.run(
+    #     container.context_map.get_cli_app('firefly')
+    # )
 
 
 # class CliOutput(ffd.Middleware):

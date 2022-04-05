@@ -14,9 +14,9 @@
 
 from __future__ import annotations
 
-from firefly.domain.entity.messaging.message import Message
+import firefly.domain as ffd
 from firefly.domain.meta.message_meta import MessageMeta
 
 
-class Event(Message, metaclass=MessageMeta):
+class Event(ffd.Message, metaclass=MessageMeta):
     pass

@@ -15,23 +15,25 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Union, Type
 
 import firefly.domain as ffd
 from firefly.domain.meta.firefly_type import FireflyType
-from firefly.domain.meta.meta_aware import MetaAware
 
 from ..logging.logger import LoggerAware
 from ..messaging.system_bus import SystemBusAware
 
 
-class ApplicationService(FireflyType, MetaAware, ABC, SystemBusAware, LoggerAware):
+class ApplicationService(FireflyType, ABC, SystemBusAware, LoggerAware):
     _event_buffer: ffd.EventBuffer = None
     _kernel: ffd.Kernel = None
 
     @abstractmethod
     def __call__(self, **kwargs):
         pass
+
+    @classmethod
+    def get_arguments(cls) -> dict:
+        return ffd.get_arguments(cls.__call__)
 
     def _buffer_events(self, events):
         if isinstance(events, list):
@@ -42,20 +44,3 @@ class ApplicationService(FireflyType, MetaAware, ABC, SystemBusAware, LoggerAwar
             self._event_buffer.append(events)
 
         return events
-
-    @classmethod
-    def get_arguments(cls) -> dict:
-        return ffd.get_arguments(cls.__call__)
-
-    @classmethod
-    def locate_message(cls, message: Union[str, Type[ffd.Message]]):
-        if cls.is_event_listener():
-            for event in cls.get_events():
-                if message == event:
-                    return event, 'event'
-        if cls.is_command_handler():
-            if message == cls.get_command():
-                return cls.get_command(), 'command'
-        if cls.is_query_handler():
-            if message == cls.get_query():
-                return cls.get_query(), 'query'

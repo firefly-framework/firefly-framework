@@ -12,15 +12,8 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-# from .api_gateway import ApiGateway
-# from .cli_endpoint import CliEndpoint
-# from .configuration import Configuration
-# from .context import Context
-# from .context_map import ContextMap
-# from .deployment import Deployment
-# from .endpoint import Endpoint
-# from .http_endpoint import HttpEndpoint
-# from .mutex import Mutex
-# from .service import Service
-# from .timer import Timer
-# from .user import User
+HTTP_ENDPOINTS = '__ff_http_endpoints'
+COMMAND = '__ff_command'
+QUERY = '__ff_query'
+EVENTS = '__ff_events'
+TIMERS = '__ff_timers'

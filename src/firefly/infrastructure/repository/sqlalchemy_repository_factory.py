@@ -53,7 +53,7 @@ class SqlalchemyRepositoryFactory(ffd.RepositoryFactory):
             for context in self._context_map.contexts:
                 if context.name == 'firefly':
                     continue
-                for entity in context.entities:
+                for entity in context._entities:
                     print(entity)
             break
 

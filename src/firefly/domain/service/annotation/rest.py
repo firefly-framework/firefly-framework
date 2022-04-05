@@ -16,19 +16,19 @@ from __future__ import annotations
 
 import inspect
 import re
-from typing import List
+from typing import List, Any
 
-import firefly as ff
+import firefly.domain.constants as const
 import firefly.domain.error as error
 import inflection
+from firefly import domain as ffd
 from firefly.domain.entity.core.http_endpoint import HttpEndpoint
-
 
 function_name = re.compile(r'.*function\s([^\.]+)\..*')
 
 
-class Rest:
-    def __call__(self, route: str, method: str = 'GET', generates: ff.TypeOfMessage = None, gateway: str = None,
+class Rest(ffd.ConfigurationAnnotation):
+    def __call__(self, route: str, method: str = 'GET', generates: type = None, gateway: str = None,
                  query_params: dict = None, secured: bool = True, scopes: List[str] = None, tags: List[str] = None,
                  **kwargs):
         def on_wrapper(cls):
@@ -50,12 +50,13 @@ class Rest:
             )
 
             try:
-                cls.add_endpoint(endpoint)
-            except AttributeError:
-                if inspect.isfunction(cls):
-                    ff.add_endpoint(cls, endpoint)
+                if hasattr(cls, const.HTTP_ENDPOINTS):
+                    getattr(cls, const.HTTP_ENDPOINTS).append(endpoint)
                 else:
-                    raise error.FrameworkError('@rest used on invalid target')
+                    setattr(cls, const.HTTP_ENDPOINTS, [endpoint])
+            except AttributeError as e:
+                raise error.FrameworkError('@rest used on invalid target') from e
+
             return cls
 
         return on_wrapper
@@ -66,12 +67,14 @@ class Rest:
         config = config or {}
 
         def on_wrapper(cls):
+            if not hasattr(cls, const.HTTP_ENDPOINTS):
+                setattr(cls, const.HTTP_ENDPOINTS, [])
             context = cls.get_class_context()
             base = inflection.pluralize(inflection.dasherize(inflection.underscore(cls.__name__)))
             if prefix is not None:
                 base = f'{prefix.strip("/")}/{base}'
             if 'create' not in exclude:
-                cls.add_endpoint(HttpEndpoint(
+                getattr(cls, const.HTTP_ENDPOINTS).append(HttpEndpoint(
                     route=f'/{base}',
                     method='post',
                     message=f'{context}.Create{cls.__name__}',
@@ -82,7 +85,7 @@ class Rest:
                 ))
 
             if 'update' not in exclude:
-                cls.add_endpoint(HttpEndpoint(
+                getattr(cls, const.HTTP_ENDPOINTS).append(HttpEndpoint(
                     route=f'/{base}/{{{cls.id_name()}}}',
                     method='put',
                     message=f'{context}.Update{cls.__name__}',
@@ -93,7 +96,7 @@ class Rest:
                 ))
 
             if 'delete' not in exclude:
-                cls.add_endpoint(HttpEndpoint(
+                getattr(cls, const.HTTP_ENDPOINTS).append(HttpEndpoint(
                     route=f'/{base}/{{{cls.id_name()}}}',
                     method='delete',
                     message=f'{context}.Delete{cls.__name__}',
@@ -104,7 +107,7 @@ class Rest:
                 ))
 
             if 'read' not in exclude:
-                cls.add_endpoint(HttpEndpoint(
+                getattr(cls, const.HTTP_ENDPOINTS).append(HttpEndpoint(
                     route=f'/{base}',
                     method='get',
                     message=f'{context}.{inflection.pluralize(cls.__name__)}',
@@ -114,7 +117,7 @@ class Rest:
                     scopes=config.get('read', {}).get('scopes', [f'{context}.{cls.__name__}.read'])
                 ))
 
-                cls.add_endpoint(HttpEndpoint(
+                getattr(cls, const.HTTP_ENDPOINTS).append(HttpEndpoint(
                     route=f'/{base}/{{{cls.id_name()}}}',
                     method='get',
                     message=f'{context}.{inflection.pluralize(cls.__name__)}',
@@ -127,6 +130,9 @@ class Rest:
             return cls
 
         return on_wrapper
+
+    def configure(self, cls: Any, kernel: ffd.Kernel):
+        pass
 
 
 rest = Rest()

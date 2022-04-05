@@ -21,19 +21,17 @@ import firefly.domain as ffd
 import firefly_di as di
 import inflection
 
-from ..entity import required, hidden, optional, Entity, id_, dict_, list_
 
-
-class Context(Entity):
-    name: str = id_(is_uuid=False)
-    config: dict = required()
-    container: di.Container = hidden()
-    is_extension: bool = optional(default=False)
-    entities: List[Type[Entity]] = list_()
-    command_handlers: Dict[Type[ffd.ApplicationService], ff.TypeOfCommand] = dict_()
-    query_handlers: Dict[Type[ffd.ApplicationService], ff.TypeOfQuery] = dict_()
-    event_listeners: Dict[Type[ffd.ApplicationService], List[ff.TypeOfEvent]] = dict_()
-    endpoints: List[ff.Endpoint] = list_()
+class Context(ffd.Entity):
+    name: str = ffd.id_(is_uuid=False)
+    config: dict = ffd.required()
+    container: di.Container = ffd.hidden()
+    is_extension: bool = ffd.optional(default=False)
+    entities: List[Type[ffd.Entity]] = ffd.list_()
+    command_handlers: Dict[Type[ffd.ApplicationService], ff.TypeOfCommand] = ffd.dict_()
+    query_handlers: Dict[Type[ffd.ApplicationService], ff.TypeOfQuery] = ffd.dict_()
+    event_listeners: Dict[Type[ffd.ApplicationService], List[ff.TypeOfEvent]] = ffd.dict_()
+    endpoints: List[ff.Endpoint] = ffd.list_()
 
     def __post_init__(self):
         self.ports = []

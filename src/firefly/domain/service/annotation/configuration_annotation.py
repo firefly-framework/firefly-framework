@@ -41,6 +41,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any
 
+import firefly.domain as ffd
+
 
 class ConfigurationAnnotation(ABC):
     @abstractmethod
@@ -48,5 +50,5 @@ class ConfigurationAnnotation(ABC):
         pass
 
     @abstractmethod
-    def configure(self, cls: Any, container):
+    def configure(self, cls: Any, kernel: ffd.Kernel):
         pass

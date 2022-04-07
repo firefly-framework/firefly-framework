@@ -21,18 +21,18 @@ from typing import List, Callable, Union, Tuple, Optional, get_type_hints
 import firefly.domain as ffd
 import firefly.infrastructure as ffi
 import inflection
-from firefly.domain.repository.repository import T
+from firefly.domain.repository.repository import T, Repository
 from sqlalchemy import MetaData
 from sqlalchemy.orm import Session
 
 DEFAULT_LIMIT = 999999999999999999
 
 
-class SqlalchemyRepository(ffd.Repository[T]):
+class SqlalchemyRepository(Repository[T]):
     _sqlalchemy_metadata: MetaData = None
     _sqlalchemy_session: Session = None
 
-    def __init__(self, interface: ffi.RdbStorageInterface, table_name: str = None):
+    def __init__(self, interface: ffi.SqlalchemyStorageInterface, table_name: str = None):
         super().__init__()
 
         self._entity_type = self._type()

@@ -38,12 +38,12 @@ class LoadInfrastructureLayer(ffd.ApplicationService):
 
     def _register_object(self, cls: Type[ffd.MetaAware], context: ffd.Context):
         if cls.is_agent():
-            self._agent_factory.register(cls.get_agent(), context.container.build(cls))
+            self._agent_factory.register(cls.get_agent(), context.kernel.build(cls))
 
         elif issubclass(cls, ffd.AgentExtension) and cls.is_agent_extension():
             for_, step = cls.get_agent_extension()
             try:
-                getattr(self._agent_factory(for_), step)(context.container.build(cls))
+                getattr(self._agent_factory(for_), step)(context.kernel.build(cls))
             except ffd.ConfigurationError:
                 self._deferred.append(cls)
 

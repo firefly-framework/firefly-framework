@@ -47,7 +47,7 @@ class ConfigureStorage(ffd.ApplicationService):
                     if name not in self._connection_factories and config.get('type') not in self._connection_factories:
                         raise ffd.ConfigurationError(f"No ConnectionFactory configured for '{name}'")
                     key = name if name in self._connection_factories else config.get('type')
-                    connections[name] = context.container.build(self._connection_factories[key])(
+                    connections[name] = context.kernel.build(self._connection_factories[key])(
                         **(config.get('connection') or {})
                     )
 
@@ -59,7 +59,7 @@ class ConfigureStorage(ffd.ApplicationService):
                     if name not in self._repository_factories and config.get('type') not in self._repository_factories:
                         raise ffd.ConfigurationError(f"No RepositoryFactory configured for '{name}'")
                     key = name if name in self._repository_factories else config.get('type')
-                    factory = context.container.autowire(self._repository_factories[key])
+                    factory = context.kernel.autowire(self._repository_factories[key])
                     try:
                         factories[name] = factory(connections[name], **(config.get('repository') or {}))
                     except TypeError as e:

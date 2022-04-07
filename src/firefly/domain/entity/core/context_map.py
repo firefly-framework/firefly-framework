@@ -35,11 +35,11 @@ class ContextMap(ffd.AggregateRoot):
         for context in self.contexts:
             if context.name == 'firefly':
                 found = True
-                context.container = self._firefly_container
+                context.kernel = self._firefly_container
                 break
         if not found:
             c = ffd.Context(name='firefly', config={})
-            c.container = self._firefly_container
+            c.kernel = self._firefly_container
             self.contexts.append(c)
 
     def get_context(self, name: str):

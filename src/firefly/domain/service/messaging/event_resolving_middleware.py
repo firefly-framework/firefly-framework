@@ -50,7 +50,7 @@ class EventResolvingMiddleware(Middleware, LoggerAware):
             built = []
             for listener in listeners:
                 if inspect.isclass(listener):
-                    built.append(self._context_map.get_context(listener.get_class_context()).container.build(listener))
+                    built.append(self._context_map.get_context(listener.get_class_context()).kernel.build(listener))
                 else:
                     built.append(listener)
             self._event_listeners[event] = built
@@ -97,12 +97,12 @@ class EventResolvingMiddleware(Middleware, LoggerAware):
         return service.__class__.is_command_handler() or service.__class__.is_event_listener()
 
     def _publish_message(self, message: ffd.Message):
-        self._context_map.get_context(self._context).container.message_transport.dispatch(message)
+        self._context_map.get_context(self._context).kernel.message_transport.dispatch(message)
 
     def add_event_listener(self, handler: Union[ffd.ApplicationService, Type[ffd.ApplicationService]],
                            event: Union[Type[Event], str]):
         if inspect.isclass(handler):
-            handler = self._context_map.get_context(handler.get_class_context()).container.build(handler)
+            handler = self._context_map.get_context(handler.get_class_context()).kernel.build(handler)
         key = event.get_fqn() if not isinstance(event, str) else event
         if key not in self._event_listeners:
             self._event_listeners[key] = []

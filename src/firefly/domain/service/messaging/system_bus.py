@@ -18,38 +18,35 @@ from typing import Union, Callable
 
 import firefly.domain as ffd
 
-from firefly.domain.service.messaging.command_bus import CommandBusAware
-from firefly.domain.service.messaging.event_bus import EventBusAware
-from firefly.domain.service.messaging.query_bus import QueryBusAware
-from firefly.domain.service.messaging.message_bus import MessageBus
 
+class SystemBus:
+    _kernel: ffd.Kernel = None
+    _message_factory: ffd.MessageFactory = None
+    _message_transport: ffd.MessageTransport = None
 
-def _insert_middleware(bus: MessageBus, which: str, listener: ffd.Middleware, index: int = None, cb: Callable = None,
-                       replace: type = None):
-    if replace is not None:
-        return bus.replace(replace, listener)
+    def dispatch(self, event: Union[ffd.Event, str], data: dict = None):
+        if isinstance(event, str):
+            event = self._message_factory.event(event, data or {})
+        self._message_transport.dispatch(event)
 
-    if cb is not None:
-        index = cb(which, bus.middleware)
-    if index is not None:
-        bus.insert(index, listener)
-    else:
-        bus.add(listener)
+    def invoke(self, command: Union[ffd.Command, str], data: dict = None, async_: bool = False):
+        if isinstance(command, str):
+            data = data or {}
+            data['_async'] = async_
+            command = self._message_factory.command(command, data)
+        else:
+            setattr(command, '_async', async_)
 
+        return self._message_transport.invoke(command)
 
-class SystemBus(EventBusAware, CommandBusAware, QueryBusAware):
-    def add_event_listener(self, listener: ffd.Middleware, **kwargs):
-        return _insert_middleware(self._event_bus, 'event', listener, **kwargs)
+    def request(self, query: Union[ffd.Query, str], criteria: Union[ffd.BinaryOp, Callable] = None,
+                data: dict = None):
+        if criteria is not None and not isinstance(criteria, ffd.BinaryOp):
+            criteria = criteria(ffd.EntityAttributeSpy())
+        if isinstance(query, str):
+            query = self._message_factory.query(query, criteria, data or {})
 
-    def add_command_handler(self, handler: ffd.Middleware, **kwargs):
-        return _insert_middleware(self._command_bus, 'command', handler, **kwargs)
-
-    def add_query_handler(self, handler: ffd.Middleware, **kwargs):
-        return _insert_middleware(self._query_bus, 'query', handler, **kwargs)
-
-    # deprecated
-    def insert_command_handler(self, index: int, handle: ffd.Middleware):
-        self._command_bus.insert(index, handle)
+        return self._message_transport.request(query)
 
 
 class SystemBusAware:
@@ -61,6 +58,6 @@ class SystemBusAware:
     def invoke(self, command: Union[ffd.Command, str], data: dict = None, async_: bool = False):
         return self._system_bus.invoke(command, data, async_=async_)
 
-    def request(self, request: Union[ffd.Query, str], criteria: Union[ffd.BinaryOp, Callable] = None,
+    def request(self, request: Union[ffd.Query, str], criteria: Union[ffd.SearchCriteria, Callable] = None,
                 data: dict = None):
         return self._system_bus.request(request, criteria, data)

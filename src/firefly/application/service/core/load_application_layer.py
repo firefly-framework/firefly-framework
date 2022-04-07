@@ -57,7 +57,7 @@ class LoadApplicationLayer(ffd.ApplicationService):
         for cls in classes:
             if cls.has_annotations():
                 for annotation in cls.get_annotations():
-                    annotation.configure(cls, context.container)
+                    annotation.configure(cls, context.kernel)
             if issubclass(cls, ffd.ApplicationService):
                 self._register_service(cls, context)
                 self._add_endpoints(cls, context)
@@ -79,7 +79,7 @@ class LoadApplicationLayer(ffd.ApplicationService):
         if config['replace'] is not None:
             params['replace'] = config['replace']
 
-        built = context.container.build(cls)
+        built = context.kernel.build(cls)
         if config['buses'] is None or 'event' in config['buses']:
             if self._system_bus.add_event_listener(built, **params) is False:
                 self._deferred.append(('event', built, params))

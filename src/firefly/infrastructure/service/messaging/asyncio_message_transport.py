@@ -25,7 +25,6 @@ from firefly import Query, Command, Event, SystemBus
 from ...web_server.web_server import WebServer
 
 
-# TODO add messages into the event loop in _web_server
 class AsyncioMessageTransport(ffd.MessageTransport, ffd.LoggerAware):
     _web_server: WebServer = None
     _system_bus: SystemBus = None

@@ -14,14 +14,70 @@
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
+import base64
+import inspect
+import json
+from datetime import datetime, date, time
+from json import JSONEncoder
+from firefly.application.container import Container
+import firefly.domain.error as errors
+
+import firefly.domain as ffd
 
 
-class Serializer(ABC):
-    @abstractmethod
+class FireflyEncoder(JSONEncoder):
+    def default(self, o):
+        if isinstance(o, ffd.ValueObject):
+            return o.to_dict()
+        elif inspect.isclass(o) and issubclass(o, ffd.Entity):
+            return f'{o.get_class_context()}.{o.__name__}'
+        elif isinstance(o, Container):
+            return None
+        elif isinstance(o, (datetime, date, time)):
+            return o.isoformat()
+        elif isinstance(o, (bytes, bytearray)):
+            return base64.b64encode(o).decode('ascii')
+        elif not inspect.isclass(o) and isinstance(o, ffd.Message):
+            try:
+                dic = o.to_dict()
+                dic['_name'] = o.__class__.__name__
+                t = 'event'
+                if isinstance(o, ffd.Command):
+                    t = 'command'
+                elif isinstance(o, ffd.Query):
+                    t = 'query'
+                dic['_type'] = t
+                return dic
+            except AttributeError:
+                pass
+
+        return JSONEncoder.default(self, o)
+
+
+class Serializer:
+    _message_factory: ffd.MessageFactory = None
+
     def serialize(self, data):
-        pass
+        return json.dumps(data, cls=FireflyEncoder, skipkeys=True)
 
-    @abstractmethod
     def deserialize(self, data):
-        pass
+        try:
+            if isinstance(data, (str, bytes, bytearray)):
+                ret = json.loads(data)
+            else:
+                ret = data
+        except json.JSONDecodeError:
+            raise errors.InvalidArgument('Could not deserialize data')
+
+        if isinstance(ret, dict) and '_name' in ret:
+            fqn = f'{ret["_context"]}.{ret["_name"]}'
+            t = ffd.load_class(fqn)
+            if t is None:
+                args = [fqn]
+                if ret['_type'] == 'query':
+                    args.append(None)
+                args.append(ret)
+                return getattr(self._message_factory, ret['_type'])(*args)
+            return t(**ffd.build_argument_list(ret, t))
+
+        return ret

@@ -25,7 +25,7 @@ class CommandHandler:
     def __call__(self, command: Union[str, type, None] = None):
         def command_wrapper(cls):
             try:
-                setattr(cls, const.COMMAND, [command or f'{os.environ.get("CONTEXT")}.{cls.__name__}'])
+                setattr(cls, const.COMMAND, command or f'{os.environ.get("CONTEXT")}.{cls.__name__}')
             except AttributeError:
                 raise error.FrameworkError('@command_handler used on invalid target')
 

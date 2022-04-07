@@ -49,7 +49,7 @@ class CommandResolvingMiddleware(Middleware, LoggerAware):
         for command, handler in self._command_handlers.items():
             if inspect.isclass(handler):
                 self._command_handlers[command] = \
-                    self._context_map.get_context(handler.get_class_context()).container.build(handler)
+                    self._context_map.get_context(handler.get_class_context()).kernel.build(handler)
         self._initialized = True
 
     def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
@@ -83,7 +83,7 @@ class CommandResolvingMiddleware(Middleware, LoggerAware):
         return service.__class__.is_command_handler() or service.__class__.is_event_listener()
 
     def _transfer_message(self, message: ffd.Message):
-        return self._context_map.get_context(self._context).container.message_transport.invoke(message)
+        return self._context_map.get_context(self._context).kernel.message_transport.invoke(message)
 
     def has_command_handler(self, handler: str):
         return handler in self._command_handlers
@@ -91,7 +91,7 @@ class CommandResolvingMiddleware(Middleware, LoggerAware):
     def add_command_handler(self, handler: Union[ffd.ApplicationService, Type[ffd.ApplicationService]],
                             command: Union[Type[Command], str]):
         if inspect.isclass(handler):
-            handler = self._context_map.get_context(handler.get_class_context()).container.build(handler)
+            handler = self._context_map.get_context(handler.get_class_context()).kernel.build(handler)
         if inspect.isclass(command):
             command = command.get_fqn()
         self._command_handlers[command.get_fqn() if not isinstance(command, str) else command] = handler

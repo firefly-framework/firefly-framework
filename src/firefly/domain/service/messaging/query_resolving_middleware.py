@@ -36,7 +36,7 @@ class QueryResolvingMiddleware(Middleware, LoggerAware):
         for query, handler in self._query_handlers.items():
             if inspect.isclass(handler):
                 self._query_handlers[query] = \
-                    self._context_map.get_context(handler.get_class_context()).container.build(handler)
+                    self._context_map.get_context(handler.get_class_context()).kernel.build(handler)
         self._initialized = True
 
     def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
@@ -56,12 +56,12 @@ class QueryResolvingMiddleware(Middleware, LoggerAware):
         raise ffd.ConfigurationError(f'No query handler registered for {message}')
 
     def _transfer_message(self, message: ffd.Message):
-        return self._context_map.get_context(self._context).container.message_transport.request(message)
+        return self._context_map.get_context(self._context).kernel.message_transport.request(message)
 
     def add_query_handler(self, handler: Union[ffd.ApplicationService, Type[ffd.ApplicationService]],
                           query: Union[Type[Query], str]):
         if inspect.isclass(handler):
-            handler = self._context_map.get_context(handler.get_class_context()).container.build(handler)
+            handler = self._context_map.get_context(handler.get_class_context()).kernel.build(handler)
         if inspect.isclass(query):
             query = query.get_fqn()
 

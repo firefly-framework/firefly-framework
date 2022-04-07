@@ -1,4 +1,4 @@
-#  Copyright (c) 2019 JD Williams
+#  Copyright (c) 2020 JD Williams
 #
 #  This file is part of Firefly, a Python SOA framework built by JD Williams. Firefly is free software; you can
 #  redistribute it and/or modify it under the terms of the GNU General Public License as published by the
@@ -15,12 +15,9 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Callable
-
-import firefly.domain as ffd
 
 
-class Middleware(ffd.MetaAware, ABC):
+class S3Service(ABC):
     @abstractmethod
-    def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
+    def store_download(self, data: str, extension: str = None, file_name: str = None, apply_compression: bool = True):
         pass

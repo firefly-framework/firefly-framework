@@ -13,5 +13,5 @@
 #  <http://www.gnu.org/licenses/>.
 
 # Order is important here. Do not optimize imports.
-from .service import *
-from .container import Container
+# from .service import *
+# from .container import Container

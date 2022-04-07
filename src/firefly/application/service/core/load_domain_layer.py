@@ -54,8 +54,8 @@ class LoadDomainLayer(ffd.ApplicationService):
                 v._logger = self._logger
                 v._system_bus = self._system_bus
                 name = inflection.underscore(v.__name__)
-                setattr(context.container.__class__, name, v)
-                if not hasattr(context.container.__class__, '__annotations__'):
-                    context.container.__class__.__annotations__ = {}
-                context.container.__class__.__annotations__[name] = v
-                context.container.clear_annotation_cache()
+                setattr(context.kernel.__class__, name, v)
+                if not hasattr(context.kernel.__class__, '__annotations__'):
+                    context.kernel.__class__.__annotations__ = {}
+                context.kernel.__class__.__annotations__[name] = v
+                context.kernel.clear_annotation_cache()

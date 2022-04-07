@@ -29,11 +29,14 @@ setuptools.setup(
         'pytest11': ['firefly=firefly.plugins.pytest']
     },
     install_requires=[
-        'aiohttp>=3.5.4',
-        'aiohttp-cors>=0.7.0',
+        'boto3>=1.12.42',
+        'chalice>=1.26.6',
         'dateparser>=0.7.4',
         'dirsync>=2.2.3',
+        'dynamodb-json>=1.3',
         'inflection>=0.3.1',
+        'multipart>=0.2.3',
+        'psutil>=5.8.0',
         'psycopg2>=2.9.3',
         'python-dateutil>=2.8.1',
         'python-dotenv>=0.10.3',
@@ -42,16 +45,13 @@ setuptools.setup(
         'sqlalchemy>=1.4.32',
         'terminaltables>=3.1.0',
         'websockets>=8.0.2',
-        'firefly-dependency-injection>=0.1',
+        'troposphere>=2.7.1',
     ],
     extras_require={
         'OpenApi Generation': ['apispec>=3.3.0', 'docstring_parser>=0.7.1'],
     },
     packages=setuptools.PEP420PackageFinder.find('src'),
     package_dir={'': 'src'},
-    package_data={'firefly': [
-        'infrastructure/repository/rdb_storage_interfaces/templates/**/*.sql',
-    ]},
     classifiers=[
         "Programming Language :: Python :: 3.9",
         "Operating System :: OS Independent",

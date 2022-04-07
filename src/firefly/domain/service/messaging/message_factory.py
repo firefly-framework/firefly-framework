@@ -14,28 +14,20 @@
 
 from __future__ import annotations
 
-# __pragma__('skip')
 from dataclasses import make_dataclass, fields, is_dataclass, asdict
-from typing import Union, TypeVar, Type, Tuple, get_type_hints
-# __pragma__('noskip')
-# __pragma__ ('ecom')
-"""?
-from firefly.presentation.web.polyfills import make_dataclass, fields, is_dataclass, asdict, Union, TypeVar, Type, Tuple, get_type_hints
-?"""
-# __pragma__ ('noecom')
+from typing import Union, Tuple, get_type_hints
 
 import firefly.domain as ffd
-
 from firefly.domain.entity.messaging.message import Message
-
-# __pragma__('kwargs')
+from firefly.domain.meta import MessageMeta
+import firefly.domain.error as errors
 
 
 class MessageFactory:
     @staticmethod
     def convert_type(message: Message, new_name: str, new_base: Union[Message, Tuple[Message]]):
         if not is_dataclass(message):
-            raise ffd.FrameworkError('message must be a dataclass')
+            raise errors.FrameworkError('message must be a dataclass')
 
         types = get_type_hints(message.__class__)
         message_fields = []
@@ -71,22 +63,14 @@ class MessageFactory:
         return self._build_message_class(name, fields_, (ffd.Command,))
 
     def _build(self, name: str, data: dict, bases: tuple):
-        # __pragma__ ('ecom')
-        """?
-        return make_dataclass(name, data, bases=bases)(**data)
-        ?"""
-        # __pragma__ ('noecom')
-
         return self._build_message_class(name, {k: type(v) for k, v in data.items()}, bases)(**data)
 
     @staticmethod
     def _build_message_class(name: str, fields_: dict, bases: tuple):
-        # __pragma__('skip')
         context = None
         if '.' in name:
             context, name = name.split('.')
-        ret = ffd.MessageMeta.__new__(ffd.MessageMeta, name, bases, fields_, fields_=fields_, annotations_=fields_)
+        ret = MessageMeta.__new__(MessageMeta, name, bases, fields_, fields_=fields_, annotations_=fields_)
         if context is not None:
             ret._context = context
         return ret
-        # __pragma__('noskip')

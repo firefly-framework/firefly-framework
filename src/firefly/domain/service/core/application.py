@@ -20,6 +20,8 @@ import firefly.domain as ffd
 
 
 class Application(ABC):
+    app = None
+
     @abstractmethod
     def initialize(self, kernel: ffd.Kernel):
         pass

@@ -17,22 +17,23 @@ from __future__ import annotations
 import importlib
 import inspect
 import logging
-from pprint import pprint
 from typing import Optional, Type, Callable, List, Dict, get_type_hints
 
+import boto3
 import firefly.domain as ffd
-import firefly.infrastructure as ffi
-import firefly_di as di
-import inflection
 import firefly.domain.constants as const
 import firefly.domain.error as errors
+import firefly.infrastructure as ffi
+import inflection
+from firefly.application.container import Container
+from firefly.infrastructure.service.core.chalice_application import ChaliceApplication
 
 CATEGORIES = ('read', 'write', 'admin')
 
 
-class Kernel(di.Container, ffd.SystemBusAware, ffd.LoggerAware):
+class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
     _service_cache: dict = {}
-    _app = None
+    _app: ChaliceApplication = None
     _entities: List[Type[ffd.Entity]] = []
     _application_services: List[Type[ffd.ApplicationService]] = []
     _http_endpoints: List[dict] = []
@@ -40,6 +41,13 @@ class Kernel(di.Container, ffd.SystemBusAware, ffd.LoggerAware):
     _command_handlers: Dict[str, ffd.ApplicationService] = {}
     _query_handlers: Dict[str, ffd.ApplicationService] = {}
     _timers: list = []
+
+    __instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if not cls.__instance:
+            cls.__instance = super(Kernel, cls).__new__(cls, *args, **kwargs)
+        return cls.__instance
 
     def __init__(self):
         super().__init__()
@@ -51,6 +59,8 @@ class Kernel(di.Container, ffd.SystemBusAware, ffd.LoggerAware):
 
     def boot(self) -> Kernel:
         self._load_layer('firefly', 'domain', {}, self._add_domain_object)
+        self._load_layer('firefly', 'infrastructure', {}, self._add_domain_object)
+        self._load_layer('firefly', 'application', {}, self._add_domain_object)
 
         for k, v in self.configuration.contexts.items():
             if k == 'firefly' or (v or {}).get('is_extension', 'False') is False:
@@ -62,21 +72,14 @@ class Kernel(di.Container, ffd.SystemBusAware, ffd.LoggerAware):
                 continue
             self._load_context(k, v or {})
 
+        self._app = self.chalice_application
         self._build_application_services()
-
-        for k, v in get_type_hints(self.__class__).items():
-            if inspect.isclass(v) and issubclass(v, ffd.Application):
-                self._app = getattr(self, k)
-                break
-
-        if self._app is None:
-            raise errors.ConfigurationError(
-                "No application has been registered with the container. Have you installed a service extension such "
-                "as firefly-aws?"
-            )
         self._app.initialize(self)
 
         return self
+
+    def get_application(self) -> ffd.Application:
+        return self._app
 
     def get_http_endpoints(self):
         return self._http_endpoints
@@ -93,14 +96,26 @@ class Kernel(di.Container, ffd.SystemBusAware, ffd.LoggerAware):
     def get_timers(self):
         return self._timers
 
-    def _bootstrap_container(self):
-        self._register_object('logger', ffi.PythonLogger)
-        self._register_object('configuration_factory', ffi.YamlConfigurationFactory)
-        self._register_object('configuration', ffd.Configuration, lambda s: s.configuration_factory())
-
-    def _register_object(self, name: str, type_: Type, constructor: Optional[Callable] = None):
+    def register_object(self, name: str, type_: Type = type, constructor: Optional[Callable] = None):
         setattr(self.__class__, name, constructor) if constructor is not None else setattr(self.__class__, name, type_)
         self.__class__.__annotations__[name] = type_
+
+    def _bootstrap_container(self):
+        self.register_object('logger', ffi.ChaliceLogger)
+        self.register_object('configuration_factory', ffi.YamlConfigurationFactory)
+        self.register_object('message_transport', ffd.MessageTransport)
+        self.register_object('message_factory', ffd.MessageFactory)
+        self.register_object('system_bus', ffd.SystemBus)
+        self.register_object('serializer', ffd.Serializer)
+        self.register_object('configuration', ffd.Configuration, lambda s: s.configuration_factory())
+        self.register_object('chalice_application', ChaliceApplication)
+        self.register_object('cloudformation_client', constructor=lambda s: boto3.client('cloudformation'))
+        self.register_object('ddb_client', constructor=lambda s: boto3.client('dynamodb'))
+        self.register_object('lambda_client', constructor=lambda s: boto3.client('lambda'))
+        self.register_object('sns_client', constructor=lambda s: boto3.client('sns'))
+        self.register_object('sqs_client', constructor=lambda s: boto3.client('sqs'))
+        self.register_object('s3_client', constructor=lambda s: boto3.client('s3'))
+        self.register_object('kinesis_client', constructor=lambda s: boto3.client('kinesis'))
 
     def _build_application_services(self):
         for cls in self._application_services:
@@ -118,7 +133,10 @@ class Kernel(di.Container, ffd.SystemBusAware, ffd.LoggerAware):
                     })
 
             if hasattr(cls, const.EVENTS):
-                self._event_listeners[self._build_service(cls)] = getattr(cls, const.EVENTS)
+                for e in getattr(cls, const.EVENTS):
+                    if str(e) not in self._event_listeners:
+                        self._event_listeners[str(e)] = []
+                    self._event_listeners[str(e)].append(self._build_service(cls))
 
             if hasattr(cls, const.COMMAND):
                 self._command_handlers[str(getattr(cls, const.COMMAND))] = self._build_service(cls)
@@ -164,20 +182,20 @@ class Kernel(di.Container, ffd.SystemBusAware, ffd.LoggerAware):
             v._logger = self.logger
             self._entities.append(v)
         elif issubclass(v, ffd.ValueObject):
-            v._logger = self._logger
+            v._logger = self.logger
         elif self._should_autowire(v):
-            self._register_object(inflection.underscore(k), v)
+            self.register_object(inflection.underscore(k), v)
 
     def _add_infrastructure_object(self, k: str, v: type):
         if self._should_autowire(v):
-            self._register_object(inflection.underscore(k), v)
+            self.register_object(inflection.underscore(k), v)
 
     def _add_application_object(self, k: str, v: type):
         if issubclass(v, ffd.ApplicationService):
             if v not in self._application_services:
                 self._application_services.append(v)
         elif self._should_autowire(v):
-            self._register_object(inflection.underscore(k), v)
+            self.register_object(inflection.underscore(k), v)
 
     def _add_presentation_object(self, k: str, v: type):
         pass

@@ -18,14 +18,13 @@ from typing import List, Type, Dict
 
 import firefly as ff
 import firefly.domain as ffd
-import firefly_di as di
 import inflection
 
 
 class Context(ffd.Entity):
     name: str = ffd.id_(is_uuid=False)
     config: dict = ffd.required()
-    container: di.Container = ffd.hidden()
+    kernel: ffd.Kernel = ffd.hidden()
     is_extension: bool = ffd.optional(default=False)
     entities: List[Type[ffd.Entity]] = ffd.list_()
     command_handlers: Dict[Type[ffd.ApplicationService], ff.TypeOfCommand] = ffd.dict_()

@@ -17,10 +17,10 @@ from __future__ import annotations
 import inspect
 from dataclasses import is_dataclass, fields
 from datetime import datetime, date
-from pprint import pprint
 from typing import Union, List, Type, get_type_hints
 
 import firefly.domain as ffd
+import firefly.domain.error as errors
 import regex
 
 T = '__FF_SKIP_TYPE'
@@ -107,7 +107,7 @@ class Attr:
             if not item.startswith('_'):
                 self.attr = AttributeString(f'{self.attr}.{item}')
                 return self
-            raise ffd.InvalidOperand(f"Use of '{item}' is not currently supported.")
+            raise errors.InvalidOperand(f"Use of '{item}' is not currently supported.")
 
     def is_none(self):
         return BinaryOp(self.attr, 'is', 'null')
@@ -298,7 +298,7 @@ class BinaryOp:
         if bop.op == 'or':
             return lhv or rhv
 
-        raise ffd.LogicError(f"Don't know how to handle op: {bop.op}")
+        raise errors.LogicError(f"Don't know how to handle op: {bop.op}")
 
     @staticmethod
     def _remove_function_calls(attr: str):
@@ -323,8 +323,8 @@ class BinaryOp:
     def __or__(self, other):
         return BinaryOp(self, 'or', other)
 
-    def prune(self, fields: list):
-        data = self._prune(fields, self.to_dict())
+    def prune(self, fields_: list):
+        data = self._prune(fields_, self.to_dict())
         if data is INVALID:
             return None
         if data['l'] is INVALID:
@@ -334,23 +334,23 @@ class BinaryOp:
 
         return BinaryOp.from_dict(data)
 
-    def _prune(self, fields: list, data: dict):
+    def _prune(self, fields_: list, data: dict):
         if isinstance(data['l'], dict):
-            data['l'] = self._prune(fields, data['l'])
+            data['l'] = self._prune(fields_, data['l'])
         elif isinstance(data['l'], str) and len(data['l']) > 2:
             prop = data['l']
             if '(' in prop:
                 prop = self._remove_function_calls(prop)
-            if prop.startswith('a:') and prop[2:] not in fields:
+            if prop.startswith('a:') and prop[2:] not in fields_:
                 return INVALID
 
         if isinstance(data['r'], dict):
-            data['r'] = self._prune(fields, data['r'])
+            data['r'] = self._prune(fields_, data['r'])
         elif isinstance(data['r'], str) and len(data['r']) > 2:
             prop = data['r']
             if '(' in prop:
                 prop = self._remove_function_calls(prop)
-            if prop.startswith('a:') and prop[2:] not in fields:
+            if prop.startswith('a:') and prop[2:] not in fields_:
                 return INVALID
 
         if data['l'] is INVALID and data['r'] is not INVALID:
@@ -431,3 +431,7 @@ class BinaryOp:
 
     def __eq__(self, other):
         return isinstance(other, BinaryOp) and self.to_dict() == other.to_dict()
+
+
+class SearchCriteria(BinaryOp):
+    pass

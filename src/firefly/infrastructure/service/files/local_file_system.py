@@ -46,7 +46,6 @@ class LocalFileSystem(ff.FileSystem):
     def list(self, path: str) -> List[Tuple[str, dict]]:
         ret = []
         for (_, _, filenames) in os.walk(path):
-            # TODO we should have file sizes and last_modified here
             ret.extend([
                 (f, {}) for f in filenames
             ])

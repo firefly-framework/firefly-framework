@@ -29,26 +29,26 @@ class LoadContainers(ffd.ApplicationService):
         for context in self._context_map.contexts:
             self.debug(f'Checking context "{context.name}"')
             if context.name == 'firefly':
-                context.container = self._container
+                context.kernel = self._container
             else:
-                context.container = self._load_module(context.name, context.config)
-                self.debug(f'Loaded container: {context.container}')
-                self._container.register_container(context.container)
+                context.kernel = self._load_module(context.name, context.config)
+                self.debug(f'Loaded container: {context.kernel}')
+                self._container.register_container(context.kernel)
             self.dispatch(ffd.ContainerInitialized(context=context.name))
 
         self.debug('All containers are built. Looping through again to link them all together.')
         for context in self._context_map.contexts:
             for name, config in (context.config.get('extensions', {}) or {}).items():
                 self.debug(f'Registering {name} container with {context.name}')
-                context.container.register_container(self._context_map.get_context(name).container)
+                context.kernel.register_container(self._context_map.get_context(name).kernel)
             self.debug('Registering root container')
-            context.container.register_container(self._container)
+            context.kernel.register_container(self._container)
 
             if context.config.get('extends'):
                 for c in self._context_map.contexts:
                     if c.name != context.config.get('extends'):
-                        self._context_map.get_context(context.config.get('extends')).container.register_container(
-                            c.container
+                        self._context_map.get_context(context.config.get('extends')).kernel.register_container(
+                            c.kernel
                         )
 
         self.dispatch(ffd.ContainersLoaded())

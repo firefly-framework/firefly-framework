@@ -15,8 +15,10 @@
 from firefly.domain.value_object import ValueObject
 from firefly.domain.entity.entity import id_, dict_, list_, required, optional, hidden, now, today, Entity
 from firefly.domain.entity.aggregate_root import AggregateRoot
-from firefly.domain.service.logging.logger import Logger, LoggerAware
+from firefly.domain.service.logging.logger import LoggerAware
 from firefly.domain.meta.meta_aware import MetaAware
+from firefly.domain.repository.search_criteria import SearchCriteria, BinaryOp, EntityAttributeSpy
+from firefly.domain.service.serialization.serializer import Serializer
 
 from firefly.domain.entity.core.http_endpoint import HttpEndpoint
 from firefly.domain.entity.core.context import Context
@@ -25,16 +27,18 @@ from firefly.domain.entity.messaging.message import Message
 from firefly.domain.entity.messaging.event import Event
 from firefly.domain.entity.messaging.command import Command
 from firefly.domain.entity.messaging.query import Query
-from firefly.domain.service.messaging.system_bus import SystemBusAware
-from firefly.domain.service.logging.logger import LoggerAware
+from firefly.domain.service.messaging.middleware import Middleware
+from firefly.domain.service.messaging.system_bus import SystemBusAware, SystemBus
+from firefly.domain.service.logging.logger import Logger, LoggerAware
 from firefly.domain.entity.core.configuration import Configuration
 from firefly.domain.factory.configuration_factory import ConfigurationFactory
+from firefly.domain.service.messaging.message_factory import MessageFactory
 from firefly.domain.service.cache import Cache
 from firefly.domain.entity.core.mutex import Mutex
 from firefly.domain.service.messaging.mutex import RateLimiter
 from firefly.domain.service.files.file_system import FileSystem, File
 from firefly.domain.value_object import EventBuffer
-from firefly.domain.utils import HasMemoryCache
+from firefly.domain.utils import HasMemoryCache, load_class
 
 from firefly.domain.service.messaging.message_transport import MessageTransport
 from firefly.domain.service.core.domain_service import DomainService
@@ -58,3 +62,6 @@ from firefly.domain.service.annotation.rest import rest
 
 from firefly.domain.meta import build_argument_list
 from firefly.domain.service.core.application import Application
+from firefly.domain.service.resource_name_generator import ResourceNameGenerator
+
+from firefly.domain.error import *

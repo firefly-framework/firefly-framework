@@ -14,13 +14,9 @@
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
-from typing import Callable
 
-import firefly.domain as ffd
+class PrepareS3Download:
+    _s3_client = None
 
-
-class Middleware(ffd.MetaAware, ABC):
-    @abstractmethod
-    def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
-        pass
+    def __call__(self, bucket: str, key: str):
+        return self._s3_client.generate_presigned_url('get_object', Params={'Bucket': bucket, 'Key': key})

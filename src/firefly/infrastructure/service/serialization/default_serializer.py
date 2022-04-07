@@ -19,9 +19,10 @@ import inspect
 import json
 from datetime import datetime, date, time
 from json import JSONEncoder
+from firefly.application.container import Container
+import firefly.domain.error as errors
 
 import firefly.domain as ffd
-import firefly_di as di
 
 
 class FireflyEncoder(JSONEncoder):
@@ -30,7 +31,7 @@ class FireflyEncoder(JSONEncoder):
             return o.to_dict()
         elif inspect.isclass(o) and issubclass(o, ffd.Entity):
             return f'{o.get_class_context()}.{o.__name__}'
-        elif isinstance(o, (di.Container, ffd.Empty)):
+        elif isinstance(o, Container):
             return None
         elif isinstance(o, (datetime, date, time)):
             return o.isoformat()
@@ -66,7 +67,7 @@ class JsonSerializer(ffd.Serializer):
             else:
                 ret = data
         except json.JSONDecodeError:
-            raise ffd.InvalidArgument('Could not deserialize data')
+            raise errors.InvalidArgument('Could not deserialize data')
 
         if isinstance(ret, dict) and '_name' in ret:
             fqn = f'{ret["_context"]}.{ret["_name"]}'

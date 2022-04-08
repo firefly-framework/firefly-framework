@@ -106,7 +106,3 @@ class ConfigureStorage(ffd.ApplicationService):
                     self._connection_factories[inflection.underscore(v.__name__.replace('ConnectionFactory', ''))] = v
                 elif issubclass(v, ffd.RepositoryFactory):
                     self._repository_factories[inflection.underscore(v.__name__.replace('RepositoryFactory', ''))] = v
-                elif (issubclass(v, ffi.RdbStorageInterface) and v is not ffi.RdbStorageInterface) or \
-                        k.endswith('StorageInterface'):
-                    name = inflection.underscore(k.replace('StorageInterface', ''))
-                    self._rdb_storage_interface_registry.add(name, v)

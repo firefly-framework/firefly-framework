@@ -18,55 +18,23 @@ from typing import Type
 
 import firefly.domain as ffd
 import firefly.infrastructure as ffi
-import firefly_di as di
-from firefly import Repository
-from firefly.domain.repository.repository_factory import E
+from firefly.domain.repository.repository_factory import E, RepositoryFactory
 
 
-class SqlalchemyRepositoryFactory(ffd.RepositoryFactory):
-    _context_map: ffd.ContextMap = None
-    _container: di.Container = None
+class SqlalchemyRepositoryFactory(RepositoryFactory):
+    _kernel: ffd.Kernel = None
 
-    def __init__(self, interface: ffi.RdbStorageInterface):
-        self._interface = interface
+    def __init__(self):
         self._cache = {}
         self._default_interface = None
         self._initialized = False
 
-    def __call__(self, entity: Type[E]) -> Repository:
-        if not self._initialized:
-            self._initialize()
-
+    def __call__(self, entity: Type[E]) -> ffd.Repository:
         if entity not in self._cache:
             class LocalRepository(ffi.SqlalchemyRepository[entity]):
                 pass
             LocalRepository.__name__ = f'{entity.__name__}Repository'
-            params = self._get_repository_arguments(entity)
-            params['interface'] = self._interface
-            self._cache[entity] = self._container.build(LocalRepository, **params)
+            self._cache[entity] = self._kernel.build(LocalRepository)
+            self._cache[entity]._logger = self._kernel.logger
 
         return self._cache[entity]
-
-    def _initialize(self):
-        deferred = []
-        while True:
-            for context in self._context_map.contexts:
-                if context.name == 'firefly':
-                    continue
-                for entity in context._entities:
-                    print(entity)
-            break
-
-        self._initialized = True
-
-    def _get_repository_arguments(self, entity: Type[E]):
-        context = self._context_map.get_context(entity.get_class_context())
-        if 'aggregates' not in context.config.get('storage', {}):
-            return {}
-        aggregates = context.config.get('storage').get('aggregates')
-        if entity.__name__ in aggregates and isinstance(aggregates.get(entity.__name__), dict):
-            return aggregates.get(entity.__name__)
-        if entity.get_fqn() in aggregates and isinstance(aggregates.get(entity.get_fqn()), dict):
-            return aggregates.get(entity.get_fqn())
-
-        return {}

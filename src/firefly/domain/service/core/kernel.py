@@ -17,16 +17,18 @@ from __future__ import annotations
 import importlib
 import inspect
 import logging
-from typing import Optional, Type, Callable, List, Dict, get_type_hints
+from typing import Optional, Type, Callable, List, Dict
 
 import boto3
 import firefly.domain as ffd
 import firefly.domain.constants as const
-import firefly.domain.error as errors
 import firefly.infrastructure as ffi
 import inflection
 from firefly.application.container import Container
 from firefly.infrastructure.service.core.chalice_application import ChaliceApplication
+from sqlalchemy import MetaData
+from sqlalchemy.engine import Engine, Connection
+from sqlalchemy.orm import sessionmaker, Session
 
 CATEGORIES = ('read', 'write', 'admin')
 
@@ -35,6 +37,7 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
     _service_cache: dict = {}
     _app: ChaliceApplication = None
     _entities: List[Type[ffd.Entity]] = []
+    _aggregates: List[Type[ffd.AggregateRoot]] = []
     _application_services: List[Type[ffd.ApplicationService]] = []
     _http_endpoints: List[dict] = []
     _event_listeners: Dict[str, List[ffd.ApplicationService]] = {}
@@ -58,9 +61,8 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
         self._bootstrap_container()
 
     def boot(self) -> Kernel:
-        self._load_layer('firefly', 'domain', {}, self._add_domain_object)
-        self._load_layer('firefly', 'infrastructure', {}, self._add_domain_object)
-        self._load_layer('firefly', 'application', {}, self._add_domain_object)
+        for layer in ('domain', 'infrastructure', 'application', 'presentation'):
+            self._load_layer('firefly', layer, {}, getattr(self, f'_add_{layer}_object'))
 
         for k, v in self.configuration.contexts.items():
             if k == 'firefly' or (v or {}).get('is_extension', 'False') is False:
@@ -75,6 +77,7 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
         self._app = self.chalice_application
         self._build_application_services()
         self._app.initialize(self)
+        self.initialize_storage()
 
         return self
 
@@ -96,7 +99,15 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
     def get_timers(self):
         return self._timers
 
+    def get_entities(self):
+        return self._entities
+
+    def get_aggregates(self):
+        return self._aggregates
+
     def register_object(self, name: str, type_: Type = type, constructor: Optional[Callable] = None):
+        if hasattr(self.__class__, name):
+            return
         setattr(self.__class__, name, constructor) if constructor is not None else setattr(self.__class__, name, type_)
         self.__class__.__annotations__[name] = type_
 
@@ -107,8 +118,21 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
         self.register_object('message_factory', ffd.MessageFactory)
         self.register_object('system_bus', ffd.SystemBus)
         self.register_object('serializer', ffd.Serializer)
+        self.register_object('map_entities', ffd.MapEntities)
+        self.register_object('parse_relationships', ffd.ParseRelationships)
         self.register_object('configuration', ffd.Configuration, lambda s: s.configuration_factory())
         self.register_object('chalice_application', ChaliceApplication)
+
+        self.register_object('sqlalchemy_engine_factory', ffi.EngineFactory)
+        self.register_object('sqlalchemy_engine', Engine, lambda s: s.sqlalchemy_engine_factory(True))
+        self.register_object('sqlalchemy_connection', Connection, lambda s: s.sqlalchemy_engine.connect())
+        self.register_object('sqlalchemy_sessionmaker', sessionmaker, lambda s: sessionmaker(bind=s.sqlalchemy_engine))
+        self.register_object('sqlalchemy_session', Session, lambda s: s.sqlalchemy_sessionmaker())
+        self.register_object('sqlalchemy_metadata', MetaData, lambda s: MetaData(bind=s.sqlalchemy_engine))
+        self.register_object(
+            'repository_factory', ffd.RepositoryFactory, lambda s: s.build(ffi.SqlalchemyRepositoryFactory)
+        )
+
         self.register_object('cloudformation_client', constructor=lambda s: boto3.client('cloudformation'))
         self.register_object('ddb_client', constructor=lambda s: boto3.client('dynamodb'))
         self.register_object('lambda_client', constructor=lambda s: boto3.client('lambda'))
@@ -175,29 +199,31 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
         for k, v in module.__dict__.items():
             if not inspect.isclass(v):
                 continue
-            cb(k, v)
+            cb(k, v, context_name)
 
-    def _add_domain_object(self, k: str, v: type):
-        if issubclass(v, ffd.Entity):
+    def _add_domain_object(self, k: str, v: type, context: str):
+        if issubclass(v, ffd.Entity) and v is not ffd.Entity and context != 'firefly':
             v._logger = self.logger
             self._entities.append(v)
+            if issubclass(v, ffd.AggregateRoot) and v is not ffd.AggregateRoot:
+                self._aggregates.append(v)
         elif issubclass(v, ffd.ValueObject):
             v._logger = self.logger
         elif self._should_autowire(v):
             self.register_object(inflection.underscore(k), v)
 
-    def _add_infrastructure_object(self, k: str, v: type):
+    def _add_infrastructure_object(self, k: str, v: type, context: str):
         if self._should_autowire(v):
             self.register_object(inflection.underscore(k), v)
 
-    def _add_application_object(self, k: str, v: type):
+    def _add_application_object(self, k: str, v: type, context: str):
         if issubclass(v, ffd.ApplicationService):
             if v not in self._application_services:
                 self._application_services.append(v)
         elif self._should_autowire(v):
             self.register_object(inflection.underscore(k), v)
 
-    def _add_presentation_object(self, k: str, v: type):
+    def _add_presentation_object(self, k: str, v: type, context: str):
         pass
 
     def _should_autowire(self, v):

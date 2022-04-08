@@ -19,31 +19,30 @@ from dataclasses import fields
 from typing import List, Callable, Union, Tuple, Optional, get_type_hints
 
 import firefly.domain as ffd
-import firefly.infrastructure as ffi
 import inflection
 from firefly.domain.repository.repository import T, Repository
 from sqlalchemy import MetaData
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
 DEFAULT_LIMIT = 999999999999999999
 
 
 class SqlalchemyRepository(Repository[T]):
-    _sqlalchemy_metadata: MetaData = None
-    _sqlalchemy_session: Session = None
+    _map_entities: ffd.MapEntities = None
+    _parse_relationships: ffd.ParseRelationships = None
+    _metadata: MetaData = None
+    _session: Session = None
+    _engine: Engine = None
 
-    def __init__(self, interface: ffi.SqlalchemyStorageInterface, table_name: str = None):
+    def __init__(self):
         super().__init__()
 
         self._entity_type = self._type()
-        self._table = table_name or inflection.tableize(self._entity_type.get_fqn())
-        self._interface = interface
+        self._table = inflection.tableize(self._entity_type.get_fqn())
         self._index = 0
         self._state = 'empty'
         self._query_details = {}
-
-    def execute(self, sql: str, params: dict = None):
-        self._interface.execute(sql, params)
 
     def append(self, entity: Union[T, List[T], Tuple[T]], **kwargs):
         entities = entity if isinstance(entity, list) else [entity]
@@ -61,7 +60,7 @@ class SqlalchemyRepository(Repository[T]):
                 raise TypeError(f"Can't persist {entity.__class__.__name__}, missing {len(missing)} "
                                 f"required argument(s): {', '.join(missing)}")
 
-        list(map(lambda ee: self._sqlalchemy_session.add(ee), entities))
+        list(map(lambda ee: self._session.add(ee), entities))
 
     def remove(self, x: Union[T, List[T], Tuple[T], Callable, ffd.BinaryOp], **kwargs):
         if self._parent is not None:
@@ -72,22 +71,21 @@ class SqlalchemyRepository(Repository[T]):
             xs = [x]
 
         for x in xs:
-            self.debug('Entity removed from repository: %s', str(x))
-            self._deletions.append(x)
+            self._session.delete(x)
             if isinstance(x, ffd.Entity) and x in self._entities:
                 self._entities.remove(x)
 
     def find(self, x: Union[str, Callable, ffd.BinaryOp], **kwargs) -> T:
         ret = None
         if isinstance(x, str):
-            ret = self._interface.find(x, self._entity_type)
+            ret = self._session.query(self._entity_type).get(x)
         else:
             if not isinstance(x, ffd.BinaryOp):
                 x = self._get_search_criteria(x)
             entity = self._find_checked_out_entity(x)
             if entity is not None:
                 return entity
-            results = self._interface.all(self._entity_type, x)
+            results = self._session.query(self._entity_type).all()
             if len(results) > 0:
                 ret = results[0]
 
@@ -106,7 +104,7 @@ class SqlalchemyRepository(Repository[T]):
         if self._state == 'full':
             entities = list(filter(lambda e: criteria.matches(e), self._entities))
         else:
-            entities = self._interface.all(
+            entities = self.filter(
                 self._entity_type, criteria=criteria, limit=limit, offset=offset, raw=raw, sort=sort
             )
 
@@ -136,10 +134,10 @@ class SqlalchemyRepository(Repository[T]):
         return self.copy()
 
     def clear(self):
-        self._interface.clear(self._entity_type)
+        pass  # TODO
 
     def destroy(self):
-        pass
+        pass  # TODO
         # self._sqlalchemy_metadata.drop_all()
 
     def copy(self):
@@ -168,7 +166,7 @@ class SqlalchemyRepository(Repository[T]):
         params = self._query_details.copy()
         if 'criteria' in params and not isinstance(params['criteria'], ffd.BinaryOp):
             params['criteria'] = self._get_search_criteria(params['criteria'])
-        return self._interface.all(self._entity_type, count=True, **params)
+        return self.filter(self._entity_type, count=True, **params)
 
     def __getitem__(self, item):
         if isinstance(item, slice):
@@ -211,7 +209,7 @@ class SqlalchemyRepository(Repository[T]):
 
     def commit(self, force_delete: bool = False):
         self.debug('commit() called in %s', str(self))
-        self._sqlalchemy_session.commit()
+        self._session.commit()
 
     def __repr__(self):
         return f'RdbRepository[{self._entity_type}]'
@@ -227,7 +225,6 @@ class SqlalchemyRepository(Repository[T]):
         super().reset()
         self._query_details = {}
         self._state = 'empty'
-        self._interface._cache = {}
 
     def migrate_schema(self):
         pass
@@ -251,37 +248,3 @@ class SqlalchemyRepository(Repository[T]):
         # for ti in table_indexes:
         #     if ti not in entity_indexes:
         #         self._interface.drop_index(self._entity_type, ti)
-
-
-class Index(ffd.ValueObject):
-    name: str = ffd.optional()
-    table: str = ffd.optional()
-    columns: List[str] = ffd.list_()
-    unique: bool = ffd.optional(default=False)
-
-    def __post_init__(self):
-        if self.name is None:
-            self.name = f'idx_{self.table}_{"_".join(self.columns)}'
-
-    def __eq__(self, other):
-        return self.name == other.name
-
-
-class Column(ffd.ValueObject):
-    name: str = ffd.required()
-    type: str = ffd.required()
-    length: int = ffd.optional()
-    is_id: bool = ffd.optional(default=False)
-    is_indexed: bool = ffd.optional(default=False)
-    is_required: bool = ffd.optional(default=False)
-    default: any = ffd.optional()
-
-    @property
-    def string_type(self):
-        return str(self.type.__name__)
-
-    def index(self):
-        return self.is_id or (self.is_indexed and self.type is str)
-
-    def __eq__(self, other):
-        return self.name == other.name

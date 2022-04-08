@@ -16,12 +16,12 @@ from __future__ import annotations
 
 from dataclasses import fields
 from pprint import pprint
-from typing import Type, List, get_type_hints
+from typing import Type, List, get_type_hints, get_origin, get_args
 
 import inflection
 
 import firefly.domain as ffd
-from ...utils import is_type_hint, get_args, get_origin
+from ...utils import is_type_hint
 from ...service.core.domain_service import DomainService
 
 
@@ -48,7 +48,6 @@ class ParseRelationships(DomainService):
                 continue
 
             if isinstance(v, type) and issubclass(v, ffd.Entity):
-                print(f"        {k}")
                 relationships[k] = {
                     'field_name': k,
                     'target': v,
@@ -72,7 +71,7 @@ class ParseRelationships(DomainService):
             elif is_type_hint(v):
                 origin = get_origin(v)
                 args = get_args(v)
-                if origin is List and issubclass(args[0], ffd.Entity):
+                if origin is list and issubclass(args[0], ffd.Entity):
                     relationships[k] = {
                         'field_name': k,
                         'target': args[0],

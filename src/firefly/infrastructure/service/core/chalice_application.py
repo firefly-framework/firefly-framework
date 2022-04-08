@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import functools
+import logging
 
 import firefly.domain as ffd
 from chalice import Chalice
@@ -69,6 +70,8 @@ class ChaliceApplication(Application):
         app_name = self._context
         self.app = Chalice(app_name=app_name)
         self.app.debug = self._debug == '1'
+        if self.app.debug:
+            self.app.log.setLevel(logging.DEBUG)
 
         for config in kernel.get_http_endpoints():
             config['service'].__name__ = config['service'].__class__.__name__
@@ -82,7 +85,7 @@ class ChaliceApplication(Application):
         for k, v in self.configuration.contexts.items():
             if k.startswith('firefly') or v.get('is_extension', False) is True:
                 continue
-            memory_settings = self.configuration.contexts['firefly'].get('memory_settings')
+            memory_settings = (self.configuration.contexts.get('firefly', {}) or {}).get('memory_settings')
             if memory_settings is not None:
                 for memory in memory_settings:
                     func = functools.update_wrapper(functools.partial(sqs_event, kernel=kernel), sqs_event)

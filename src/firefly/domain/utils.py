@@ -88,33 +88,14 @@ def is_type_hint(obj):
     return isinstance(obj, (typing._GenericAlias, typing._SpecialForm))
 
 
-def get_origin(obj):
-    try:
-        ret = obj.__origin__
-        if hasattr(ret, '__name__') and ret.__name__ in typing._normalize_alias:
-            return getattr(typing, typing._normalize_alias[ret.__name__])
-        return ret
-    except AttributeError:
-        return None
-
-
-def get_args(obj):
-    if not is_type_hint(obj):
-        return None
-    try:
-        return obj.__args__
-    except AttributeError:
-        return None
-
-
 def is_aggregate_reference(t: typing.Any):
     if is_type_hint(t):
-        hint_type = get_origin(t)
-        args = get_args(t)
-        if hint_type in (typing.List, typing.Dict):
-            if hint_type is typing.List and inspect.isclass(args[0]) and issubclass(args[0], ff.AggregateRoot):
+        hint_type = typing.get_origin(t)
+        args = typing.get_args(t)
+        if hint_type in (list, dict):
+            if hint_type is list and inspect.isclass(args[0]) and issubclass(args[0], ff.AggregateRoot):
                 return True
-            if hint_type is typing.Dict and inspect.isclass(args[1]) and issubclass(args[1], ff.AggregateRoot):
+            if hint_type is dict and inspect.isclass(args[1]) and issubclass(args[1], ff.AggregateRoot):
                 return True
         elif hint_type is typing.Union:
             for a in args:
@@ -126,13 +107,13 @@ def is_aggregate_reference(t: typing.Any):
 
 def apply_aggregate(data, t: typing.Any, cb):
     if is_type_hint(t):
-        hint_type = get_origin(t)
-        args = get_args(t)
-        if hint_type in (typing.List, typing.Dict):
-            if hint_type is typing.List and inspect.isclass(args[0]) and issubclass(args[0], ff.AggregateRoot):
+        hint_type = typing.get_origin(t)
+        args = typing.get_args(t)
+        if hint_type in (list, dict):
+            if hint_type is list and inspect.isclass(args[0]) and issubclass(args[0], ff.AggregateRoot):
                 for i, item in enumerate(data):
                     data[i] = cb(item, args[0])
-            if hint_type is typing.Dict and inspect.isclass(args[1]) and issubclass(args[1], ff.AggregateRoot):
+            if hint_type is dict and inspect.isclass(args[1]) and issubclass(args[1], ff.AggregateRoot):
                 for k, item in data.items():
                     data[k] = cb(item, args[1])
         elif hint_type is typing.Union:
@@ -149,8 +130,6 @@ def walk_aggregates(entity, cb):
     for field_ in fields(entity.__class__):
         if is_aggregate_reference(hints[field_.name]):
             value = apply_aggregate(getattr(entity, field_.name), hints[field_.name], cb)
-            print(value)
-            exit()
             if value is not None:
                 setattr(entity, field_.name, value)
 
@@ -160,8 +139,8 @@ def can_be_type(x, t):
         return issubclass(x, t)
 
     if is_type_hint(x):
-        if get_origin(x) is typing.Union:
-            for arg in get_args(x):
+        if typing.get_origin(x) is typing.Union:
+            for arg in typing.get_args(x):
                 if can_be_type(arg, t):
                     return True
 

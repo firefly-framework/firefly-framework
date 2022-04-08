@@ -17,21 +17,32 @@ from __future__ import annotations
 import inspect
 from dataclasses import fields
 from datetime import datetime, date
-from pprint import pprint
-from typing import Type, List, Optional
+from typing import Type, List, Optional, get_type_hints, get_origin, get_args
 
 import firefly.domain as ffd
 import inflection
+from firefly.domain.utils import is_type_hint
 from sqlalchemy import MetaData, Table, Column, ForeignKey, Text, String, Float, Integer, DateTime, Date, Boolean, Index
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.engine import Engine
-from sqlalchemy.exc import ProgrammingError, InvalidRequestError
+from sqlalchemy.exc import ProgrammingError, InvalidRequestError, OperationalError
 from sqlalchemy.orm import relationship, mapper
 from sqlalchemy.sql.ddl import CreateSchema
 
 from .parse_relationships import ParseRelationships
-from ...service.core.domain_service import DomainService
-from ...utils import HasMemoryCache
+
+RELATIONSHIP_PARAMETERS = (
+    'argument', 'secondary', 'primaryjoin', 'secondaryjoin', 'foreign_keys', 'uselist', 'order_by', 'backref',
+    'back_populates', 'overlaps', 'post_update', 'cascade', 'viewonly', 'lazy', 'collection_class', 'passive_deletes',
+    'passive_updates', 'remote_side', 'enable_typechecks', 'join_depth', 'comparator_factory', 'single_parent',
+    'innerjoin', 'distinct_target_key', 'doc', 'active_history', 'cascade_backrefs', 'load_on_pending', 'bake_queries',
+    'query_class', 'info', 'omit_join', 'sync_backref'
+)
+
+COLUMN_PARAMETERS = (
+    'name', 'type_', 'autoincrement', 'default', 'doc', 'key', 'index', 'info', 'nullable', 'onupdate', 'primary_key',
+    'server_default', 'server_onupdate', 'quote', 'unique', 'system', 'comment'
+)
 
 TYPE_MAPPINGS = {
     float: lambda: Float(48),
@@ -42,32 +53,36 @@ TYPE_MAPPINGS = {
 }
 
 
-class MapEntities(DomainService, HasMemoryCache):
+class MapEntities(ffd.HasMemoryCache, ffd.LoggerAware):
     """
     TODO: Add support for association objects?
     TODO: Hash mapping?
     """
-    _get_relationships: ParseRelationships = None
+    _parse_relationships: ParseRelationships = None
     _engine: Engine = None
     _metadata: MetaData = None
-    _context_map: ffd.ContextMap = None
+    _kernel: ffd.Kernel = None
     _stack: list = None
+    _db_type: str = None
 
     def __call__(self, entities: Optional[List[Type[ffd.Entity]]] = None):
+        if self._engine is None:
+            return
+
         self._stack = []
         if entities is None:
-            entities = []
-            for context in self._context_map.contexts:
-                if context.name == 'firefly':
-                    continue
-                entities.extend(context._entities)
+            entities = self._kernel.get_entities()
 
+        if self._logger is None:
+            self._logger = self._kernel.logger
+
+        self._generated_schemas = []
         self._add_relationship_metadata(entities)
         list(map(lambda e: self._map_entity(e), entities))
 
     def _add_relationship_metadata(self, entities: List[Type[ffd.Entity]]):
         for entity in entities:
-            for k, v in self._get_relationships(entity).items():
+            for k, v in self._parse_relationships(entity).items():
                 if v['this_side'] == 'many' and v['target_property'] not in v['relationships']:
                     key = f'mappings.{inflection.underscore(v["target"].__name__)}'
                     mappings = self._cache_get(key) or {}
@@ -83,19 +98,26 @@ class MapEntities(DomainService, HasMemoryCache):
 
         schema, table_name = self._fqtn(entity).split('.')
         try:
-            self._engine.execute(CreateSchema(schema))
+            if entity not in self._generated_schemas:
+                self._generated_schemas.append(entity)
+                self._engine.execute(CreateSchema(schema))
         except ProgrammingError as e:
-            if 'already exists' not in str(e):
+            if self._db_type == 'sqlite':
+                schema = None
+            elif 'already exists' not in str(e):
                 raise e
+        except OperationalError:
+            pass
         args = [table_name, self._metadata]
         kwargs = {
             'schema': schema,
         }
-        types = ffd.get_type_hints(entity)
+        types = get_type_hints(entity)
         indexes = {}
-        relationships = self._get_relationships(entity)
+        relationships = self._parse_relationships(entity)
         join_tables = {}
         mappings = self._cache_get(f'mappings.{inflection.underscore(entity.__name__)}')
+        o2o_owner = '__one_to_one_owner_{}'
 
         for field in fields(entity):
             if field.name.startswith('_'):
@@ -109,12 +131,11 @@ class MapEntities(DomainService, HasMemoryCache):
             if inspect.isclass(t) and issubclass(t, ffd.Entity):
                 self._map_entity(t)
 
-                key = '__one_to_one_owner_{}'
                 try:
-                    if entity.__name__ == 'Task':
-                        print(relationships[field.name]['target'].__dict__)
                     other_side_is_owner = getattr(
-                        relationships[field.name]['target'], key.format(relationships[field.name]['target'].__name__)
+                        relationships[field.name]['target'], o2o_owner.format(
+                            relationships[field.name]['target'].__name__
+                        )
                     ) is True
                 except AttributeError:
                     other_side_is_owner = False
@@ -137,15 +158,15 @@ class MapEntities(DomainService, HasMemoryCache):
 
                 column_args[0] = column_args[0] + '_id'
                 column_args.append(UUID)
-                self.debug(f"Setting {key.format(relationships[field.name]['target'].__name__)} to True")
+                self.debug(f"Setting {o2o_owner.format(relationships[field.name]['target'].__name__)} to True")
                 setattr(
                     entity,
-                    key.format(relationships[field.name]['target'].__name__),
+                    o2o_owner.format(relationships[field.name]['target'].__name__),
                     True
                 )
 
-            elif ffd.is_type_hint(t) and ffd.get_origin(t) is List:
-                self._map_entity(ffd.get_args(t)[0])
+            elif is_type_hint(t) and get_origin(t) is list:
+                self._map_entity(get_args(t)[0])
                 if relationships[field.name]['target_property'] is not None and \
                         relationships[field.name]['other_side'] == 'many':
                     names = [table_name, self._fqtn(relationships[field.name]['target']).split('.')[-1]]
@@ -212,6 +233,11 @@ class MapEntities(DomainService, HasMemoryCache):
                 )
                 column_args.append(ForeignKey(f'{self._fqtn(t)}.{t.id_name()}'))
 
+            column_kwargs.update(field.metadata)
+            for key in list(column_kwargs.keys()).copy():
+                if key not in COLUMN_PARAMETERS:
+                    del column_kwargs[key]
+
             c = Column(*column_args, **column_kwargs)
             self.debug(f'Adding column {str(c)}')
             args.append(c)
@@ -248,8 +274,15 @@ class MapEntities(DomainService, HasMemoryCache):
             kwargs = {}
             if v['other_side'] is not None:
                 kwargs['back_populates'] = v['target_property']
-            if v['metadata'].get('cascade') is not None:
-                kwargs['cascade'] = v['metadata'].get('cascade')
+
+            if (v['this_side'] == 'many' and v['other_side'] == 'one') or \
+                    (getattr(v['target'], o2o_owner.format(entity.__name__), False) is True):
+                kwargs['cascade'] = 'all, delete-orphan'
+
+            kwargs.update(v['metadata'])
+            for key in list(kwargs.keys()).copy():
+                if key not in RELATIONSHIP_PARAMETERS:
+                    del kwargs[key]
 
             if v['this_side'] == 'one':
                 if v['other_side'] == 'one' and entity.__name__ != 'Settings':
@@ -280,7 +313,7 @@ columns:
                 s += f"        {kk}: {vv}\n"
         self.debug(s)
 
-        mapper(entity, table, properties=properties)
+        setattr(entity, '__mapper__', mapper(entity, table, properties=properties))
         self._stack.pop()
 
     @staticmethod

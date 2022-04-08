@@ -14,16 +14,13 @@
 
 from __future__ import annotations
 
-from pprint import pprint
+import firefly.domain as ffd
+from sqlalchemy import MetaData
 
-import firefly as ff
 
+class InitializeStorage:
+    _map_entities: ffd.MapEntities = None
+    _metadata: MetaData = None
 
-@ff.rest('/auth/token')
-class RequestToken(ff.ApplicationService):
-    def __call__(self, **kwargs):
-        print('')
-        print('=====================================================')
-        pprint(kwargs)
-        print('=====================================================')
-        return 'abc123'
+    def __call__(self):
+        self._map_entities()

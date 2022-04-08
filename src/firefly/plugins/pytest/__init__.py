@@ -17,6 +17,7 @@ from __future__ import annotations
 import os
 
 import firefly as ff
+import firefly.infrastructure as ffi
 import pytest
 from chalice.test import TestHTTPClient
 from firefly.infrastructure.service.messaging.chalice_message_transport import ChaliceMessageTransport
@@ -29,8 +30,9 @@ def config():
     raise Exception('You must provide a config fixture.')
 
 
-@pytest.fixture(scope="session")
-def kernel() -> ff.Kernel:
+@pytest.fixture(scope="session", autouse=True)
+def kernel(config) -> ff.Kernel:
+    ff.Kernel.configuration = lambda self: ffi.MemoryConfigurationFactory()(config)
     kernel: ff.Kernel = ff.Kernel().boot()
     kernel.register_object('message_transport', ChaliceMessageTransport)
 
@@ -45,6 +47,12 @@ def client(kernel) -> TestHTTPClient:
 @pytest.fixture(scope="session")
 def system_bus(kernel):
     return kernel.system_bus
+
+
+@pytest.fixture(scope="session")
+def registry(kernel):
+    kernel.sqlalchemy_metadata.create_all()
+    return kernel.registry
 
 
 # class TestingKernel(ff.Kernel):

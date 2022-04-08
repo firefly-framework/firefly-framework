@@ -15,57 +15,32 @@ import os
 
 import pytest
 
-os.environ['FF_ENVIRONMENT'] = 'local'
+os.environ['FF_ENVIRONMENT'] = 'test'
+# os.environ['DEBUG'] = '1'
 os.environ['CONTEXT'] = 'todo'
+os.environ['DB_NAME'] = 'firefly'
+os.environ['DB_USER'] = 'firefly'
+os.environ['DB_PASSWORD'] = 'Abcd1234!'
+os.environ['DB_HOST'] = 'localhost'
+os.environ['DB_TYPE'] = 'postgresql'
+os.environ['DB_PORT'] = '5432'
 
 
 @pytest.fixture(scope="session")
 def config():
     return {
         'contexts': {
+            'firefly': None,
             'todo': {
                 'entity_module': 'firefly_test.todo.domain',
-                'container_module': 'firefly_test.todo.application',
                 'application_module': 'firefly_test.todo.application',
                 'storage': {
                     'services': {
                         'rdb': {
                             'connection': {
                                 'driver': 'sqlite',
-                                'host': ':memory:'
-                                # 'host': '/tmp/todo.db'
-                            }
-                        },
-                    },
-                    'default': 'rdb',
-                },
-            },
-            'iam': {
-                'entity_module': 'firefly_test.iam.domain',
-                'container_module': 'firefly_test.iam.application',
-                'application_module': 'firefly_test.iam.application',
-                'storage': {
-                    'services': {
-                        'rdb': {
-                            'connection': {
-                                'driver': 'sqlite',
-                                'host': ':memory:'
-                                # 'host': '/tmp/todo.db'
-                            }
-                        },
-                    },
-                    'default': 'rdb',
-                },
-            },
-            'calendar': {
-                'entity_module': 'firefly_test.calendar.domain',
-                'storage': {
-                    'services': {
-                        'rdb': {
-                            'connection': {
-                                'driver': 'sqlite',
-                                'host': ':memory:'
-                                # 'host': '/tmp/todo.db'
+                                'host': ':memory:',
+                                'port': '',
                             }
                         },
                     },

@@ -26,10 +26,10 @@ AR = TypeVar('AR', bound=AggregateRoot)
 
 
 class Registry(LoggerAware):
+    _repository_factory: ffd.RepositoryFactory = None
+
     def __init__(self):
         self._cache = {}
-        self._factories = {}
-        self._default_factory = {}
 
     def __call__(self, entity) -> Repository:
         if not issubclass(entity, ffd.AggregateRoot):
@@ -40,38 +40,9 @@ class Registry(LoggerAware):
                 return v
 
         if entity not in self._cache:
-            for k, v in self._factories.items():
-                if issubclass(entity, k):
-                    self._cache[entity] = v(entity)
-                    break
-                elif issubclass(k, entity):
-                    self._cache[entity] = v(k)
-                    break
-
-        if entity not in self._cache:
-            context = entity.get_class_context()
-            if context in self._default_factory and self._default_factory[context] is not None:
-                self._cache[entity] = self._default_factory[context](entity)
-
-            if entity not in self._cache:
-                raise ffd.FrameworkError(
-                    f'No registry found for entity {entity}. Have you configured a persistence mechanism or extension?'
-                )
+            self._cache[entity] = self._repository_factory(entity)
 
         return self._cache[entity]
-
-    def register_factory(self, type_: Type[AR], factory: ffd.RepositoryFactory):
-        found = False
-        for entity in self._factories.keys():
-            if type_.same_type(entity):
-                found = True
-                break
-
-        if not found:
-            self._factories[type_] = factory
-
-    def set_default_factory(self, context: str, factory: ffd.RepositoryFactory):
-        self._default_factory[context] = factory
 
     def clear_cache(self):
         self._cache = {}

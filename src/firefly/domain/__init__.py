@@ -20,6 +20,7 @@ from firefly.domain.meta.meta_aware import MetaAware
 from firefly.domain.repository.search_criteria import SearchCriteria, BinaryOp, EntityAttributeSpy
 from firefly.domain.service.serialization.serializer import Serializer
 
+from firefly.domain.entity.core.endpoint import Endpoint
 from firefly.domain.entity.core.http_endpoint import HttpEndpoint
 from firefly.domain.entity.core.context import Context
 from firefly.domain.entity.core.timer import Timer
@@ -51,6 +52,7 @@ from firefly.domain.event.framework_event import FrameworkEvent
 from firefly.domain.repository.connection_factory import ConnectionFactory
 from firefly.domain.repository.repository import Repository
 from firefly.domain.repository.repository_factory import RepositoryFactory
+from firefly.domain.repository.registry import Registry
 
 from firefly.domain.service.core.agent import Agent
 from firefly.domain.service.annotation.configuration_annotation import ConfigurationAnnotation
@@ -63,5 +65,8 @@ from firefly.domain.service.annotation.rest import rest
 from firefly.domain.meta import build_argument_list
 from firefly.domain.service.core.application import Application
 from firefly.domain.service.resource_name_generator import ResourceNameGenerator
+
+from firefly.domain.service.entity.map_entities import MapEntities
+from firefly.domain.service.entity.parse_relationships import ParseRelationships
 
 from firefly.domain.error import *

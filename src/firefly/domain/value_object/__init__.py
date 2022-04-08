@@ -17,13 +17,16 @@ import typing
 from dataclasses import fields
 from datetime import datetime, date
 from typing import List, Union, Dict
+from typing import get_origin, get_args
 
 import inflection
 from firefly.domain.entity.validation import IsValidEmail, HasLength, MatchesPattern, IsValidUrl, IsLessThanOrEqualTo, \
     IsLessThan, IsGreaterThanOrEqualTo, IsGreaterThan, IsMultipleOf, HasMaxLength, HasMinLength, parse
 from firefly.domain.meta.build_argument_list import build_argument_list
 from firefly.domain.meta.entity_meta import EntityMeta
-from firefly.domain.utils import is_type_hint, get_origin, get_args, can_be_type
+from firefly.domain.utils import is_type_hint
+from marshmallow import Schema, fields as m_fields
+from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
 
 from .event_buffer import EventBuffer
 from .generic_base import GenericBase
@@ -37,9 +40,20 @@ class Empty:
 _defs = {}
 
 
+MARSHMALLOW_MAPPINGS = {
+    str: m_fields.Str,
+    int: m_fields.Int,
+    float: m_fields.Float,
+    bool: m_fields.Bool,
+    datetime: m_fields.DateTime,
+    date: m_fields.Date,
+}
+
+
 # noinspection PyDataclass
 class ValueObject(metaclass=EntityMeta):
     _logger = None
+    _cache = None
     _mappings = {
         str: 'string',
         int: 'integer',
@@ -52,49 +66,48 @@ class ValueObject(metaclass=EntityMeta):
     def __init__(self, **kwargs):
         pass
 
-    def to_dict(self, skip: list = None, force_all: bool = False):
-        ret = {}
-        annotations_ = typing.get_type_hints(self.__class__)
-        for field_ in fields(self):
-            if field_.name.startswith('_'):
-                continue
-            if field_.metadata.get('internal') is True and force_all is False:
-                continue
+    def to_dict(self, skip: list = None, force_all: bool = False, **kwargs):
+        caller = kwargs.get('caller')
+        include_relationships = kwargs.get('include_relationships', True)
+        ret = self.schema().dump(self)
 
-            type_ = annotations_[field_.name]
-            if inspect.isclass(type_) and issubclass(type_, ValueObject):
-                f = getattr(self, field_.name)
-                if isinstance(f, ValueObject):
-                    ret[field_.name] = f.to_dict()
-                else:
-                    ret[field_.name] = None
-            elif is_type_hint(annotations_[field_.name]):
-                origin = get_origin(type_)
-                args = get_args(type_)
-                if origin is List and can_be_type(args[0], ValueObject):
-                    if getattr(self, field_.name) is None:
-                        ret[field_.name] = None
-                    else:
-                        ret[field_.name] = list(map(
-                            lambda v: v.to_dict() if isinstance(v, ValueObject) else None,
-                            getattr(self, field_.name)
-                        ))
-                elif origin is Dict and can_be_type(args[1], ValueObject):
-                    if getattr(self, field_.name) is None:
-                        ret[field_.name] = None
-                    else:
-                        ret[field_.name] = {k: v.to_dict() for k, v in getattr(self, field_.name).items()}
-                else:
-                    ret[field_.name] = getattr(self, field_.name)
-            else:
-                ret[field_.name] = getattr(self, field_.name)
+        if include_relationships:
+            types = typing.get_type_hints(self.__class__)
+            for field_ in fields(self):
+                if field_.name.startswith('_'):
+                    continue
+                t = types[field_.name]
+                if t is caller.__class__ and caller == getattr(self, field_.name):
+                    continue
+                if inspect.isclass(t) and issubclass(t, ValueObject):
+                    try:
+                        ret[field_.name] = getattr(self, field_.name).to_dict(
+                            skip=skip, force_all=force_all, caller=self
+                        )
+                    except AttributeError:
+                        pass
+                elif is_type_hint(t) and get_origin(t) is list:
+                    args = get_args(t)
+                    if args[0] is caller.__class__:
+                        continue
+                    if inspect.isclass(args[0]) and issubclass(args[0], ValueObject):
+                        try:
+                            ret[field_.name] = [
+                                e.to_dict(skip=skip, force_all=force_all, caller=self)
+                                for e in getattr(self, field_.name)
+                            ]
+                        except AttributeError:
+                            pass
 
         if skip is not None:
-            d = ret.copy()
-            for k in ret.keys():
-                if k in skip:
-                    del d[k]
-            return d
+            for s in skip:
+                if s in ret:
+                    del ret[s]
+
+        if force_all is False:
+            for field in fields(self.__class__):
+                if field.metadata.get('internal') is True:
+                    del ret[field.name]
 
         return ret
 
@@ -119,6 +132,22 @@ class ValueObject(metaclass=EntityMeta):
                             setattr(self, name, data[name])
                     except TypeError:
                         setattr(self, name, data[name])
+
+    def debug(self, *args, **kwargs):
+        return self._logger.debug(*args, **kwargs)
+
+    def info(self, *args, **kwargs):
+        return self._logger.info(*args, **kwargs)
+
+    def warning(self, *args, **kwargs):
+        return self._logger.warning(*args, **kwargs)
+
+    def error(self, *args, **kwargs):
+        return self._logger.error(*args, **kwargs)
+
+    @classmethod
+    def validate(cls, data: dict):
+        return cls.schema().validate(data)
 
     @classmethod
     def get_dto_schema(cls, stack: List[type] = None):
@@ -292,18 +321,6 @@ class ValueObject(metaclass=EntityMeta):
 
         return config
 
-    def debug(self, *args, **kwargs):
-        return self._logger.debug(*args, **kwargs)
-
-    def info(self, *args, **kwargs):
-        return self._logger.info(*args, **kwargs)
-
-    def warning(self, *args, **kwargs):
-        return self._logger.warning(*args, **kwargs)
-
-    def error(self, *args, **kwargs):
-        return self._logger.error(*args, **kwargs)
-
     @classmethod
     def from_dict(cls, data: dict, map_: dict = None, skip: list = None):
         if map_ is not None:
@@ -320,5 +337,69 @@ class ValueObject(metaclass=EntityMeta):
                     del d[k]
             data = d
 
-        return cls(**build_argument_list(data, cls))
-    # __pragma__('noskip')
+        return cls.schema().load(data)
+
+    @classmethod
+    def schema(cls, stack: list = None) -> Schema:
+        stack = stack or []
+        if not isinstance(cls._cache, dict):
+            cls._cache = {}
+
+        class FieldContainer(SQLAlchemyAutoSchema):
+            class Meta:
+                model = cls
+                include_relationships = True
+                load_instance = True
+
+        return FieldContainer()
+
+            # types = typing.get_type_hints(cls)
+            # for field in fields(cls):
+            #     if field.name.startswith('_'):
+            #         continue
+            #
+            #     t = types[field.name]
+            #     params = {}
+            #     params.update(field.metadata)
+            #
+            #     if field.metadata.get('required', False) is False:
+            #         if field.metadata.get('default') is not None:
+            #             params['load_default'] = field.metadata.get('default')
+            #         elif field.metadata.get('default_factory') is not None:
+            #             params['load_default'] = field.metadata.get('default_factory')()
+            #
+            #     m_type = None
+            #     is_hint = is_type_hint(t)
+            #     is_list = is_hint and get_origin(t) is List
+            #     is_list_of_entities = is_list and inspect.isclass(get_args(t)[0]) and issubclass(
+            #         get_args(t)[0], ffd.Entity
+            #     )
+            #     is_dict = is_hint and get_origin(t) is Dict
+            #     if inspect.isclass(t) and issubclass(t, ffd.Entity):
+            #         if t not in stack:
+            #             m_type = m_fields.Nested(t.schema(stack + [t]))
+            #         else:
+            #             m_type = t
+            #         params['many'] = False
+            #     elif is_list:
+            #         if is_list_of_entities:
+            #             if t not in stack:
+            #                 m_type = m_fields.Nested(t.schema(stack + [t]))
+            #         else:
+            #             m_type = MARSHMALLOW_MAPPINGS[t](**params)
+            #         params['many'] = True
+            #     else:
+            #         m_type = MARSHMALLOW_MAPPINGS[t](**params)
+            #
+            #     setattr(FieldContainer, field.name, m_type)
+            #
+            # class ThisSchema(FieldContainer, Schema):
+            #     @post_load
+            #     def ff_make(self, data, **kwargs):
+            #         return cls(**data)
+            #
+            # ThisSchema.__name__ = f'{cls.__name__}Schema'
+            #
+            # cls._cache[cls] = ThisSchema()
+
+        return cls._cache[cls]

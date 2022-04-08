@@ -59,7 +59,7 @@ def sut(engine, metadata):
     ret = MapEntities()
     ret._logger = PythonLogger()
 
-    ret._get_relationships = ParseRelationships()
+    ret._parse_relationships = ParseRelationships()
     ret._engine = engine
     ret._metadata = metadata
 

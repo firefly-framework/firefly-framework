@@ -12,12 +12,10 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-# __pragma__('skip')
-from .build_argument_list import build_argument_list
-from .context_aware import ContextAware
-from .entity_meta import EntityMeta
-from .firefly_type import FireflyType
-from .get_arguments import get_arguments
-from .message_meta import MessageMeta
-from .value_object_meta import ValueObjectMeta
-# __pragma__('noskip')
+# from .build_argument_list import build_argument_list
+# from .context_aware import ContextAware
+# from .entity_meta import EntityMeta
+# from .firefly_type import FireflyType
+# from .get_arguments import get_arguments
+# from .message_meta import MessageMeta
+# from .value_object_meta import ValueObjectMeta

@@ -209,6 +209,7 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
                 self._aggregates.append(v)
         elif issubclass(v, ffd.ValueObject):
             v._logger = self.logger
+            v._session = self.sqlalchemy_session
         elif self._should_autowire(v):
             self.register_object(inflection.underscore(k), v)
 

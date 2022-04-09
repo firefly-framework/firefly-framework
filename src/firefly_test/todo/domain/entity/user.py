@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import typing
 from typing import List, Dict
+from uuid import UUID
 
 import firefly as ff
 import firefly_test.todo.domain as domain
@@ -46,7 +47,7 @@ class Favorite(ff.Entity):
 
 
 class User(ff.AggregateRoot):
-    id: str = ff.id_()
+    id: UUID = ff.id_()
     name: str = ff.required()
     todo_lists: List[domain.TodoList] = ff.list_()
     settings: Settings = ff.required()

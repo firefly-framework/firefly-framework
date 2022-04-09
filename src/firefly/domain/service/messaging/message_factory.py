@@ -19,7 +19,7 @@ from typing import Union, Tuple, get_type_hints
 
 import firefly.domain as ffd
 from firefly.domain.entity.messaging.message import Message
-from firefly.domain.meta import MessageMeta
+from firefly.domain.meta.message_meta import MessageMeta
 import firefly.domain.error as errors
 
 

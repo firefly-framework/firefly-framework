@@ -17,23 +17,26 @@ from __future__ import annotations
 import inspect
 import keyword
 import typing
-# __pragma__('skip')
 from dataclasses import is_dataclass, fields
 from datetime import datetime, date
+from pprint import pprint
 
 import firefly.domain as ffd
-# __pragma__('noskip')
-# __pragma__ ('ecom')
 from dateparser import parse
-
-"""?
-from firefly.presentation.web.polyfills import is_dataclass, fields
-?"""
-# __pragma__ ('noecom')
-
+from firefly.domain.utils import is_type_hint
+from marshmallow import Schema
+from marshmallow.fields import Nested, Float, Integer, DateTime, Date, Boolean
 
 keyword_list = keyword.kwlist
 keyword_list.append('id')
+
+TYPE_MAPPINGS = {
+    float: lambda: Float(48),
+    int: Integer,
+    datetime: DateTime,
+    date: Date,
+    bool: Boolean,
+}
 
 
 def _fix_keywords(params: dict):
@@ -57,8 +60,8 @@ def _handle_type_hint(params: typing.Any, t: type, key: str = None, required: bo
     # logging.debug('Processing type hint %s with params: %s, key: %s, required: %s', t, params, key, required)
     ret = {}
 
-    origin = ffd.get_origin(t)
-    args = ffd.get_args(t)
+    origin = typing.get_origin(t)
+    args = typing.get_args(t)
 
     if origin is typing.List:
         if key not in params:
@@ -66,7 +69,7 @@ def _handle_type_hint(params: typing.Any, t: type, key: str = None, required: bo
                 raise ffd.MissingArgument(f'Missing argument {key} for type {t}')
             return []
 
-        if ffd.is_type_hint(args[0]):
+        if is_type_hint(args[0]):
             if key is not None:
                 ret[key] = list(map(lambda a: _handle_type_hint(a, args[0]), params[key]))
             else:
@@ -94,7 +97,7 @@ def _handle_type_hint(params: typing.Any, t: type, key: str = None, required: bo
                 raise ffd.MissingArgument()
             return {}
 
-        if ffd.is_type_hint(args[1]):
+        if is_type_hint(args[1]):
             ret[key] = {k: _handle_type_hint(v, args[1]) for k, v in params[key].items()}
         elif inspect.isclass(args[1]) and issubclass(args[1], ffd.ValueObject):
             ret[key] = {k: _build_value_object(v, args[1], required) for k, v in params[key].items()}
@@ -197,7 +200,6 @@ def _check_special_types(value: typing.Any, type_: type):
 
 def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], strict: bool = True,
                         include_none_parameters: bool = False):
-    # logging.debug('Building argument list for %s with params: %s, strict: %s', obj, params, strict)
     args = {}
     field_dict = {}
     is_dc = False
@@ -228,12 +230,9 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], 
     for param in sig.parameters.values():
         if param.kind == inspect.Parameter.VAR_KEYWORD:
             has_kwargs = True
-            # return params
 
     for name, param in sig.parameters.items():
-        # logging.debug('Processing param %s', param)
         if name == 'self' or param.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
-            # logging.debug('Skipping...')
             continue
 
         required = False
@@ -264,24 +263,17 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], 
                 args[name] = params[name]
                 continue
 
-            try:
-                nested = False
-                e = None
-                if name in params and isinstance(params[name], dict):
-                    e = _generate_model(params[name], type_)
-                    nested = True
-                elif isinstance(params, dict):
-                    e = _generate_model(copy_params(params, sig), type_)
-            except ffd.MissingArgument:
-                if required is False:
-                    continue
-                raise
-            # TODO use factories where appropriate
-            args[name] = e
+            nested = False
+            if name in params and isinstance(params[name], dict):
+                args[name] = type_.from_dict(params[name])
+                nested = True
+            elif isinstance(params, dict):
+                args[name] = type_.from_dict(params)
+
             if nested:
                 del params[name]
 
-        elif ffd.is_type_hint(type_):
+        elif is_type_hint(type_):
             if type_ is typing.Any:
                 if name in params:
                     args[name] = params[name]

@@ -25,8 +25,10 @@ from firefly.domain.entity.validation import IsValidEmail, HasLength, MatchesPat
 from firefly.domain.meta.build_argument_list import build_argument_list
 from firefly.domain.meta.entity_meta import EntityMeta
 from firefly.domain.utils import is_type_hint
-from marshmallow import Schema, fields as m_fields
+from marshmallow import Schema, fields as m_fields, pre_load
 from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
+from marshmallow_sqlalchemy.fields import Nested
+from sqlalchemy.orm import Session
 
 from .event_buffer import EventBuffer
 from .generic_base import GenericBase
@@ -53,6 +55,7 @@ MARSHMALLOW_MAPPINGS = {
 # noinspection PyDataclass
 class ValueObject(metaclass=EntityMeta):
     _logger = None
+    _session: Session = None
     _cache = None
     _mappings = {
         str: 'string',
@@ -337,7 +340,13 @@ class ValueObject(metaclass=EntityMeta):
                     del d[k]
             data = d
 
-        return cls.schema().load(data)
+        for k, v in list(data.items()).copy():
+            if k.endswith('_'):
+                data[str(k).rstrip('_')] = v
+                del data[k]
+        print(data)
+        print(cls._session)
+        return cls.schema().load(data, session=cls._session)
 
     @classmethod
     def schema(cls, stack: list = None) -> Schema:

@@ -17,7 +17,7 @@ import uuid
 import firefly_test.todo.domain as todo
 
 
-def test_one_to_one_association():
+def test_basic_associations():
     u_id = str(uuid.uuid4())
     p_id = str(uuid.uuid4())
     a_id1 = str(uuid.uuid4())

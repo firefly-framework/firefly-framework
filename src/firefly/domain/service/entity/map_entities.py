@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import inspect
+import uuid
 from dataclasses import fields
 from datetime import datetime, date
 from typing import Type, List, Optional, get_type_hints, get_origin, get_args
@@ -38,14 +39,11 @@ TYPE_MAPPINGS = {
     datetime: lambda: DateTime,
     date: lambda: Date,
     bool: lambda: Boolean,
+    uuid.UUID: lambda: UUID(as_uuid=True),
 }
 
 
 class MapEntities(ffd.HasMemoryCache, ffd.LoggerAware):
-    """
-    TODO: Add support for association objects?
-    TODO: Hash mapping?
-    """
     _parse_relationships: ParseRelationships = None
     _engine: Engine = None
     _metadata: MetaData = None
@@ -145,7 +143,7 @@ class MapEntities(ffd.HasMemoryCache, ffd.LoggerAware):
                     continue
 
                 column_args[0] = column_args[0] + '_id'
-                column_args.append(UUID)
+                column_args.append(UUID(as_uuid=True))
                 self.debug(f"Setting {o2o_owner.format(relationships[field.name]['target'].__name__)} to True")
                 setattr(
                     entity,
@@ -175,12 +173,13 @@ class MapEntities(ffd.HasMemoryCache, ffd.LoggerAware):
                         f'{names[0]}_{names[1]}',
                         self._metadata,
                         Column(
-                            inflection.underscore(entity.__name__), UUID, ForeignKey(
+                            inflection.underscore(entity.__name__), UUID(as_uuid=True), ForeignKey(
                                 f'{schema}.{left_table}.{left_col}'
                             )
                         ),
                         Column(
-                            inflection.underscore(relationships[field.name]['target'].__name__), UUID, ForeignKey(
+                            inflection.underscore(relationships[field.name]['target'].__name__), UUID(as_uuid=True),
+                            ForeignKey(
                                 f'{schema}.{right_table}.{right_col}'
                             )
                         ),
@@ -215,7 +214,7 @@ class MapEntities(ffd.HasMemoryCache, ffd.LoggerAware):
                 self.debug(f'{field.name} is an id')
                 if field.metadata.get('is_uuid') is True:
                     self.debug(f'column is a uuid, changing type to UUID')
-                    column_args[1] = UUID
+                    column_args[1] = UUID(as_uuid=True)
                 column_kwargs['primary_key'] = True
 
             if field.metadata.get('required') is True:
@@ -248,7 +247,9 @@ class MapEntities(ffd.HasMemoryCache, ffd.LoggerAware):
 
         if mappings is not None:
             for k, v in mappings.items():
-                args.append(Column(k, UUID, ForeignKey(f'{schema}.{inflection.tableize(v.__name__)}.{v.id_name()}')))
+                args.append(Column(
+                    k, UUID(as_uuid=True), ForeignKey(f'{schema}.{inflection.tableize(v.__name__)}.{v.id_name()}')
+                ))
 
         self._add_indexes(args, indexes, entity.get_class_context(), inflection.tableize(entity.__name__))
 

@@ -49,3 +49,8 @@ def config():
             },
         },
     }
+
+
+@pytest.fixture(scope="session", autouse=True)
+def auto_use_kernel(kernel):
+    pass

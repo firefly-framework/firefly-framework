@@ -12,7 +12,7 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-import firefly_test.calendar.domain as calendar
+# TODO Update these tests
 import firefly_test.todo.domain as todo
 import pytest
 

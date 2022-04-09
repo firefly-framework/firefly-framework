@@ -61,6 +61,7 @@ def test_delete(registry, fixtures):
     users = registry(todo.User)
 
     settings, profile, u = fixtures
+    id_ = u.id
     users.append(u)
     users.commit()
     users.reset()
@@ -70,7 +71,18 @@ def test_delete(registry, fixtures):
     users.commit()
     users.reset()
 
-    assert users.find(u.id) is None
+    assert users.find(id_) is None
+
+
+def test_search(registry, fixtures):
+    users = registry(todo.User)
+    settings, profile, u = fixtures
+    users.append(u)
+    users.commit()
+    users.reset()
+
+    assert isinstance(users.find(lambda uu: uu.name == 'Bob Loblaw'), todo.User)
+    assert users.find(lambda uu: uu.name == 'Foobar') is None
 
 
 @pytest.fixture()

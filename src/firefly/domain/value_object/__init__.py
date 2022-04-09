@@ -25,9 +25,8 @@ from firefly.domain.entity.validation import IsValidEmail, HasLength, MatchesPat
 from firefly.domain.meta.build_argument_list import build_argument_list
 from firefly.domain.meta.entity_meta import EntityMeta
 from firefly.domain.utils import is_type_hint
-from marshmallow import Schema, fields as m_fields, pre_load
+from marshmallow import Schema, fields as m_fields
 from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
-from marshmallow_sqlalchemy.fields import Nested
 from sqlalchemy.orm import Session
 
 from .event_buffer import EventBuffer
@@ -344,8 +343,6 @@ class ValueObject(metaclass=EntityMeta):
             if k.endswith('_'):
                 data[str(k).rstrip('_')] = v
                 del data[k]
-        print(data)
-        print(cls._session)
         return cls.schema().load(data, session=cls._session)
 
     @classmethod
@@ -354,61 +351,24 @@ class ValueObject(metaclass=EntityMeta):
         if not isinstance(cls._cache, dict):
             cls._cache = {}
 
-        class FieldContainer(SQLAlchemyAutoSchema):
-            class Meta:
-                model = cls
-                include_relationships = True
-                load_instance = True
+        if cls not in cls._cache:
+            class FieldContainer(SQLAlchemyAutoSchema):
+                class Meta:
+                    model = cls
+                    include_relationships = True
+                    load_instance = True
 
-        return FieldContainer()
-
-            # types = typing.get_type_hints(cls)
-            # for field in fields(cls):
-            #     if field.name.startswith('_'):
-            #         continue
-            #
-            #     t = types[field.name]
-            #     params = {}
-            #     params.update(field.metadata)
-            #
-            #     if field.metadata.get('required', False) is False:
-            #         if field.metadata.get('default') is not None:
-            #             params['load_default'] = field.metadata.get('default')
-            #         elif field.metadata.get('default_factory') is not None:
-            #             params['load_default'] = field.metadata.get('default_factory')()
-            #
-            #     m_type = None
-            #     is_hint = is_type_hint(t)
-            #     is_list = is_hint and get_origin(t) is List
-            #     is_list_of_entities = is_list and inspect.isclass(get_args(t)[0]) and issubclass(
-            #         get_args(t)[0], ffd.Entity
-            #     )
-            #     is_dict = is_hint and get_origin(t) is Dict
-            #     if inspect.isclass(t) and issubclass(t, ffd.Entity):
-            #         if t not in stack:
-            #             m_type = m_fields.Nested(t.schema(stack + [t]))
-            #         else:
-            #             m_type = t
-            #         params['many'] = False
-            #     elif is_list:
-            #         if is_list_of_entities:
-            #             if t not in stack:
-            #                 m_type = m_fields.Nested(t.schema(stack + [t]))
-            #         else:
-            #             m_type = MARSHMALLOW_MAPPINGS[t](**params)
-            #         params['many'] = True
-            #     else:
-            #         m_type = MARSHMALLOW_MAPPINGS[t](**params)
-            #
-            #     setattr(FieldContainer, field.name, m_type)
-            #
-            # class ThisSchema(FieldContainer, Schema):
-            #     @post_load
-            #     def ff_make(self, data, **kwargs):
-            #         return cls(**data)
-            #
-            # ThisSchema.__name__ = f'{cls.__name__}Schema'
-            #
-            # cls._cache[cls] = ThisSchema()
+            cls._cache[cls] = FieldContainer()
 
         return cls._cache[cls]
+
+    def __str__(self):
+        while True:
+            try:
+                return self.__repr__()
+            except AttributeError as e:
+                if 'object has no attribute' in str(e):
+                    attr = str(e).split(' ')[-1].strip("'")
+                    setattr(self, attr, None)
+                else:
+                    raise e

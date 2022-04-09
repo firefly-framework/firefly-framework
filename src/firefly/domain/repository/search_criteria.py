@@ -17,7 +17,7 @@ from __future__ import annotations
 import inspect
 from dataclasses import is_dataclass, fields
 from datetime import datetime, date
-from typing import Union, List, Type, get_type_hints
+from typing import Union, List, Type, get_type_hints, Callable
 
 import firefly.domain as ffd
 import firefly.domain.error as errors
@@ -182,7 +182,7 @@ class AttrFactory:
         return object.__getattribute__(self, item)
 
 
-class BinaryOp:
+class SearchCriteria:
     def __init__(self, lhv, op, rhv):
         self.lhv = lhv
         self.op = op
@@ -362,8 +362,19 @@ class BinaryOp:
 
         return data
 
-    def to_sql(self, prefix: str = None):
+    def to_sql(self, prefix: str = None, processor: Callable = False):
         sql, params, counter = self._to_sql(prefix=prefix)
+        if processor:
+            for k, v in params.items():
+                if isinstance(v, str):
+                    sql = sql.replace(f':{k}', f"{processor(value=v)}")
+                elif isinstance(v, (datetime, date)):
+                    format_ = "y-MM-dd''T''H:m:ss" if isinstance(v, datetime) else 'y-MM-dd'
+                    sql = sql.replace(f':{k}', f"TO_TIMESTAMP('{v.isoformat()}', '{format_}')")
+                else:
+                    sql = sql.replace(f':{k}', processor(value=str(v)))
+            return sql
+
         return sql, params
 
     def _to_sql(self, counter: int = None, params: dict = None, prefix: str = None):
@@ -430,8 +441,8 @@ class BinaryOp:
         return f'({self.lhv} {self.op} {self.rhv})'.replace('==', '=')
 
     def __eq__(self, other):
-        return isinstance(other, BinaryOp) and self.to_dict() == other.to_dict()
+        return isinstance(other, SearchCriteria) and self.to_dict() == other.to_dict()
 
 
-class SearchCriteria(BinaryOp):
+class BinaryOp(SearchCriteria):
     pass

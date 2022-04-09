@@ -17,11 +17,12 @@ from __future__ import annotations
 import inspect
 from dataclasses import fields
 from typing import List, Callable, Union, Tuple, Optional, get_type_hints
+from uuid import UUID
 
 import firefly.domain as ffd
 import inflection
 from firefly.domain.repository.repository import T, Repository
-from sqlalchemy import MetaData
+from sqlalchemy import MetaData, text, String
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
@@ -75,17 +76,16 @@ class SqlalchemyRepository(Repository[T]):
             if isinstance(x, ffd.Entity) and x in self._entities:
                 self._entities.remove(x)
 
-    def find(self, x: Union[str, Callable, ffd.BinaryOp], **kwargs) -> T:
+    def find(self, x: Union[str, UUID, Callable, ffd.SearchCriteria], **kwargs) -> T:
         ret = None
-        if isinstance(x, str):
+        if isinstance(x, (str, UUID)):
             ret = self._session.query(self._entity_type).get(x)
         else:
-            if not isinstance(x, ffd.BinaryOp):
+            if not isinstance(x, ffd.SearchCriteria):
                 x = self._get_search_criteria(x)
-            entity = self._find_checked_out_entity(x)
-            if entity is not None:
-                return entity
-            results = self._session.query(self._entity_type).all()
+
+            p = String().literal_processor(self._engine.dialect)
+            results = self._session.query(self._entity_type).filter(text(x.to_sql(processor=p))).all()
             if len(results) > 0:
                 ret = results[0]
 

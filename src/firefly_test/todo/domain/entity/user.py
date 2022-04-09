@@ -53,4 +53,4 @@ class User(ff.AggregateRoot):
     settings: Settings = ff.required()
     profile: Profile = ff.required()
     addresses: List[Address] = ff.list_()
-    favorites: Dict[str, Favorite] = ff.dict_()
+    favorites: Dict[UUID, Favorite] = ff.dict_()

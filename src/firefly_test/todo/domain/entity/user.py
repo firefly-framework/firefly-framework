@@ -14,7 +14,8 @@
 
 from __future__ import annotations
 
-from typing import List
+import typing
+from typing import List, Dict
 
 import firefly as ff
 import firefly_test.todo.domain as domain
@@ -39,6 +40,11 @@ class Address(ff.AggregateRoot):
     residents: List[User] = ff.list_()
 
 
+class Favorite(ff.Entity):
+    id: str = ff.id_()
+    name: str = ff.required()
+
+
 class User(ff.AggregateRoot):
     id: str = ff.id_()
     name: str = ff.required()
@@ -46,3 +52,4 @@ class User(ff.AggregateRoot):
     settings: Settings = ff.required()
     profile: Profile = ff.required()
     addresses: List[Address] = ff.list_()
+    favorites: Dict[str, Favorite] = ff.dict_()

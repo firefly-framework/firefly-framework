@@ -30,7 +30,7 @@ def config():
     raise Exception('You must provide a config fixture.')
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="session")
 def kernel(config) -> ff.Kernel:
     ff.Kernel.configuration = lambda self: ffi.MemoryConfigurationFactory()(config)
     kernel: ff.Kernel = ff.Kernel().boot()

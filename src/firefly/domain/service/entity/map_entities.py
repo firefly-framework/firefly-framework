@@ -23,26 +23,14 @@ import firefly.domain as ffd
 import inflection
 from firefly.domain.utils import is_type_hint
 from sqlalchemy import MetaData, Table, Column, ForeignKey, Text, String, Float, Integer, DateTime, Date, Boolean, Index
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import ProgrammingError, InvalidRequestError, OperationalError
 from sqlalchemy.orm import relationship, mapper
+from sqlalchemy.orm.collections import attribute_mapped_collection
 from sqlalchemy.sql.ddl import CreateSchema
 
 from .parse_relationships import ParseRelationships
-
-RELATIONSHIP_PARAMETERS = (
-    'argument', 'secondary', 'primaryjoin', 'secondaryjoin', 'foreign_keys', 'uselist', 'order_by', 'backref',
-    'back_populates', 'overlaps', 'post_update', 'cascade', 'viewonly', 'lazy', 'collection_class', 'passive_deletes',
-    'passive_updates', 'remote_side', 'enable_typechecks', 'join_depth', 'comparator_factory', 'single_parent',
-    'innerjoin', 'distinct_target_key', 'doc', 'active_history', 'cascade_backrefs', 'load_on_pending', 'bake_queries',
-    'query_class', 'info', 'omit_join', 'sync_backref'
-)
-
-COLUMN_PARAMETERS = (
-    'name', 'type_', 'autoincrement', 'default', 'doc', 'key', 'index', 'info', 'nullable', 'onupdate', 'primary_key',
-    'server_default', 'server_onupdate', 'quote', 'unique', 'system', 'comment'
-)
 
 TYPE_MAPPINGS = {
     float: lambda: Float(48),
@@ -202,6 +190,13 @@ class MapEntities(ffd.HasMemoryCache, ffd.LoggerAware):
                 self.debug(f'property {field.name} is a list... not adding any columns')
                 continue
 
+            elif is_type_hint(t) and get_origin(t) is dict:
+                a = get_args(t)
+                if inspect.isclass(a[1]) and issubclass(a[1], ffd.Entity):
+                    continue
+                else:
+                    column_args.append(JSONB)
+
             elif t is str:
                 self.debug(f'{field.name} is a string')
                 length = field.metadata.get('length')
@@ -233,11 +228,7 @@ class MapEntities(ffd.HasMemoryCache, ffd.LoggerAware):
                 )
                 column_args.append(ForeignKey(f'{self._fqtn(t)}.{t.id_name()}'))
 
-            column_kwargs.update(field.metadata)
-            for key in list(column_kwargs.keys()).copy():
-                if key not in COLUMN_PARAMETERS:
-                    del column_kwargs[key]
-
+            column_kwargs.update(field.metadata.get('sa_column_kwargs', {}))
             c = Column(*column_args, **column_kwargs)
             self.debug(f'Adding column {str(c)}')
             args.append(c)
@@ -274,16 +265,16 @@ class MapEntities(ffd.HasMemoryCache, ffd.LoggerAware):
             kwargs = {}
             if v['other_side'] is not None:
                 kwargs['back_populates'] = v['target_property']
+            if v['this_side'] == 'hash':
+                kwargs['collection_class'] = attribute_mapped_collection(
+                    v['metadata'].get('sa_relationship_kwargs', {}).get('attr_name', v['target'].id_name())
+                )
 
             if (v['this_side'] == 'many' and v['other_side'] == 'one') or \
                     (getattr(v['target'], o2o_owner.format(entity.__name__), False) is True):
                 kwargs['cascade'] = 'all, delete-orphan'
 
-            kwargs.update(v['metadata'])
-            for key in list(kwargs.keys()).copy():
-                if key not in RELATIONSHIP_PARAMETERS:
-                    del kwargs[key]
-
+            kwargs.update(v['metadata'].get('sa_relationship_kwargs', {}))
             if v['this_side'] == 'one':
                 if v['other_side'] == 'one' and entity.__name__ != 'Settings':
                     kwargs['uselist'] = False
@@ -297,23 +288,8 @@ class MapEntities(ffd.HasMemoryCache, ffd.LoggerAware):
                 self.debug(f'REL: ({entity.__name__}) {entity.__name__}.{k} = relationship({v["target"]}, {kwargs})')
                 properties[k] = relationship(v['target'], **kwargs)
 
-        s = f"""
-MAPPING:
-
-entity: {entity}
-table: {table}
-columns:
-"""
-        for c in table.columns:
-            s += f"    {c.__dict__}\n"
-        s += "properties:\n"
-        for k, v in properties.items():
-            s += f"    {k}:\n"
-            for kk, vv in v.__dict__.items():
-                s += f"        {kk}: {vv}\n"
-        self.debug(s)
-
         setattr(entity, '__mapper__', mapper(entity, table, properties=properties))
+        setattr(entity, '__table__', table)
         self._stack.pop()
 
     @staticmethod

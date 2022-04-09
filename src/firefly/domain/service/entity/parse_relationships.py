@@ -22,10 +22,9 @@ import inflection
 
 import firefly.domain as ffd
 from ...utils import is_type_hint
-from ...service.core.domain_service import DomainService
 
 
-class ParseRelationships(DomainService):
+class ParseRelationships:
     _stack: list = None
 
     def __call__(self, entity: Type[ffd.Entity]):
@@ -40,6 +39,7 @@ class ParseRelationships(DomainService):
         relationships = {}
         self._stack.append((entity, relationships))
         annotations_ = get_type_hints(entity)
+        print(entity)
         for field in fields(entity):
             k = field.name
             v = annotations_[k]
@@ -71,13 +71,15 @@ class ParseRelationships(DomainService):
             elif is_type_hint(v):
                 origin = get_origin(v)
                 args = get_args(v)
-                if origin is list and issubclass(args[0], ffd.Entity):
+                if (origin is list and issubclass(args[0], ffd.Entity)) or \
+                   (origin is dict and issubclass(args[1], ffd.Entity)):
+                    arg = args[0] if origin is list else args[1]
                     relationships[k] = {
                         'field_name': k,
-                        'target': args[0],
-                        'this_side': 'many',
-                        'relationships': self._get_relationships(args[0]),
-                        'fqtn': inflection.tableize(args[0].get_fqn()),
+                        'target': arg,
+                        'this_side': 'many' if origin is list else 'hash',
+                        'relationships': self._get_relationships(arg),
+                        'fqtn': inflection.tableize(arg.get_fqn()),
                         'metadata': field.metadata,
                         'other_side': None,
                         'target_property': None,

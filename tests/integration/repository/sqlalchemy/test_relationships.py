@@ -152,3 +152,29 @@ def test_many_to_many(registry):
 
     jimmy = users.find(user_4.id)
     assert len(jimmy.addresses) == 2
+
+
+def test_hash_mapping(registry):
+    users = registry(todo.User)
+    favorite1 = todo.Favorite(name='foo')
+    favorite2 = todo.Favorite(name='bar')
+    favorite3 = todo.Favorite(name='baz')
+    favorite4 = todo.Favorite(name='biz')
+
+    user = todo.User(
+        name='Bob Loblaw',
+        settings=todo.Settings(send_email=True),
+        profile=todo.Profile(title='My Title'),
+        favorites={
+            favorite1.id: favorite1,
+            favorite2.id: favorite2,
+            favorite3.id: favorite3,
+            favorite4.id: favorite4,
+        }
+    )
+    users.append(user)
+    users.commit()
+    users.reset()
+
+    user = users.find(user.id)
+    assert len(user.favorites.keys()) == 4

@@ -17,26 +17,15 @@ from __future__ import annotations
 import inspect
 import keyword
 import typing
-from dataclasses import is_dataclass, fields
+from dataclasses import is_dataclass, fields, MISSING
 from datetime import datetime, date
-from pprint import pprint
 
 import firefly.domain as ffd
 from dateparser import parse
 from firefly.domain.utils import is_type_hint
-from marshmallow import Schema
-from marshmallow.fields import Nested, Float, Integer, DateTime, Date, Boolean
 
 keyword_list = keyword.kwlist
 keyword_list.append('id')
-
-TYPE_MAPPINGS = {
-    float: lambda: Float(48),
-    int: Integer,
-    datetime: DateTime,
-    date: Date,
-    bool: Boolean,
-}
 
 
 def _fix_keywords(params: dict):
@@ -57,7 +46,6 @@ void = Void()
 
 
 def _handle_type_hint(params: typing.Any, t: type, key: str = None, required: bool = False):
-    # logging.debug('Processing type hint %s with params: %s, key: %s, required: %s', t, params, key, required)
     ret = {}
 
     origin = typing.get_origin(t)
@@ -79,13 +67,13 @@ def _handle_type_hint(params: typing.Any, t: type, key: str = None, required: bo
                 if key is not None:
                     ret[key] = []
                     for v in params[key]:
-                        parameter = _build_value_object(v, args[0], required)
+                        parameter = args[0].from_dict(v)
                         if parameter is not None:
                             ret[key].append(parameter)
                     if len(ret[key]) == 0:
                         del ret[key]
                 else:
-                    ret = list(map(lambda a: _build_value_object(a, args[0], required), params[key]))
+                    ret = list(map(lambda a: args[0].from_dict(a), params[key]))
             except TypeError:
                 return
         else:
@@ -100,7 +88,7 @@ def _handle_type_hint(params: typing.Any, t: type, key: str = None, required: bo
         if is_type_hint(args[1]):
             ret[key] = {k: _handle_type_hint(v, args[1]) for k, v in params[key].items()}
         elif inspect.isclass(args[1]) and issubclass(args[1], ffd.ValueObject):
-            ret[key] = {k: _build_value_object(v, args[1], required) for k, v in params[key].items()}
+            ret[key] = {k: args[1].from_dict(v) for k, v in params[key].items()}
         else:
             ret[key] = params[key]
 
@@ -119,9 +107,9 @@ def _handle_type_hint(params: typing.Any, t: type, key: str = None, required: bo
     else:
         if inspect.isclass(t) and issubclass(t, ffd.ValueObject):
             if key in params:
-                return _build_value_object(params[key], t, required)
+                return t.from_dict(params[key])
             else:
-                return _build_value_object(params, t, required)
+                return t.from_dict(params)
 
         try:
             if key is not None:
@@ -151,46 +139,6 @@ def _handle_type_hint(params: typing.Any, t: type, key: str = None, required: bo
     return ret
 
 
-def _build_value_object(obj, type_, required):
-    try:
-        if isinstance(obj, type_):
-            return obj
-    except TypeError:
-        pass
-
-    try:
-        e = _generate_model(obj, type_)
-        if e is False and required is True:
-            raise ffd.MissingArgument()
-        return e
-    except ffd.MissingArgument:
-        if required is False:
-            return
-        raise
-
-
-def _generate_model(args: dict, model_type: type, strict: bool = False):
-    subclasses = model_type.__subclasses__()
-    if len(subclasses):
-        for subclass in subclasses:
-            try:
-                return _generate_model(args, subclass, strict=True)
-            except (RuntimeError, ffd.MissingArgument):
-                continue
-
-    entity_args = build_argument_list(args, model_type, strict=False)
-    fields_ = {f.name: f for f in fields(model_type)}
-    if strict:
-        for k in args.keys():
-            if k not in entity_args and k in fields_ and fields_[k].metadata.get('required', True) is True:
-                raise RuntimeError()
-
-    if len(entity_args.keys()) == 0:
-        raise ffd.MissingArgument()
-
-    return model_type(**entity_args)
-
-
 def _check_special_types(value: typing.Any, type_: type):
     if type_ is datetime and isinstance(value, str):
         return parse(value).replace(tzinfo=None)
@@ -206,6 +154,7 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], 
     params = _fix_keywords(params)
 
     if is_dataclass(obj):
+        print('1')
         is_dc = True
         field_dict = {}
         # noinspection PyDataclass
@@ -213,13 +162,16 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], 
             field_dict[field_.name] = field_
         sig = inspect.signature(obj.__init__)
         types = typing.get_type_hints(obj)
-    elif isinstance(obj, ffd.MetaAware):
+    elif hasattr(obj, '__call__'):
+        print('2')
         sig = inspect.signature(obj.__call__)
         types = typing.get_type_hints(obj.__call__)
     elif isinstance(obj, type):
+        print('3')
         sig = inspect.signature(obj.__init__)
         types = typing.get_type_hints(obj.__init__)
     else:
+        print('4')
         sig = inspect.signature(obj)
         try:
             types = typing.get_type_hints(obj)
@@ -240,7 +192,7 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], 
             required = field_dict[name].metadata.get('required', False) is True
             try:
                 d = field_dict[name].default_factory()
-                if not isinstance(d, ffd.Empty):
+                if d is not MISSING:
                     required = False
             except (AttributeError, TypeError):
                 pass

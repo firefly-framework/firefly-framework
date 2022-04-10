@@ -14,8 +14,7 @@
 
 from __future__ import annotations
 
-import typing
-from typing import List, Dict
+from typing import List
 from uuid import UUID
 
 import firefly as ff
@@ -53,4 +52,4 @@ class User(ff.AggregateRoot):
     settings: Settings = ff.required()
     profile: Profile = ff.required()
     addresses: List[Address] = ff.list_()
-    favorites: Dict[UUID, Favorite] = ff.dict_()
+    # favorites: Dict[UUID, Favorite] = ff.dict_()

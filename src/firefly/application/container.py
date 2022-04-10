@@ -70,11 +70,19 @@ class Container(ABC):
 
     def build(self, class_: object, **kwargs):
         a = self.autowire(class_, kwargs)
-        return a()
+        try:
+            return a()
+        except TypeError as e:
+            if 'instantiate abstract class' not in str(e):
+                raise e
 
     def mock(self, class_, **kwargs):
         a = self.autowire(class_, kwargs, with_mocks=True)
-        return a()
+        try:
+            return a()
+        except TypeError as e:
+            if 'instantiate abstract class' not in str(e):
+                raise e
 
     def autowire(self, class_, params: dict = None, with_mocks: bool = False):
         if hasattr(class_, '__original_init'):

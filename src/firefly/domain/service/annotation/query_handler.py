@@ -25,7 +25,7 @@ class QueryHandler:
     def __call__(self, query: Union[str, type, None] = None):
         def query_wrapper(cls):
             try:
-                setattr(cls, const.HTTP_ENDPOINTS, [query or f'{os.environ.get("CONTEXT")}.{cls.__name__}'])
+                setattr(cls, const.QUERY, query or f'{os.environ.get("CONTEXT")}.{cls.__name__}')
             except AttributeError:
                 raise error.FrameworkError('@query_handler used on invalid target')
 

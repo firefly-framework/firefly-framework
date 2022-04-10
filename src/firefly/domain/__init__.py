@@ -28,7 +28,8 @@ from firefly.domain.entity.messaging.message import Message
 from firefly.domain.entity.messaging.event import Event
 from firefly.domain.entity.messaging.command import Command
 from firefly.domain.entity.messaging.query import Query
-from firefly.domain.service.messaging.middleware import Middleware
+from firefly.domain.middleware.middleware import Middleware
+from firefly.domain.service.annotation.register_middleware import middleware
 from firefly.domain.service.messaging.system_bus import SystemBusAware, SystemBus
 from firefly.domain.service.logging.logger import Logger, LoggerAware
 from firefly.domain.entity.core.configuration import Configuration
@@ -62,7 +63,7 @@ from firefly.domain.service.annotation.query_handler import query_handler
 from firefly.domain.service.annotation.on import on
 from firefly.domain.service.annotation.rest import rest
 
-from firefly.domain.meta import build_argument_list
+from firefly.domain.meta.build_argument_list import build_argument_list
 from firefly.domain.service.core.application import Application
 from firefly.domain.service.resource_name_generator import ResourceNameGenerator
 

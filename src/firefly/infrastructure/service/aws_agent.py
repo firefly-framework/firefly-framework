@@ -666,6 +666,7 @@ class AwsAgent(ff.Agent, ResourceNameGenerator, ff.LoggerAware):
             ))
 
     def _migrate_schema(self, context: ff.Context):
+        # TODO Use sqlalchemy/alembic to migrate schemas.
         for entity in context.entities:
             if issubclass(entity, ff.AggregateRoot) and entity is not ff.AggregateRoot:
                 try:

@@ -30,7 +30,7 @@ from sqlalchemy import MetaData
 from sqlalchemy.engine import Engine, Connection
 from sqlalchemy.orm import sessionmaker, Session
 
-CATEGORIES = ('read', 'write', 'admin')
+# CATEGORIES = ('read', 'write', 'admin')
 
 
 class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
@@ -43,6 +43,7 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
     _event_listeners: Dict[str, List[ffd.ApplicationService]] = {}
     _command_handlers: Dict[str, ffd.ApplicationService] = {}
     _query_handlers: Dict[str, ffd.ApplicationService] = {}
+    _middleware: List[Type[ffd.Middleware]] = []
     _timers: list = []
 
     __instance = None
@@ -75,7 +76,7 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
             self._load_context(k, v or {})
 
         self._app = self.chalice_application
-        self._build_application_services()
+        self._build_services()
         self._app.initialize(self)
         self.initialize_storage()
 
@@ -105,6 +106,9 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
     def get_aggregates(self):
         return self._aggregates
 
+    def get_middleware(self):
+        return self._middleware
+
     def register_object(self, name: str, type_: Type = type, constructor: Optional[Callable] = None):
         if hasattr(self.__class__, name):
             return
@@ -114,7 +118,7 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
     def _bootstrap_container(self):
         self.register_object('logger', ffi.ChaliceLogger)
         self.register_object('configuration_factory', ffi.YamlConfigurationFactory)
-        self.register_object('message_transport', ffd.MessageTransport)
+        self.register_object('message_transport', ffd.MessageTransport, lambda s: s.build(ffi.ChaliceMessageTransport))
         self.register_object('message_factory', ffd.MessageFactory)
         self.register_object('system_bus', ffd.SystemBus)
         self.register_object('serializer', ffd.Serializer)
@@ -141,7 +145,7 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
         self.register_object('s3_client', constructor=lambda s: boto3.client('s3'))
         self.register_object('kinesis_client', constructor=lambda s: boto3.client('kinesis'))
 
-    def _build_application_services(self):
+    def _build_services(self):
         for cls in self._application_services:
             if hasattr(cls, const.HTTP_ENDPOINTS):
                 for endpoint in getattr(cls, const.HTTP_ENDPOINTS):
@@ -178,6 +182,11 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
                         'cron': timer.cron,
                     })
 
+        middleware = []
+        for cls in self._middleware:
+            middleware.append(self._build_service(cls))
+        self._middleware = middleware
+
     def _build_service(self, cls):
         if cls not in self._service_cache:
             self._service_cache[cls] = self.build(cls)
@@ -185,12 +194,12 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
 
     def _load_context(self, context_name: str, config: dict):
         self._load_layer(context_name, 'domain', config, self._add_domain_object)
-        self._load_layer(context_name, 'infrastructure', config, self._add_domain_object)
+        self._load_layer(context_name, 'infrastructure', config, self._add_infrastructure_object)
         self._load_layer(context_name, 'application', config, self._add_application_object)
         self._load_layer(context_name, 'presentation', config, self._add_presentation_object)
 
     def _load_layer(self, context_name, layer_name: str, config: dict, cb: Callable):
-        module_name = config.get('entity_module', '{}.' + layer_name).format(context_name)
+        module_name = config.get(f'{layer_name}_module', '{}.' + layer_name).format(context_name)
         try:
             module = importlib.import_module(module_name)
         except (ModuleNotFoundError, KeyError):
@@ -214,7 +223,9 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
             self.register_object(inflection.underscore(k), v)
 
     def _add_infrastructure_object(self, k: str, v: type, context: str):
-        if self._should_autowire(v):
+        if issubclass(v, ffd.Middleware) and getattr(v, const.MIDDLEWARE, None) is not None:
+            self._middleware.append(v)
+        elif self._should_autowire(v):
             self.register_object(inflection.underscore(k), v)
 
     def _add_application_object(self, k: str, v: type, context: str):

@@ -14,13 +14,10 @@
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
-from typing import Callable
-
-import firefly.domain as ffd
+import firefly as ff
 
 
-class Middleware(ffd.MetaAware, ABC):
-    @abstractmethod
-    def __call__(self, message: ffd.Message, next_: Callable) -> ffd.Message:
-        pass
+@ff.command_handler()
+class DemandAHello(ff.ApplicationService):
+    def __call__(self, name: str, **kwargs):
+        return f'Hello, {name}!!'

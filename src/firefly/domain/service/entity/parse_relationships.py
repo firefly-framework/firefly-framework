@@ -15,7 +15,6 @@
 from __future__ import annotations
 
 from dataclasses import fields
-from pprint import pprint
 from typing import Type, List, get_type_hints, get_origin, get_args
 
 import inflection
@@ -39,7 +38,6 @@ class ParseRelationships:
         relationships = {}
         self._stack.append((entity, relationships))
         annotations_ = get_type_hints(entity)
-        print(entity)
         for field in fields(entity):
             k = field.name
             v = annotations_[k]

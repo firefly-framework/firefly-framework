@@ -19,13 +19,14 @@ from datetime import datetime, date
 from typing import List, Union, Dict
 from typing import get_origin, get_args
 
+import firefly.domain.error as errors
 import inflection
 from firefly.domain.entity.validation import IsValidEmail, HasLength, MatchesPattern, IsValidUrl, IsLessThanOrEqualTo, \
     IsLessThan, IsGreaterThanOrEqualTo, IsGreaterThan, IsMultipleOf, HasMaxLength, HasMinLength, parse
 from firefly.domain.meta.build_argument_list import build_argument_list
 from firefly.domain.meta.entity_meta import EntityMeta
 from firefly.domain.utils import is_type_hint
-from marshmallow import Schema, fields as m_fields
+from marshmallow import Schema, fields as m_fields, ValidationError
 from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
 from sqlalchemy.orm import Session
 
@@ -343,7 +344,18 @@ class ValueObject(metaclass=EntityMeta):
             if k.endswith('_'):
                 data[str(k).rstrip('_')] = v
                 del data[k]
-        return cls.schema().load(data, session=cls._session)
+        try:
+            for k in list(data.keys()).copy():
+                if k.startswith('_'):
+                    del data[k]
+            return cls.schema().load(data, session=cls._session)
+        except ValidationError as e:
+            missing = list(filter(lambda f: not f.startswith('_'), e.args[0].keys()))
+            if len(missing) > 0:
+                raise errors.MissingArgument(
+                    f"Missing {len(missing)} required argument(s) for class {cls.__name__}: {', '.join(missing)}"
+                ) from e
+            raise e
 
     @classmethod
     def schema(cls, stack: list = None) -> Schema:

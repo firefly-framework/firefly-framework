@@ -12,27 +12,23 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations
-
-from typing import List, Callable
-
-from firefly.domain import error
-import firefly.domain.constants as const
+import firefly_test.todo.domain as todo
 
 
-class RegisterMiddleware:
-    def __call__(self, **kwargs):
-        """
-        Decorator to mark a class for insertion into the middleware stack in at least one of the buses.
-        """
-        def middleware_wrapper(cls):
-            try:
-                setattr(cls, const.MIDDLEWARE, kwargs)
-            except AttributeError:
-                raise error.FrameworkError('@middleware used on invalid target')
-            return cls
-
-        return middleware_wrapper
+def test_event_listener(system_bus):
+    # TODO Set this up with an actual assertion
+    system_bus.dispatch('todo.UserCreated', {
+        'id': 'e6a593ff-b7ed-44ff-8d01-b2c911a5c50c',
+        'name': 'Bob Loblaw',
+    })
 
 
-middleware = RegisterMiddleware()
+def test_command_handler(system_bus):
+    response = system_bus.invoke('todo.DemandAHello', {'name': 'Bob'})
+    assert response == 'Hello, Bob!!'
+
+
+def test_query_handler(system_bus):
+    user = todo.User(name='Bob')
+    response = system_bus.request('todo.Salutations', data={'user': user})
+    assert response == 'Salutations, Bob!!'

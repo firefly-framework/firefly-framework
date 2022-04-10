@@ -14,25 +14,15 @@
 
 from __future__ import annotations
 
-from typing import List, Callable
+from typing import Callable
 
-from firefly.domain import error
-import firefly.domain.constants as const
-
-
-class RegisterMiddleware:
-    def __call__(self, **kwargs):
-        """
-        Decorator to mark a class for insertion into the middleware stack in at least one of the buses.
-        """
-        def middleware_wrapper(cls):
-            try:
-                setattr(cls, const.MIDDLEWARE, kwargs)
-            except AttributeError:
-                raise error.FrameworkError('@middleware used on invalid target')
-            return cls
-
-        return middleware_wrapper
+import firefly.domain as ffd
 
 
-middleware = RegisterMiddleware()
+@ffd.middleware()
+class TranslateRequestResponse(ffd.Middleware):
+    def __call__(self, event, get_response: Callable) -> ffd.Message:
+        print('String transaction')
+        ret = get_response(event)
+        print('Committing transaction')
+        return ret

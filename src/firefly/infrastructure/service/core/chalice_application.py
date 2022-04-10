@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import functools
 import logging
+from pprint import pprint
 
 import firefly.domain as ffd
 from chalice import Chalice
@@ -56,8 +57,12 @@ def sqs_event(event: SQSEvent, kernel: ffd.Kernel, **kwargs):
                 raise errors.ConfigurationError(f'No event listeners registered for message: {message}') from e
 
 
-def lambda_handler(event, context, service, **kwargs):
-    return service(**ffd.build_argument_list(kwargs, service))
+def lambda_handler(event, context, service, serializer):
+    return service(**ffd.build_argument_list(serializer.deserialize(event).to_dict(), service))
+
+
+def middleware(event, get_response, service):
+    return service(event, get_response)
 
 
 class ChaliceApplication(Application):
@@ -72,6 +77,9 @@ class ChaliceApplication(Application):
         self.app.debug = self._debug == '1'
         if self.app.debug:
             self.app.log.setLevel(logging.DEBUG)
+
+        for service in kernel.get_middleware():
+            self.app.register_middleware(service)
 
         for config in kernel.get_http_endpoints():
             config['service'].__name__ = config['service'].__class__.__name__
@@ -100,9 +108,12 @@ class ChaliceApplication(Application):
                     func
                 )
 
-        for k, v in kernel.get_command_handlers().items():
+        for k, v in list(kernel.get_command_handlers().items()) + list(kernel.get_query_handlers().items()):
             func_name = str(k).split('.').pop()
-            func = functools.update_wrapper(functools.partial(lambda_handler, service=v), lambda_handler)
+            func = functools.update_wrapper(
+                functools.partial(lambda_handler, service=v, serializer=kernel.serializer), lambda_handler
+            )
+            func.__name__ = func_name
             globals()[func_name] = self.app.lambda_function(name=func_name)(func)
 
     def get_test_client(self):

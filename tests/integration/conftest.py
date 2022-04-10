@@ -32,7 +32,7 @@ def config():
         'contexts': {
             'firefly': None,
             'todo': {
-                'entity_module': 'firefly_test.todo.domain',
+                'domain_module': 'firefly_test.todo.domain',
                 'application_module': 'firefly_test.todo.application',
                 'storage': {
                     'services': {

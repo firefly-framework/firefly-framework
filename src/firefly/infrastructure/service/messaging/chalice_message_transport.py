@@ -41,9 +41,9 @@ class ChaliceMessageTransport(ffd.MessageTransport, ffd.LoggerAware):
     def invoke(self, command: ffd.Command) -> Any:
         return self._client.lambda_.invoke(
             str(command).split('.').pop(), self._serializer.serialize(command)
-        )
+        ).payload
 
     def request(self, query: ffd.Query) -> Any:
         return self._client.lambda_.invoke(
             str(query).split('.').pop(), self._serializer.serialize(query)
-        )
+        ).payload

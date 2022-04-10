@@ -27,3 +27,4 @@ from firefly.infrastructure.repository.sqlalchemy_repository_factory import Sqla
 from firefly.infrastructure.repository.sqlalchemy_repository import SqlalchemyRepository
 from firefly.infrastructure.repository.sqlalchemy_connection_factory import SqlalchemyConnectionFactory
 from firefly.infrastructure.repository.initialize_storage import InitializeStorage
+from firefly.infrastructure.middleware.begin_transaction import BeginTransaction

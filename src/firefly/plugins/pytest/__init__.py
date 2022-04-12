@@ -49,10 +49,15 @@ def system_bus(kernel):
     return kernel.system_bus
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def registry(kernel):
+    kernel.sqlalchemy_metadata.drop_all()
     kernel.sqlalchemy_metadata.create_all()
-    return kernel.registry
+
+    yield kernel.registry
+
+    kernel.sqlalchemy_session.rollback()
+    kernel.sqlalchemy_metadata.drop_all()
 
 
 @pytest.fixture(scope="session")

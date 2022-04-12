@@ -14,16 +14,45 @@
 
 from __future__ import annotations
 
+import os
 import functools
 import logging
 from pprint import pprint
 
 import firefly.domain as ffd
 from chalice import Chalice
-from chalice.app import SQSEvent
+from chalice.app import SQSEvent, AuthRequest, AuthResponse
 from chalice.test import Client
 from firefly.domain.service.core.application import Application
 import firefly.domain.error as errors
+
+
+class FireflyAuthorizer:
+    _kernel: ffd.Kernel = None
+
+    def __init__(self, kernel: ffd.Kernel):
+        self._kernel = kernel
+
+    def __call__(self, auth_request: AuthRequest):
+        auth_function = os.environ.get('AUTH_FUNCTION')
+        resp = self._kernel.system_bus.request(auth_function, data={
+            'token': auth_request.token,
+        })
+        if not isinstance(resp, dict) or 'scope' not in resp:
+            routes = self._get_allowed_routes('')
+        else:
+            routes = self._get_allowed_routes(resp['scope'])
+
+        return AuthResponse(routes=routes, principal_id='user')
+
+    def _get_allowed_routes(self, scope: str):
+        ret = []
+        for route in self._kernel.get_http_endpoints():
+            for s in scope.split(' '):
+                if route.validate_scope(s) is True:
+                    ret.append(route.route)
+
+        return ret
 
 
 def http_event(event, service, **kwargs):
@@ -53,8 +82,8 @@ def sqs_event(event: SQSEvent, kernel: ffd.Kernel, **kwargs):
             try:
                 for service in kernel.get_event_listeners()[str(message)]:
                     service(**ffd.build_argument_list(message.to_dict(), service))
-            except KeyError as e:
-                raise errors.ConfigurationError(f'No event listeners registered for message: {message}') from e
+            except KeyError:
+                pass  # Treat a missing event listener as a noop.
 
 
 def lambda_handler(event, context, service, serializer):
@@ -78,6 +107,10 @@ class ChaliceApplication(Application):
         if self.app.debug:
             self.app.log.setLevel(logging.DEBUG)
 
+        authorizer = FireflyAuthorizer(kernel)
+        authorizer.__name__ = 'firefly_authorizer'
+        self.app.authorizer()(authorizer)
+
         for service in kernel.get_middleware():
             self.app.register_middleware(service)
 
@@ -88,6 +121,7 @@ class ChaliceApplication(Application):
                 methods=[config['method']],
                 name=config['service'].__class__.__name__,
                 cors=True,
+                authorizer=authorizer
             )(config['service'])
 
         for k, v in self.configuration.contexts.items():

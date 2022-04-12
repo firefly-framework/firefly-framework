@@ -25,6 +25,7 @@ from firefly.domain.repository.repository import T, Repository
 from sqlalchemy import MetaData, text, String
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.exc import ObjectDeletedError
 
 DEFAULT_LIMIT = 999999999999999999
 
@@ -64,17 +65,19 @@ class SqlalchemyRepository(Repository[T]):
         list(map(lambda ee: self._session.add(ee), entities))
 
     def remove(self, x: Union[T, List[T], Tuple[T], Callable, ffd.BinaryOp], **kwargs):
-        if self._parent is not None:
-            self._parent.remove(x)
-
+        # TODO handle case when x is SearchCriteria
         xs = x
         if not isinstance(x, (list, tuple)):
             xs = [x]
 
         for x in xs:
-            self._session.delete(x)
-            if isinstance(x, ffd.Entity) and x in self._entities:
-                self._entities.remove(x)
+            try:
+                if isinstance(x, ffd.Entity) and x in self._entities:
+                    self._entities.remove(x)
+            except ObjectDeletedError:
+                pass
+            finally:
+                self._session.delete(x)
 
     def find(self, x: Union[str, UUID, Callable, ffd.SearchCriteria], **kwargs) -> T:
         ret = None
@@ -101,25 +104,26 @@ class SqlalchemyRepository(Repository[T]):
                    raw: bool = False, sort: tuple = None) -> List[T]:
         if criteria is not None:
             criteria = self._get_search_criteria(criteria) if not isinstance(criteria, ffd.BinaryOp) else criteria
-        if self._state == 'full':
-            entities = list(filter(lambda e: criteria.matches(e), self._entities))
+            p = String().literal_processor(self._engine.dialect)
+            query = self._session.query(self._entity_type).filter(text(criteria.to_sql(processor=p)))
         else:
-            entities = self.filter(
-                self._entity_type, criteria=criteria, limit=limit, offset=offset, raw=raw, sort=sort
-            )
+            query = self._session.query(self._entity_type)
 
-            merged = []
-            for entity in entities:
-                if entity in self._entities:
-                    merged.append(next(e for e in self._entities if e == entity))
+        if limit is not None:
+            query = query.limit(limit)
+        if offset is not None:
+            query = query.offset(offset)
+        if sort is not None:
+            for s in sort:
+                if isinstance(s, tuple):
+                    field_, direction = s
                 else:
-                    merged.append(entity)
-                    if raw is False:
-                        self.register_entity(entity)
-            if self._state == 'empty':
-                self._state = 'partial'
-            entities = merged
-        return entities
+                    field_ = s
+                    direction = 'asc'
+                c = getattr(self._entity_type, field_)
+                query = query.order_by(getattr(c, direction)())
+
+        return query.all()
 
     def sort(self, cb: Optional[Union[Callable, Tuple[Union[str, Tuple[str, bool]]]]] = None, **kwargs):
         if cb is None and 'key' in kwargs:
@@ -157,7 +161,7 @@ class SqlalchemyRepository(Repository[T]):
         return ret
 
     def __iter__(self):
-        if 'raw' in self._query_details and self._query_details['raw'] is True:
+        if self._query_details.get('raw', False) is True:
             return iter(self._load_data())
         self._load_data()
         return iter(list(self._entities))
@@ -202,10 +206,7 @@ class SqlalchemyRepository(Repository[T]):
         if 'raw' in query_details and query_details['raw'] is True:
             return results
 
-        if isinstance(results, list):
-            for entity in results:
-                if entity not in self._entities:
-                    self.register_entity(entity)
+        self._entities = results
 
     def commit(self, force_delete: bool = False):
         self.debug('commit() called in %s', str(self))

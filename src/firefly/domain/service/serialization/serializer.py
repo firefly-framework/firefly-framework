@@ -19,6 +19,8 @@ import inspect
 import json
 from datetime import datetime, date, time
 from json import JSONEncoder
+from uuid import UUID
+
 from firefly.application.container import Container
 import firefly.domain.error as errors
 
@@ -37,6 +39,8 @@ class FireflyEncoder(JSONEncoder):
             return o.isoformat()
         elif isinstance(o, (bytes, bytearray)):
             return base64.b64encode(o).decode('ascii')
+        elif isinstance(o, UUID):
+            return str(o)
         elif not inspect.isclass(o) and isinstance(o, ffd.Message):
             try:
                 dic = o.to_dict()

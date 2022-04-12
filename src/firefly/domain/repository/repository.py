@@ -96,12 +96,6 @@ class Repository(Generic[T], GenericBase, LoggerAware, ABC):
     def _get_hash(self, entity: ffd.Entity):
         return hashlib.md5(self._serializer.serialize(entity.to_dict(force_all=True)).encode('utf-8')).hexdigest()
 
-    def register_entity(self, entity: ffd.Entity):
-        self._entity_hashes[entity.id_value()] = self._get_hash(entity)
-        self._entities.append(entity)
-        if self._parent is not None:
-            self._parent.register_entity(entity)
-
     def _has_changed(self, entity: ffd.Entity):
         if entity.id_value() not in self._entity_hashes:
             return False

@@ -18,8 +18,11 @@ import inspect
 import os
 import typing
 from abc import ABC
+from pprint import pprint
 from typing import Tuple, List
 from unittest.mock import MagicMock
+
+from firefly.domain.service.crud.create_entity import CreateEntity
 
 
 class Container(ABC):
@@ -35,9 +38,6 @@ class Container(ABC):
 
         if item in self._cache:
             return self._cache[item]()
-
-        if not hasattr(self.__class__, item):
-            return self._search_child_containers(item)
 
         obj = object.__getattribute__(self, item)
 
@@ -103,23 +103,22 @@ class Container(ABC):
             c._unannotated = None
         return self
 
-    def match(self, name: str, type_, searched: List[Container] = None):
-        searched = searched or []
-        # Prevent circular references
-        if self in searched:
-            return
-        searched.append(self)
-
+    def match(self, name: str, type_):
         t = self._find_by_type(self._get_annotations(), type_)
+
         if len(t) == 1:
             t = str(t[0])
         elif len(t) == 0:
             t = None
         else:
+            x = None
             for item in t:
                 if name == item or name.lstrip('_') == item:
-                    return getattr(self, item)
-            t = None
+                    if getattr(self, item) is None:
+                        continue
+                    x = item
+                    break
+            t = x
 
         # Found type in the container
         if t is not None:
@@ -128,13 +127,6 @@ class Container(ABC):
         # Found object with same name in container
         elif t is None and name in self._get_unannotated():
             return getattr(self, name)
-
-        for container in self._child_containers:
-            if container is None:
-                continue
-            m = container.match(name, type_, searched)
-            if m is not None:
-                return m
 
     def get_registered_services(self):
         ret = {}
@@ -239,11 +231,7 @@ class Container(ABC):
         return properties, annotations
 
     def _get_annotations(self):
-        if self._annotations is None:
-            container_object = type(self)
-            self._annotations = typing.get_type_hints(container_object)
-
-        return self._annotations
+        return typing.get_type_hints(type(self))
 
     def _get_unannotated(self):
         annotations_ = self._get_annotations()

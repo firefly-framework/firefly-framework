@@ -22,6 +22,7 @@ from datetime import datetime, date
 
 import firefly.domain as ffd
 from dateparser import parse
+from firefly.domain.meta.firefly_type import FireflyType
 from firefly.domain.utils import is_type_hint
 
 keyword_list = keyword.kwlist
@@ -94,9 +95,7 @@ def _handle_type_hint(params: typing.Any, t: type, key: str = None, required: bo
 
     elif origin is typing.Union:
         for arg in args:
-            # logging.debug('Calling _handle_type_hint')
             r = _handle_type_hint(params, arg, key, required)
-            # logging.debug('Response: %s', r)
             if r is not void:
                 if key is not None:
                     ret[key] = r
@@ -154,7 +153,6 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], 
     params = _fix_keywords(params)
 
     if is_dataclass(obj):
-        print('1')
         is_dc = True
         field_dict = {}
         # noinspection PyDataclass
@@ -162,16 +160,16 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], 
             field_dict[field_.name] = field_
         sig = inspect.signature(obj.__init__)
         types = typing.get_type_hints(obj)
-    elif hasattr(obj, '__call__'):
-        print('2')
+    elif inspect.isclass(obj) and hasattr(obj, '__call__'):
         sig = inspect.signature(obj.__call__)
         types = typing.get_type_hints(obj.__call__)
+    elif not inspect.isclass(obj) and isinstance(obj, FireflyType):
+        sig = inspect.signature(obj.__class__.__call__)
+        types = typing.get_type_hints(obj.__class__.__call__)
     elif isinstance(obj, type):
-        print('3')
         sig = inspect.signature(obj.__init__)
         types = typing.get_type_hints(obj.__init__)
     else:
-        print('4')
         sig = inspect.signature(obj)
         try:
             types = typing.get_type_hints(obj)
@@ -252,7 +250,6 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], 
             except TypeError:
                 args[name] = params[name]
         elif name.endswith('_') and name.rstrip('_') in params:
-            # args[name] = params[name.rstrip('_')]
             try:
                 sname = name.rstrip('_')
                 if params[sname] is None:
@@ -275,7 +272,6 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], 
             if k not in args:
                 args[k] = v
 
-    # logging.debug('Returning %s', args)
     return args
 
 

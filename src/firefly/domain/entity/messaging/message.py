@@ -20,10 +20,10 @@ from dataclasses import asdict, fields
 import firefly.domain as ffd
 from firefly.domain.meta.firefly_type import FireflyType
 from firefly.domain.meta.message_meta import MessageMeta
+from firefly.domain.meta.get_arguments import get_arguments
 
 
 class Message(FireflyType, metaclass=MessageMeta):
-    headers: dict = ffd.dict_()
     _id: str = None
     _context: str = None
 
@@ -31,11 +31,7 @@ class Message(FireflyType, metaclass=MessageMeta):
         pass
 
     def get_parameters(self):
-        return ffd.get_arguments(self.__init__)
-
-    @property
-    def was_external(self):
-        return 'client_id' in self.headers
+        return get_arguments(self.__init__)
 
     def __post_init__(self):
         if self._id is None:

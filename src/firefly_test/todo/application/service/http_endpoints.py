@@ -14,29 +14,4 @@
 
 from __future__ import annotations
 
-from typing import Callable, Any
-
-import firefly.domain as ffd
-from sqlalchemy.exc import InvalidRequestError
-from sqlalchemy.orm import Session
-
-
-@ffd.middleware()
-class BeginTransaction(ffd.Middleware):
-    _session: Session = None
-
-    def __call__(self, event, get_response: Callable) -> Any:
-        try:
-            self._session.begin()
-        except InvalidRequestError as e:
-            if 'A transaction is already begun on this Session' not in str(e):
-                raise e
-
-        try:
-            ret = get_response(event)
-            self._session.commit()
-        except Exception:
-            self._session.rollback()
-            raise
-
-        return ret
+import firefly as ff

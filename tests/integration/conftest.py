@@ -51,6 +51,6 @@ def config():
     }
 
 
-@pytest.fixture(scope="session", autouse=True)
-def auto_use_kernel(kernel):
+@pytest.fixture(scope="function", autouse=True)
+def auto_use_registry(registry):
     pass

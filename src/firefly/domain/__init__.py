@@ -69,5 +69,10 @@ from firefly.domain.service.resource_name_generator import ResourceNameGenerator
 
 from firefly.domain.service.entity.map_entities import MapEntities
 from firefly.domain.service.entity.parse_relationships import ParseRelationships
+from firefly.domain.service.core.auto_generate_aggregate_apis import AutoGenerateAggregateApis
+from firefly.domain.service.crud.create_entity import CreateEntity
+from firefly.domain.service.crud.update_entity import UpdateEntity
+from firefly.domain.service.crud.delete_entity import DeleteEntity
+from firefly.domain.service.crud.query_service import QueryService
 
 from firefly.domain.error import *

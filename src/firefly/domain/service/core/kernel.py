@@ -17,6 +17,7 @@ from __future__ import annotations
 import importlib
 import inspect
 import logging
+import os
 from typing import Optional, Type, Callable, List, Dict
 
 import boto3
@@ -29,8 +30,6 @@ from firefly.infrastructure.service.core.chalice_application import ChaliceAppli
 from sqlalchemy import MetaData
 from sqlalchemy.engine import Engine, Connection
 from sqlalchemy.orm import sessionmaker, Session
-
-# CATEGORIES = ('read', 'write', 'admin')
 
 
 class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
@@ -45,6 +44,7 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
     _query_handlers: Dict[str, ffd.ApplicationService] = {}
     _middleware: List[Type[ffd.Middleware]] = []
     _timers: list = []
+    _context: str = None
 
     __instance = None
 
@@ -57,6 +57,7 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
         super().__init__()
 
         self.__class__.__annotations__ = {}
+        self._context = os.environ.get('CONTEXT')
 
         logging.info('Bootstrapping container with essential services.')
         self._bootstrap_container()
@@ -75,6 +76,8 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
                 continue
             self._load_context(k, v or {})
 
+        self.auto_generate_aggregate_apis()
+        self._initialize_entity_crud_operations()
         self._app = self.chalice_application
         self._build_services()
         self._app.initialize(self)
@@ -115,17 +118,58 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
         setattr(self.__class__, name, constructor) if constructor is not None else setattr(self.__class__, name, type_)
         self.__class__.__annotations__[name] = type_
 
+    def register_command(self, cls):
+        self._command_handlers[str(getattr(cls, const.COMMAND))] = self._build_service(cls)
+
+    def register_query(self, cls):
+        self._query_handlers[str(getattr(cls, const.QUERY))] = self._build_service(cls)
+
+    def _initialize_entity_crud_operations(self):
+        for entity in self._entities:
+            for endpoint in getattr(entity, const.HTTP_ENDPOINTS, []):
+                service = self._locate_service_for_entity(entity, endpoint.method)
+                if len(list(filter(
+                        lambda s: s['route'] == endpoint.route and s['method'] == endpoint.method, self._http_endpoints
+                ))) > 0:
+                    self._http_endpoints.append({
+                        'service': service,
+                        'gateway': endpoint.gateway,
+                        'route': endpoint.route,
+                        'method': endpoint.method,
+                        'query_params': endpoint.query_params,
+                        'secured': endpoint.secured,
+                        'scopes': endpoint.scopes,
+                        'tags': endpoint.tags,
+                    })
+
+    def _locate_service_for_entity(self, entity, method: str):
+        t = ''
+        key = ''
+        try:
+            if method.lower() in ('post', 'put', 'delete'):
+                prefix = {'post': 'Create', 'put': 'Update', 'delete': 'Delete'}[method.lower()]
+                t = 'command'
+                key = f'{self._context}.{prefix}{entity.__name__}'
+                return self._command_handlers[key]
+            else:
+                t = 'query'
+                key = f'{self._context}.{inflection.pluralize(entity.__name__)}'
+                return self._query_handlers[key]
+        except KeyError:
+            raise ffd.ConfigurationError(f'No {t} handler was generated for {key}')
+
     def _bootstrap_container(self):
         self.register_object('logger', ffi.ChaliceLogger)
+        self.register_object('system_bus', ffd.SystemBus)
         self.register_object('configuration_factory', ffi.YamlConfigurationFactory)
         self.register_object('message_transport', ffd.MessageTransport, lambda s: s.build(ffi.ChaliceMessageTransport))
         self.register_object('message_factory', ffd.MessageFactory)
-        self.register_object('system_bus', ffd.SystemBus)
         self.register_object('serializer', ffd.Serializer)
         self.register_object('map_entities', ffd.MapEntities)
         self.register_object('parse_relationships', ffd.ParseRelationships)
         self.register_object('configuration', ffd.Configuration, lambda s: s.configuration_factory())
         self.register_object('chalice_application', ChaliceApplication)
+        self.register_object('registry', ffd.Registry)
 
         self.register_object('sqlalchemy_engine_factory', ffi.EngineFactory)
         self.register_object('sqlalchemy_engine', Engine, lambda s: s.sqlalchemy_engine_factory(True))
@@ -150,7 +194,7 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
             if hasattr(cls, const.HTTP_ENDPOINTS):
                 for endpoint in getattr(cls, const.HTTP_ENDPOINTS):
                     self._http_endpoints.append({
-                        'service': self.build(cls),
+                        'service': self._build_service(cls),
                         'gateway': endpoint.gateway,
                         'route': endpoint.route,
                         'method': endpoint.method,
@@ -167,10 +211,10 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
                     self._event_listeners[str(e)].append(self._build_service(cls))
 
             if hasattr(cls, const.COMMAND):
-                self._command_handlers[str(getattr(cls, const.COMMAND))] = self._build_service(cls)
+                self.register_command(cls)
 
             if hasattr(cls, const.QUERY):
-                self._query_handlers[str(getattr(cls, const.QUERY))] = self._build_service(cls)
+                self.register_query(cls)
 
             if hasattr(cls, const.TIMERS):
                 for timer in getattr(cls, const.TIMERS):
@@ -244,87 +288,3 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
             return False
 
         return True
-
-    # @property
-    # def is_authorized(self):
-    #     self.info('Calling is_authorized')
-    #     if self.required_scopes is None or len(self.required_scopes) == 0:
-    #         self.info(f'Required scopes: {self.required_scopes}')
-    #         if self.required_scopes is not None:
-    #             self.info(f'len(self.required_scopes): {len(self.required_scopes)}')
-    #         return True  # No required scopes, return True
-    #
-    #     if self.user is None:
-    #         self.info("User is none")
-    #         return self.secured is False
-    #
-    #     if len(self.user.scopes) > 0:
-    #         for scope in self.required_scopes:
-    #             for user_scope in self.user.scopes:
-    #                 self.info(f'{user_scope} in {self.user.scopes}')
-    #                 if self._has_grant(scope, user_scope):
-    #                     self.info('has grant')
-    #                     return True
-    #
-    #     self.info("not authorized")
-    #
-    #     return False
-    #
-    # def is_admin(self, service: str):
-    #     if not self.user or not self.user.scopes or len(self.user.scopes) == 0:
-    #         return False
-    #
-    #     for scope in self.user.scopes:
-    #         if scope.lower() == f'{service}.admin':
-    #             return True
-    #
-    #     return False
-    #
-    # @staticmethod
-    # def _has_grant(scope: str, user_scope: str):
-    #     parts = scope.lower().split('.')
-    #     user = user_scope.lower().split('.')
-    #
-    #     for i, part in enumerate(parts):
-    #         if i >= len(user):
-    #             return False
-    #
-    #         if user[i] == 'admin':
-    #             return True
-    #
-    #         if part not in CATEGORIES and part != user[i]:
-    #             return False
-    #
-    #         if part in CATEGORIES:
-    #             if user[i] not in CATEGORIES:
-    #                 return False
-    #             if part == 'admin':
-    #                 return False
-    #             if part == 'write':
-    #                 return user[i] == 'write'
-    #             if part == 'read':
-    #                 return user[i] in ('read', 'write')
-    #
-    #     return True
-    #
-    # def has_tenant(self):
-    #     return self.user is not None and self.user.tenant is not None
-    #
-    # def reject_missing_tenant(self):
-    #     if not self.has_tenant():
-    #         raise ffd.Unauthorized()
-    #
-    # def reject_if_missing(self, scopes: Union[str, List[str]]):
-    #     if self.user is None:
-    #         raise ffd.Unauthorized()
-    #
-    #     if isinstance(scopes, str):
-    #         scopes = [scopes]
-    #     for my_scope in self.user.scopes:
-    #         reject = True
-    #         for scope in scopes:
-    #             if self._has_grant(my_scope, scope):
-    #                 reject = False
-    #                 break
-    #         if reject:
-    #             raise ffd.Unauthorized()

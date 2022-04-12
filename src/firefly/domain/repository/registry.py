@@ -35,10 +35,6 @@ class Registry(LoggerAware):
         if not issubclass(entity, ffd.AggregateRoot):
             raise ffd.LogicError('Repositories can only be generated for aggregate roots')
 
-        for k, v in self._cache.items():
-            if entity.same_type(k):
-                return v
-
         if entity not in self._cache:
             self._cache[entity] = self._repository_factory(entity)
 

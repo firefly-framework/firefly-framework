@@ -33,7 +33,7 @@ def test_scalar_parameters():
     with pytest.raises(ffd.MissingArgument):
         call1(**build_argument_list({
             'y': 12,
-        }, call1))
+        }, call1, include_none_parameters=False))
 
 
 def call2(user: todo.User):

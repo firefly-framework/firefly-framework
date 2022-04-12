@@ -26,61 +26,53 @@
 
 from __future__ import annotations
 
-from typing import List
+from typing import Type
 
-from firefly.domain.entity.core.endpoint import Endpoint
-from firefly.domain.entity.entity import optional, required, list_
+import firefly as ff
+import inflection
+from firefly.domain.entity.entity import Entity
+from firefly.domain.service.core.application_service import ApplicationService
+from firefly.domain.service.logging.logger import LoggerAware
 
-CATEGORIES = ('read', 'write', 'admin')
 
+class AutoGenerateAggregateApis(ApplicationService, LoggerAware):
+    _kernel: ff.Kernel = None
+    _context: str = None
 
-class HttpEndpoint(Endpoint):
-    gateway: str = optional()
-    route: str = required()
-    method: str = optional(default='GET')
-    query_params: dict = optional()
-    service: type = optional()
-    secured: bool = optional(default=True)
-    scopes: List[str] = list_()
-    tags: List[str] = list_()
+    def __call__(self):
+        for entity in self._kernel.get_entities():
+            if entity.get_class_context() != self._context:
+                entity._context = self._context
+            self._process_entity(entity)
 
-    def __eq__(self, other):
-        return isinstance(other, HttpEndpoint) and self.route == other.route and self.method == other.method
-    
-    def validate_scope(self, scope: str):
-        self.info('Calling is_authorized')
-        if self.scopes is None or len(self.scopes) == 0:
-            return True  # No required scopes, return True
+    def _process_entity(self, entity: type):
+        if not issubclass(entity, ff.AggregateRoot) or entity == ff.AggregateRoot:
+            return
 
-        for s in self.scopes:
-            if self._has_grant(s, scope):
-                return True
+        self._create_crud_command_handlers(entity)
+        self._create_query_handler(entity)
 
-        return False
+    def _create_query_handler(self, entity: Type[Entity]):
+        query_name = inflection.pluralize(entity.__name__)
 
-    @staticmethod
-    def _has_grant(scope: str, user_scope: str):
-        parts = scope.lower().split('.')
-        user = user_scope.lower().split('.')
+        class Query(ff.QueryService[entity]):
+            pass
 
-        for i, part in enumerate(parts):
-            if i >= len(user):
-                return False
+        Query.__name__ = query_name
 
-            if user[i] == 'admin':
-                return True
+        self._kernel.register_query(ff.query_handler()(Query))
 
-            if part not in CATEGORIES and part != user[i]:
-                return False
+    def _create_crud_command_handlers(self, entity: Type[Entity]):
+        for action in ('Create', 'Delete', 'Update'):
+            self._create_crud_command_handler(entity, action)
 
-            if part in CATEGORIES:
-                if user[i] not in CATEGORIES:
-                    return False
-                if part == 'admin':
-                    return False
-                if part == 'write':
-                    return user[i] == 'write'
-                if part == 'read':
-                    return user[i] in ('read', 'write')
+    def _create_crud_command_handler(self, entity, name_prefix):
+        name = f'{name_prefix}Entity'
+        base = getattr(ff, name)
 
-        return True
+        class Action(base[entity]):
+            pass
+
+        Action.__name__ = f'{name_prefix}{entity.__name__}'
+
+        self._kernel.register_command(ff.command_handler()(Action))

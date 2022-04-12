@@ -14,4 +14,5 @@
 
 from .command_handlers import *
 from .event_listeners import *
+from .http_endpoints import *
 from .query_handlers import *

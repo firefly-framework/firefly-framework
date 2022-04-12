@@ -22,22 +22,4 @@ from firefly.domain.meta.meta_aware import MetaAware
 
 
 class AggregateRoot(ffd.Entity, MetaAware, ABC):
-    _create_on: ff.TypeOfEvent = ffd.hidden()
-    _delete_on: ff.TypeOfEvent = ffd.hidden()
-    _update_on: ff.TypeOfEvent = ffd.hidden()
-
-    @classmethod
-    def get_create_on(cls):
-        return cls._create_on
-
-    @classmethod
-    def get_delete_on(cls):
-        return cls._delete_on
-
-    @classmethod
-    def get_update_on(cls):
-        return cls._update_on
-
-    @classmethod
-    def same_type(cls, other):
-        return cls.__name__ == other.__name__
+    pass

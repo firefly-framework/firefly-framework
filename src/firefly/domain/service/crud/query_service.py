@@ -11,23 +11,36 @@
 #
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
+#
+#  This file is part of Firefly, a Python SOA framework built by JD Williams. Firefly is free software; you can
+#  redistribute it and/or modify it under the terms of the GNU General Public License as published by the
+#  Free Software Foundation; either version 3 of the License, or (at your option) any later version.
+#
+#  Firefly is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
+#  implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General
+#  Public License for more details. You should have received a copy of the GNU Lesser General Public
+#  License along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#  You should have received a copy of the GNU General Public License along with Firefly. If not, see
+#  <http://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
+from pprint import pprint
 from typing import Generic, TypeVar
 
 import firefly.domain as ffd
 
-from .application_service import ApplicationService
 from ...value_object.generic_base import GenericBase
 
 T = TypeVar('T')
 
 
-class QueryService(Generic[T], GenericBase, ApplicationService):
+class QueryService(Generic[T], GenericBase, ffd.ApplicationService):
     _registry: ffd.Registry = None
     _serializer: ffd.Serializer = None
     _context: str = None
+    _kernel: ffd.Kernel = None
 
     def __call__(self, **kwargs):
         try:
@@ -37,6 +50,9 @@ class QueryService(Generic[T], GenericBase, ApplicationService):
                 )
         except KeyError:
             raise ffd.MissingArgument(self._type().id_name())
+
+        is_admin = False
+        # TODO find out if the user is an admin and set it here.
 
         limit = None
         offset = None
@@ -73,7 +89,7 @@ class QueryService(Generic[T], GenericBase, ApplicationService):
                 'offset': offset,
                 'limit': limit,
                 'count': count,
-                'data': list(map(lambda e: e.to_dict(force_all=self._kernel.is_admin(self._context)), entities)),
+                'data': list(map(lambda e: e.to_dict(force_all=is_admin), entities)),
             }
 
-        return list(map(lambda e: e.to_dict(force_all=self._kernel.is_admin(self._context)), entities))
+        return list(map(lambda e: e.to_dict(force_all=is_admin), entities))

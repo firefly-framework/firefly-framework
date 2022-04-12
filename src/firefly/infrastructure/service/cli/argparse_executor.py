@@ -61,12 +61,8 @@ class ArgparseExecutor(CliAppExecutor, SystemBusAware):
             self._parser.print_help()
             return
 
-        message = self._message_cache[target]
-        instance = message(**build_argument_list(vars(args), message))
-        if issubclass(message, Command):
-            self.invoke(instance)
-        elif issubclass(message, Query):
-            self.request(instance)
+        instance = self._message_factory.command(self._message_cache[target], vars(args))
+        self.invoke(instance)
 
     def _initialize(self):
         self._add_verbosity_arguments(self._parser)
@@ -111,6 +107,7 @@ class ArgparseExecutor(CliAppExecutor, SystemBusAware):
                 p = sp.add_parser(k, help=v['endpoint'].help if 'endpoint' in v else None)
                 self._add_verbosity_arguments(p)
                 if 'endpoint' in v:
+                    print(k)
                     self._message_cache[k] = v['endpoint'].message
                 self._configure_argparse(v, p)
 

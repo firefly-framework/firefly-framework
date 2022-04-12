@@ -41,6 +41,7 @@ from firefly.domain.service.messaging.mutex import RateLimiter
 from firefly.domain.service.files.file_system import FileSystem, File
 from firefly.domain.value_object import EventBuffer
 from firefly.domain.utils import HasMemoryCache, load_class
+from firefly.domain.meta.get_arguments import get_arguments
 
 from firefly.domain.service.messaging.message_transport import MessageTransport
 from firefly.domain.service.core.domain_service import DomainService
@@ -62,6 +63,7 @@ from firefly.domain.service.annotation.command_handler import command_handler
 from firefly.domain.service.annotation.query_handler import query_handler
 from firefly.domain.service.annotation.on import on
 from firefly.domain.service.annotation.rest import rest
+from firefly.domain.service.annotation.cli import cli
 
 from firefly.domain.meta.build_argument_list import build_argument_list
 from firefly.domain.service.core.application import Application

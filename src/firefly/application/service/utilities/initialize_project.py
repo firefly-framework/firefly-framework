@@ -11,12 +11,15 @@
 #
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
+
+from __future__ import annotations
+
 import os
 
 import firefly.domain as ffd
 
 
-@ffd.cli('firefly generate project', alias={'path': ['-p'], 'name': ['-n']})
+@ffd.cli('firefly generate project', alias={'path': ['p'], 'name': ['n']})
 class InitializeProject(ffd.ApplicationService):
     def __call__(self, name: str = None, path: str = None):
         if name is None:
@@ -74,7 +77,7 @@ setuptools.setup(
         'console_scripts': ['firefly=firefly.presentation.cli:main']
     }},
     install_requires=[
-        'firefly-dependency-injection>=0.1',
+        'firefly-framework>=2.0',
     ],
     packages=setuptools.PEP420PackageFinder.find('src'),
     package_dir={{'': 'src'}},

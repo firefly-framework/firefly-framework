@@ -14,14 +14,15 @@
 
 from __future__ import annotations
 
+import json
 import os
 import functools
 import logging
-from pprint import pprint
+from json.decoder import JSONDecodeError
 
 import firefly.domain as ffd
 from chalice import Chalice
-from chalice.app import SQSEvent, AuthRequest, AuthResponse
+from chalice.app import SQSEvent, AuthRequest, AuthResponse, Request
 from chalice.test import Client
 from firefly.domain.service.core.application import Application
 import firefly.domain.error as errors
@@ -55,8 +56,20 @@ class FireflyAuthorizer:
         return ret
 
 
-def http_event(event, service, **kwargs):
-    return service(**ffd.build_argument_list(kwargs, service))
+def http_event(kernel, service, **kwargs):
+    request: Request = kernel.current_request()
+    try:
+        body = kernel.serializer.deserialize(request.raw_body)
+        body.update(kwargs)
+    except (JSONDecodeError, ffd.InvalidArgument):
+        body = kwargs
+
+    response = service(**ffd.build_argument_list(body, service))
+
+    if isinstance(response, ffd.ValueObject):
+        response = response.to_dict()
+
+    return json.loads(kernel.serializer.serialize(response))
 
 
 def sqs_event(event: SQSEvent, kernel: ffd.Kernel, **kwargs):
@@ -116,31 +129,44 @@ class ChaliceApplication(Application):
 
         for config in kernel.get_http_endpoints():
             config['service'].__name__ = config['service'].__class__.__name__
+            func = functools.update_wrapper(
+                functools.partial(http_event, kernel=kernel, service=config['service']), http_event
+            )
+            func.__name__ = config['service'].__class__.__name__
             self.app.route(
                 path=config['route'],
-                methods=[config['method']],
+                methods=[str(config['method']).upper()],
                 name=config['service'].__class__.__name__,
                 cors=True,
                 authorizer=authorizer
-            )(config['service'])
+            )(func)
 
         for k, v in self.configuration.contexts.items():
-            if k.startswith('firefly') or v.get('is_extension', False) is True:
+            if k.startswith('firefly') or (v or {}).get('is_extension', False) is True:
                 continue
             memory_settings = (self.configuration.contexts.get('firefly', {}) or {}).get('memory_settings')
             if memory_settings is not None:
                 for memory in memory_settings:
                     func = functools.update_wrapper(functools.partial(sqs_event, kernel=kernel), sqs_event)
                     func.__name__ = f'sqs_event_{memory}'
-                    globals()[f'sqs_{memory}'] = self.app.on_sqs_message(
+                    self.app.on_sqs_message(
                         queue=kernel.resource_name_generator.queue_name(app_name, memory)
                     )(func)
             else:
                 func = functools.update_wrapper(functools.partial(sqs_event, kernel=kernel), sqs_event)
                 func.__name__ = f'sqs_event'
-                globals()['sqs'] = self.app.on_sqs_message(queue=kernel.resource_name_generator.queue_name(app_name))(
+                self.app.on_sqs_message(queue=kernel.resource_name_generator.queue_name(app_name))(
                     func
                 )
+
+        for endpoint in kernel.get_cli_endpoints():
+            func_name = endpoint.service.__name__
+            func = functools.update_wrapper(
+                functools.partial(lambda_handler, service=kernel.build(endpoint.service), serializer=kernel.serializer),
+                lambda_handler
+            )
+            func.__name__ = func_name
+            self.app.lambda_function(name=func_name)(func)
 
         for k, v in list(kernel.get_command_handlers().items()) + list(kernel.get_query_handlers().items()):
             func_name = str(k).split('.').pop()
@@ -148,7 +174,7 @@ class ChaliceApplication(Application):
                 functools.partial(lambda_handler, service=v, serializer=kernel.serializer), lambda_handler
             )
             func.__name__ = func_name
-            globals()[func_name] = self.app.lambda_function(name=func_name)(func)
+            self.app.lambda_function(name=func_name)(func)
 
     def get_test_client(self):
         return Client(self.app)

@@ -28,18 +28,18 @@ from __future__ import annotations
 
 from typing import List
 
+import firefly.domain as ffd
 from firefly.domain.entity.core.cli_argument import CliArgument
-from firefly.domain.entity.core.endpoint import Endpoint
-from firefly.domain.entity.entity import optional, required, list_
 
 
-class CliEndpoint(Endpoint):
-    app: str = required(str)
-    command: str = required(str)
-    description: str = optional(str)
-    alias: List[str] = list_()
-    help: str = optional()
-    arguments: List[CliArgument] = list_()
+class CliEndpoint(ffd.Endpoint):
+    app: str = ffd.required()
+    command: str = ffd.required()
+    description: str = ffd.optional()
+    service: type = ffd.required()
+    alias: List[str] = ffd.list_()
+    help: str = ffd.optional()
+    arguments: List[CliArgument] = ffd.list_()
 
     def command_parts(self):
         return self.command.split(' ')

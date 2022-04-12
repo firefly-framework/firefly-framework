@@ -45,6 +45,7 @@ class Favorite(ff.Entity):
     name: str = ff.required()
 
 
+@ff.rest.crud()
 class User(ff.AggregateRoot):
     id: UUID = ff.id_()
     name: str = ff.required()

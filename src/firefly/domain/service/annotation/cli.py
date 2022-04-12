@@ -15,23 +15,24 @@
 from __future__ import annotations
 
 import inspect
+import os
 
-import firefly as ff
-import firefly.domain.error as error
+import firefly.domain as ffd
 from firefly.domain.entity.core.cli_argument import CliArgument
 from firefly.domain.entity.core.cli_endpoint import CliEndpoint
+import firefly.domain.constants as const
 
 
 class Cli:
-    def __call__(self, command: str, app: str = None, description: str = None, target: ff.TypeOfMessage = None,
+    def __call__(self, command: str, app: str = None, description: str = None, target=None,
                  alias: dict = None, help_: str = None, args_help: dict = None):
         def cli_wrapper(cls):
             arguments = []
 
             if inspect.isfunction(cls):
-                args = ff.get_arguments(cls, none_type_unions=False)
+                args = ffd.get_arguments(cls, none_type_unions=False)
             else:
-                args = ff.get_arguments(cls.__call__, none_type_unions=False)
+                args = ffd.get_arguments(cls.__call__, none_type_unions=False)
 
             for name, arg in args.items():
                 arguments.append(CliArgument(
@@ -47,19 +48,18 @@ class Cli:
                 app=app if app is not None else command.split(' ')[0],
                 command=command,
                 description=description,
-                message=target,
+                message=f'{os.environ.get("CONTEXT", "firefly")}.{cls.__name__}',
                 alias=alias,
                 help=help_,
                 arguments=arguments,
+                service=cls
             )
 
-            try:
-                cls.add_endpoint(endpoint)
-            except AttributeError:
-                if inspect.isfunction(cls):
-                    ff.add_endpoint(cls, endpoint)
-                else:
-                    raise error.FrameworkError('@cli used on invalid target')
+            if hasattr(cls, const.CLI_ENDPOINTS):
+                getattr(cls, const.CLI_ENDPOINTS).append(endpoint)
+            else:
+                setattr(cls, const.CLI_ENDPOINTS, [endpoint])
+
             return cls
 
         return cli_wrapper

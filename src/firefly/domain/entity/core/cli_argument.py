@@ -12,16 +12,17 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
+from __future__ import annotations
+
 from typing import Any, List, Type
 
-from firefly.domain.value_object import ValueObject
-from firefly.domain.entity.entity import optional, required, list_
+import firefly.domain as ffd
 
 
-class CliArgument(ValueObject):
-    name: str = required()
-    type: Type = required()
-    default: Any = optional()
-    required: bool = optional(default=False)
-    help: str = optional()
-    alias: List[str] = list_()
+class CliArgument(ffd.ValueObject):
+    name: str = ffd.required()
+    type: Type = ffd.required()
+    default: Any = ffd.optional()
+    required: bool = ffd.optional(default=False)
+    help: str = ffd.optional()
+    alias: List[str] = ffd.list_()

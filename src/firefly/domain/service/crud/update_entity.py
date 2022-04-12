@@ -33,6 +33,8 @@ class UpdateEntity(Generic[T], ApplicationService, GenericBase, CrudOperation, S
     def __call__(self, **kwargs) -> bool:
         type_ = self._type()
         id_arg = type_.match_id_from_argument_list(kwargs)
+        print("FFFF")
+        print(id_arg)
         entity = self._registry(type_).find(list(id_arg.values()).pop())
         entity.load_dict(kwargs)
         self.dispatch(self._build_event(type_, 'update', entity.to_dict(), entity.get_class_context()))

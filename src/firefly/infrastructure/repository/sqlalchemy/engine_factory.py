@@ -28,6 +28,9 @@ class EngineFactory:
     _db_port: str = None
 
     def __call__(self, echo: bool = False, **kwargs):
+        if self._db_type is None:
+            self._db_type = 'sqlite'
+
         if 'sqlite' == self._db_type and '' == self._db_host:
             import sqlite3
 

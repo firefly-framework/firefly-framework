@@ -28,3 +28,4 @@ from firefly.infrastructure.repository.sqlalchemy_repository import SqlalchemyRe
 from firefly.infrastructure.repository.sqlalchemy_connection_factory import SqlalchemyConnectionFactory
 from firefly.infrastructure.repository.initialize_storage import InitializeStorage
 from firefly.infrastructure.middleware.begin_transaction import BeginTransaction
+from firefly.infrastructure.service.cli.argparse_executor import ArgparseExecutor

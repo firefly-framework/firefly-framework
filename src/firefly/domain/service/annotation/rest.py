@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import inspect
+import os
 import re
 from typing import List, Any
 
@@ -73,6 +74,11 @@ class Rest(ffd.ConfigurationAnnotation):
             base = inflection.pluralize(inflection.dasherize(inflection.underscore(cls.__name__)))
             if prefix is not None:
                 base = f'{prefix.strip("/")}/{base}'
+
+            service_prefix = f'{inflection.dasherize(os.environ.get("CONTEXT"))}/'
+            if not base.startswith(service_prefix):
+                base = f'{service_prefix.rstrip("/")}/{base.lstrip("/")}'
+
             if 'create' not in exclude:
                 getattr(cls, const.HTTP_ENDPOINTS).append(HttpEndpoint(
                     route=f'/{base}',

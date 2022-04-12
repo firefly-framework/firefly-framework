@@ -18,6 +18,7 @@ import importlib
 import inspect
 import logging
 import os
+from pprint import pprint
 from typing import Optional, Type, Callable, List, Dict
 
 import boto3
@@ -25,7 +26,7 @@ import firefly.domain as ffd
 import firefly.domain.constants as const
 import firefly.infrastructure as ffi
 import inflection
-from firefly.application.container import Container
+from firefly.infrastructure.service.container import Container
 from firefly.infrastructure.service.core.chalice_application import ChaliceApplication
 from sqlalchemy import MetaData
 from sqlalchemy.engine import Engine, Connection
@@ -39,6 +40,7 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
     _aggregates: List[Type[ffd.AggregateRoot]] = []
     _application_services: List[Type[ffd.ApplicationService]] = []
     _http_endpoints: List[dict] = []
+    _cli_endpoints: List[dict] = []
     _event_listeners: Dict[str, List[ffd.ApplicationService]] = {}
     _command_handlers: Dict[str, ffd.ApplicationService] = {}
     _query_handlers: Dict[str, ffd.ApplicationService] = {}
@@ -91,6 +93,9 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
     def get_http_endpoints(self):
         return self._http_endpoints
 
+    def get_cli_endpoints(self):
+        return self._cli_endpoints
+
     def get_command_handlers(self):
         return self._command_handlers
 
@@ -124,13 +129,16 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
     def register_query(self, cls):
         self._query_handlers[str(getattr(cls, const.QUERY))] = self._build_service(cls)
 
+    def current_request(self):
+        return self.get_application().app.current_request
+
     def _initialize_entity_crud_operations(self):
         for entity in self._entities:
             for endpoint in getattr(entity, const.HTTP_ENDPOINTS, []):
                 service = self._locate_service_for_entity(entity, endpoint.method)
                 if len(list(filter(
                         lambda s: s['route'] == endpoint.route and s['method'] == endpoint.method, self._http_endpoints
-                ))) > 0:
+                ))) == 0:
                     self._http_endpoints.append({
                         'service': service,
                         'gateway': endpoint.gateway,
@@ -203,6 +211,10 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
                         'scopes': endpoint.scopes,
                         'tags': endpoint.tags,
                     })
+
+            if hasattr(cls, const.CLI_ENDPOINTS):
+                for endpoint in getattr(cls, const.CLI_ENDPOINTS):
+                    self._cli_endpoints.append(endpoint)
 
             if hasattr(cls, const.EVENTS):
                 for e in getattr(cls, const.EVENTS):

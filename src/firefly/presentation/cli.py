@@ -13,20 +13,17 @@
 #  <http://www.gnu.org/licenses/>.
 
 from firefly.infrastructure.service import set_env
+from firefly.domain.entity.core.cli_app import CliApp
 
 
 @set_env
 def main():
     from firefly import Kernel
-    kernel = Kernel()
-    kernel.boot()
-    # from firefly.application import Container
-    # container = Container()
-    # container.kernel.boot()
-    # container.cli_executor.run(
-    #     container.context_map.get_cli_app('firefly')
-    # )
-
+    kernel = Kernel().boot()
+    app = CliApp(name='firefly')
+    for endpoint in kernel.get_cli_endpoints():
+        app.endpoints.append(endpoint)
+    kernel.argparse_executor.run(app)
 
 # class CliOutput(ffd.Middleware):
 #     def __call__(self, message: ffd.Message, next_: Callable, **kwargs) -> Optional[dict]:

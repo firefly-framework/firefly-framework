@@ -12,6 +12,4 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-# Order is important here. Do not optimize imports.
-# from .service import *
-# from .container import Container
+from firefly.application.service.utilities.initialize_project import InitializeProject

@@ -13,6 +13,7 @@
 #  <http://www.gnu.org/licenses/>.
 
 HTTP_ENDPOINTS = '__ff_http_endpoints'
+CLI_ENDPOINTS = '__ff_cli_endpoints'
 COMMAND = '__ff_command'
 QUERY = '__ff_query'
 EVENTS = '__ff_events'

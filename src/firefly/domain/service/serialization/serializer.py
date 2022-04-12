@@ -21,7 +21,6 @@ from datetime import datetime, date, time
 from json import JSONEncoder
 from uuid import UUID
 
-from firefly.application.container import Container
 import firefly.domain.error as errors
 
 import firefly.domain as ffd
@@ -33,7 +32,7 @@ class FireflyEncoder(JSONEncoder):
             return o.to_dict()
         elif inspect.isclass(o) and issubclass(o, ffd.Entity):
             return f'{o.get_class_context()}.{o.__name__}'
-        elif isinstance(o, Container):
+        elif isinstance(o, ffd.Kernel):
             return None
         elif isinstance(o, (datetime, date, time)):
             return o.isoformat()

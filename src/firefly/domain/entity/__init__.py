@@ -16,7 +16,7 @@
 # from .core import *
 # from .entity import *
 # from .json_schema import JsonSchema
-from .messaging import *
+# from .messaging import *
 # from .meta_aggregate import MetaAggregate
 # from .system import *
 # from .validation import *

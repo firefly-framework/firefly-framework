@@ -107,8 +107,12 @@ class YamlConfigurationFactory(ConfigurationFactory):
         except ProjectConfigNotFound:
             return {}
 
-        with open('firefly.yml', 'r') as fp:
-            config = self._parse(fp.read())
+        if os.path.exists('firefly.yml'):
+            with open('firefly.yml', 'r') as fp:
+                config = self._parse(fp.read())
+        else:
+            config = {'contexts': {'firefly': None}}
+
         os.chdir(original_dir)
 
         return config
@@ -129,8 +133,5 @@ class YamlConfigurationFactory(ConfigurationFactory):
             if os.path.realpath(os.getcwd()) == os.path.realpath('..'):
                 break
             os.chdir('..')
-
-        if not os.path.exists('firefly.yml'):
-            raise ProjectConfigNotFound()
 
         return original_dir

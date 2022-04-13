@@ -17,28 +17,23 @@ from __future__ import annotations
 import os
 
 import firefly.domain as ffd
+from firefly.infrastructure.service.aws_agent import AwsAgent
 
 
 @ffd.cli('firefly deploy', alias={'requirements_file': 'r'})
 @ffd.command_handler('firefly.Deploy')
 class Deploy(ffd.ApplicationService):
     _config: ffd.Configuration = None
-    _agent_factory: ffd.AgentFactory = None
+    _agent: AwsAgent = None
 
     def __call__(self, env: str = 'local', requirements_file: str = None, **kwargs):
         provider = self._config.all.get('provider', 'default')
         if env == 'local':
             provider = 'default'
-        deployment = ffd.Deployment(
-            environment=env,
-            provider=provider,
-            project=self._config.all.get('project'),
-            requirements_file=requirements_file
-        )
-        self.dispatch(ffd.DeploymentCreated(deployment=deployment))
-        self.dispatch(ffd.DeploymentInitialized(deployment=deployment))
 
-        agent = self._agent_factory(provider)
-        self.dispatch(ffd.DeploymentStarting(deployment=deployment))
-        agent(deployment, **kwargs)
-        self.dispatch(ffd.DeploymentComplete(deployment=deployment))
+        self._agent({
+            'environment': env,
+            'provider': provider,
+            'project': self._config.all.get('project'),
+            'requirements_file': requirements_file,
+        }, **kwargs)

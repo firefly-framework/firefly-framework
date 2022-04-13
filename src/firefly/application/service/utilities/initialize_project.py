@@ -97,9 +97,15 @@ def readme(name: str):
 
 def firefly_config(name):
     return f"""
+project: <PROJECT_NAME>
+
 contexts:
   firefly: ~
   {name}: ~
+  
+environments:
+  - dev
+  - prod
 """.lstrip()
 
 

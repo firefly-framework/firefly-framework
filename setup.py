@@ -29,6 +29,7 @@ setuptools.setup(
         'pytest11': ['firefly=firefly.plugins.pytest']
     },
     install_requires=[
+        'alembic>=1.7.7',
         'boto3>=1.12.42',
         'chalice>=1.26.6',
         'dateparser>=0.7.4',
@@ -42,12 +43,13 @@ setuptools.setup(
         'psycopg2>=2.9.3',
         'python-dateutil>=2.8.1',
         'python-dotenv>=0.10.3',
+        'python_jwt>=3.3.2',
         'pyyaml>=5.1.1',
         'routes>=2.4.1',
         'sqlalchemy>=1.4.32',
         'terminaltables>=3.1.0',
-        'websockets>=8.0.2',
         'troposphere>=2.7.1',
+        'websockets>=8.0.2',
     ],
     extras_require={
         'OpenApi Generation': ['apispec>=3.3.0', 'docstring_parser>=0.7.1'],

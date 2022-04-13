@@ -55,13 +55,6 @@ class YamlConfigurationFactory(ConfigurationFactory):
                 configuration.contexts[context] or {},
             )
 
-        env = os.environ['FF_ENVIRONMENT']
-        if env in configuration.environments and isinstance(configuration.environments[env], dict):
-            configuration.contexts = merge(
-                configuration.contexts,
-                configuration.environments[env]
-            )
-
         return configuration
 
     @staticmethod

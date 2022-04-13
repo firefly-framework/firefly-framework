@@ -12,4 +12,6 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
+from firefly.application.service.deployment.deploy import Deploy
 from firefly.application.service.utilities.initialize_project import InitializeProject
+from firefly.application.service.utilities.migrate_database import MigrateDatabase

@@ -26,6 +26,8 @@ import firefly.domain as ffd
 import firefly.domain.constants as const
 import firefly.infrastructure as ffi
 import inflection
+import python_jwt
+from chalice.app import Request
 from firefly.infrastructure.service.container import Container
 from firefly.infrastructure.service.core.chalice_application import ChaliceApplication
 from sqlalchemy import MetaData
@@ -86,6 +88,31 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
         self.initialize_storage()
 
         return self
+
+    def user_token(self):
+        current_request: Request = self.current_request()
+        token = None
+        for k, v in current_request.headers.items():
+            if k.lower() == 'authorization':
+                token = v.split(' ').pop()
+                break
+
+        if token is None:
+            return None, None
+
+        # Note that this is NOT verifying the token. It's only reading the headers and claims.
+        return python_jwt.process_jwt(token)
+
+    def requesting_user_has_scope(self, scope: str):
+        header, claims = self.user_token()
+        if claims is None:
+            return False
+
+        for s in claims['scope'].split(' '):
+            if s == scope:
+                return True
+
+        return False
 
     def get_application(self) -> ffd.Application:
         return self._app

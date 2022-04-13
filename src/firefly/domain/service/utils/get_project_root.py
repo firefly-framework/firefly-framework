@@ -12,4 +12,11 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
+from __future__ import annotations
 
+from pathlib import Path
+
+
+class GetProjectRoot:
+    def __call__(self):
+        return str(Path(__file__).parent.parent.parent.parent.parent.parent)

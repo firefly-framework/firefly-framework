@@ -26,10 +26,10 @@
 
 from __future__ import annotations
 
-from pprint import pprint
 from typing import Generic, TypeVar
 
 import firefly.domain as ffd
+from firefly.domain.repository.search_criteria import Attr
 
 from ...value_object.generic_base import GenericBase
 
@@ -51,9 +51,7 @@ class QueryService(Generic[T], GenericBase, ffd.ApplicationService):
         except KeyError:
             raise ffd.MissingArgument(self._type().id_name())
 
-        is_admin = False
-        # TODO find out if the user is an admin and set it here.
-
+        is_admin = self._kernel.requesting_user_has_scope(f'{self._context}.admin')
         limit = None
         offset = None
         if 'limit' in kwargs and 'offset' in kwargs:
@@ -68,10 +66,10 @@ class QueryService(Generic[T], GenericBase, ffd.ApplicationService):
                 criteria = self._serializer.deserialize(criteria)
             criteria = ffd.BinaryOp.from_dict(criteria)
             if '__include_deleted' not in kwargs and hasattr(self._type(), 'deleted_on'):
-                criteria &= ffd.Attr('deleted_on').is_none()
+                criteria &= Attr('deleted_on').is_none()
             entities = self._registry(self._type()).filter(criteria)
         elif '__include_deleted' not in kwargs and hasattr(self._type(), 'deleted_on'):
-            criteria = ffd.Attr('deleted_on').is_none()
+            criteria = Attr('deleted_on').is_none()
             entities = self._registry(self._type()).filter(criteria)
 
         paginated = False

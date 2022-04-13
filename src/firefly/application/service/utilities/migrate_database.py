@@ -12,4 +12,15 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
+from __future__ import annotations
 
+import firefly.domain as ffd
+import firefly.infrastructure as ffi
+
+
+@ffd.cli('firefly migrate database')
+class MigrateDatabase(ffd.ApplicationService):
+    _migrate_database: ffi.MigrateDatabase = None
+
+    def __call__(self, **kwargs):
+        self._migrate_database()

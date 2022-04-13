@@ -41,14 +41,18 @@ from __future__ import annotations
 import os
 import shutil
 from datetime import datetime
-from pprint import pprint
 from time import sleep
 
-import firefly as ff
+import firefly.domain as ff
 import firefly.infrastructure as ffi
 import inflection
+import troposphere.kinesis as kinesis
+import troposphere.kinesisanalyticsv2 as analytics
 import yaml
 from botocore.exceptions import ClientError
+from firefly.domain.service.core.agent import Agent
+from firefly.domain.service.resource_name_generator import ResourceNameGenerator
+from firefly.infrastructure.service.storage.s3_service import S3Service
 from troposphere import Template, GetAtt, Ref, Parameter, Output, Export, ImportValue, Join
 from troposphere.apigatewayv2 import Api, Stage, Deployment, Integration, Route
 from troposphere.awslambda import Function, Code, VPCConfig, Environment, Permission, EventSourceMapping
@@ -59,28 +63,20 @@ from troposphere.iam import Role, Policy
 from troposphere.s3 import Bucket, LifecycleRule, LifecycleConfiguration
 from troposphere.sns import Topic, SubscriptionResource
 from troposphere.sqs import Queue, QueuePolicy, RedrivePolicy
-import troposphere.kinesis as kinesis
-import troposphere.kinesisanalyticsv2 as analytics
-
-from firefly_aws import S3Service, ResourceNameGenerator
 
 
-@ff.agent('aws')
-class AwsAgent(ff.Agent, ResourceNameGenerator, ff.LoggerAware):
+class AwsAgent(Agent, ResourceNameGenerator, ff.LoggerAware):
     _configuration: ff.Configuration = None
-    _context_map: ff.ContextMap = None
     _registry: ff.Registry = None
     _s3_client = None
     _s3_service: S3Service = None
     _sns_client = None
     _cloudformation_client = None
     _adaptive_memory = None
+    _account_id: str = None
 
-    def __init__(self, account_id: str):
-        self._account_id = account_id
-
-    def __call__(self, deployment: ff.Deployment, **kwargs):
-        self._env = deployment.environment
+    def __call__(self, deployment: dict, **kwargs):
+        self._env = deployment['environment']
         try:
             self._bucket = self._configuration.contexts.get('firefly_aws').get('bucket')
         except AttributeError:
@@ -104,16 +100,16 @@ class AwsAgent(ff.Agent, ResourceNameGenerator, ff.LoggerAware):
         self._template_key = f'cloudformation/templates/{inflection.dasherize(self.service_name())}.json'
         self._create_project_stack()
 
-        for service in deployment.services:
-            lambda_path = inflection.dasherize(self.lambda_resource_name(service.name))
-            template_path = inflection.dasherize(self.service_name(self._context_map.get_context(service.name).name))
+        for service in deployment['services']:
+            lambda_path = inflection.dasherize(self.lambda_resource_name(service["name"]))
+            template_path = inflection.dasherize(self.service_name(self._context_map.get_context(service["name"]).name))
             self._code_path = f'lambda/code/{lambda_path}'
             self._code_key = f'{self._code_path}/{datetime.now().isoformat()}.zip'
             self._template_key = f'cloudformation/templates/{template_path}.json'
             self._deploy_service(service)
 
-    def _deploy_service(self, service: ff.Service):
-        context = self._context_map.get_context(service.name)
+    def _deploy_service(self, service: dict):
+        context = self._context_map.get_context(service['name'])
         if self._aws_config.get('image_uri') is None:
             self._package_and_deploy_code(context)
 
@@ -121,28 +117,28 @@ class AwsAgent(ff.Agent, ResourceNameGenerator, ff.LoggerAware):
         template.set_version('2010-09-09')
 
         memory_size = template.add_parameter(Parameter(
-            f'{self.lambda_resource_name(service.name)}MemorySize',
+            f'{self.lambda_resource_name(service["name"])}MemorySize',
             Type=NUMBER,
             Default=self._aws_config.get('memory_sync', '3008')
         ))
 
         timeout_gateway = template.add_parameter(Parameter(
-            f'{self.lambda_resource_name(service.name)}GatewayTimeout',
+            f'{self.lambda_resource_name(service["name"])}GatewayTimeout',
             Type=NUMBER,
             Default='30'
         ))
 
         timeout_async = template.add_parameter(Parameter(
-            f'{self.lambda_resource_name(service.name)}AsyncTimeout',
+            f'{self.lambda_resource_name(service["name"])}AsyncTimeout',
             Type=NUMBER,
             Default='900'
         ))
 
-        role_title = f'{self.lambda_resource_name(service.name)}ExecutionRole'
+        role_title = f'{self.lambda_resource_name(service["name"])}ExecutionRole'
         role = self._add_role(role_title, template)
 
         params = {
-            'FunctionName': f'{self.service_name(service.name)}Sync',
+            'FunctionName': f'{self.service_name(service["name"])}Sync',
             'Role': GetAtt(role_title, 'Arn'),
             'MemorySize': Ref(memory_size),
             'Timeout': Ref(timeout_gateway),
@@ -173,16 +169,16 @@ class AwsAgent(ff.Agent, ResourceNameGenerator, ff.LoggerAware):
                 SubnetIds=self._subnet_ids
             )
         api_lambda = template.add_resource(Function(
-            f'{self.lambda_resource_name(service.name)}Sync',
+            f'{self.lambda_resource_name(service["name"])}Sync',
             **params
         ))
 
         route = inflection.dasherize(context.name)
         proxy_route = f'{route}/{{proxy+}}'
         template.add_resource(Permission(
-            f'{self.lambda_resource_name(service.name)}SyncPermission',
+            f'{self.lambda_resource_name(service["name"])}SyncPermission',
             Action='lambda:InvokeFunction',
-            FunctionName=f'{self.service_name(service.name)}Sync',
+            FunctionName=f'{self.service_name(service["name"])}Sync',
             Principal='apigateway.amazonaws.com',
             SourceArn=Join('', [
                 'arn:aws:execute-api:',
@@ -205,13 +201,13 @@ class AwsAgent(ff.Agent, ResourceNameGenerator, ff.LoggerAware):
             except ValueError:
                 pass
             memory_size = template.add_parameter(Parameter(
-                f'{self.lambda_resource_name(service.name)}MemorySizeAsync',
+                f'{self.lambda_resource_name(service["name"])}MemorySizeAsync',
                 Type=NUMBER,
                 Default=value
             ))
 
         params = {
-            'FunctionName': self.lambda_function_name(service.name, 'Async'),
+            'FunctionName': self.lambda_function_name(service["name"], 'Async'),
             'Role': GetAtt(role_title, 'Arn'),
             'MemorySize': Ref(memory_size),
             'Timeout': Ref(timeout_async),
@@ -241,7 +237,7 @@ class AwsAgent(ff.Agent, ResourceNameGenerator, ff.LoggerAware):
                 SubnetIds=self._subnet_ids
             )
         async_lambda = template.add_resource(Function(
-            self.lambda_resource_name(service.name, type_='Async'),
+            self.lambda_resource_name(service["name"], type_='Async'),
             **params
         ))
 
@@ -261,9 +257,9 @@ class AwsAgent(ff.Agent, ResourceNameGenerator, ff.LoggerAware):
                     timer_name = timer.command.__name__
 
                 target = Target(
-                    f'{self.service_name(service.name)}AsyncTarget',
-                    Arn=GetAtt(self.lambda_resource_name(service.name, type_='Async'), 'Arn'),
-                    Id=self.lambda_resource_name(service.name, type_='Async'),
+                    f'{self.service_name(service["name"])}AsyncTarget',
+                    Arn=GetAtt(self.lambda_resource_name(service["name"], type_='Async'), 'Arn'),
+                    Id=self.lambda_resource_name(service["name"], type_='Async'),
                     Input=f'{{"_context": "{context.name}", "_type": "command", "_name": "{cls.__name__}"}}'
                 )
                 rule = template.add_resource(Rule(
@@ -317,8 +313,8 @@ class AwsAgent(ff.Agent, ResourceNameGenerator, ff.LoggerAware):
 
         if 'errors' in self._aws_config:
             alerts_topic = template.add_resource(Topic(
-                self.alert_topic_name(service.name),
-                TopicName=self.alert_topic_name(service.name)
+                self.alert_topic_name(service["name"]),
+                TopicName=self.alert_topic_name(service["name"])
             ))
 
             if 'email' in self._aws_config.get('errors'):
@@ -367,7 +363,7 @@ class AwsAgent(ff.Agent, ResourceNameGenerator, ff.LoggerAware):
             BatchSize=1,
             Enabled=True,
             EventSourceArn=GetAtt(queue, 'Arn'),
-            FunctionName=self.lambda_function_name(service.name, 'Async'),
+            FunctionName=self.lambda_function_name(service["name"], 'Async'),
             DependsOn=[queue, async_lambda]
         ))
         topic = template.add_resource(Topic(
@@ -462,8 +458,6 @@ class AwsAgent(ff.Agent, ResourceNameGenerator, ff.LoggerAware):
 
         for cb in self._post_deployment_hooks:
             cb(template=template, context=context, env=self._env)
-
-        self._migrate_schema(context)
 
         self.info('Done')
 
@@ -720,7 +714,7 @@ class AwsAgent(ff.Agent, ResourceNameGenerator, ff.LoggerAware):
         import subprocess
         subprocess.call([
             'pip', 'install',
-            '-r', self._deployment.requirements_file or 'requirements.txt',
+            '-r', self._deployment.get('requirements_file', 'requirements.txt'),
             '-t', './build/python-sources'
         ])
 

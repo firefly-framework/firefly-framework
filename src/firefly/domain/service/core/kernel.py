@@ -148,7 +148,8 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
         if hasattr(self.__class__, name):
             return
         setattr(self.__class__, name, constructor) if constructor is not None else setattr(self.__class__, name, type_)
-        self.__class__.__annotations__[name] = type_
+        if type_ is not type:
+            self.__class__.__annotations__[name] = type_
 
     def register_command(self, cls):
         self._command_handlers[str(getattr(cls, const.COMMAND))] = self._build_service(cls)

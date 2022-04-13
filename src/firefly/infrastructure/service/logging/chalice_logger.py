@@ -52,25 +52,25 @@ class ChaliceLogger(ffd.Logger):
         self.log.exception(message, *args, **kwargs)
 
     def set_level_to_fatal(self):
-        self.log.getLogger().setLevel(logging.FATAL)
+        self.log.setLevel(logging.FATAL)
 
     def set_level_to_error(self):
-        self.log.getLogger().setLevel(logging.ERROR)
+        self.log.setLevel(logging.ERROR)
 
     def set_level_to_warning(self):
-        self.log.getLogger().setLevel(logging.WARNING)
+        self.log.setLevel(logging.WARNING)
 
     def set_level_to_info(self):
-        self.log.getLogger().setLevel(logging.INFO)
+        self.log.setLevel(logging.INFO)
 
     def set_level_to_debug(self):
-        self.log.getLogger().setLevel(logging.DEBUG)
+        self.log.setLevel(logging.DEBUG)
 
     def disable(self):
-        self.log.getLogger().setLevel(logging.NOTSET)
+        self.log.setLevel(logging.NOTSET)
 
     def get_level(self):
-        return self.log.getLogger().getEffectiveLevel()
+        return self.log.getEffectiveLevel()
 
     def set_level(self, level: int):
-        self.log.getLogger().setLevel(level)
+        self.log.setLevel(level)

@@ -107,7 +107,6 @@ class ArgparseExecutor(CliAppExecutor, SystemBusAware):
                 p = sp.add_parser(k, help=v['endpoint'].help if 'endpoint' in v else None)
                 self._add_verbosity_arguments(p)
                 if 'endpoint' in v:
-                    print(k)
                     self._message_cache[k] = v['endpoint'].message
                 self._configure_argparse(v, p)
 

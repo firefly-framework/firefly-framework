@@ -41,6 +41,7 @@ from __future__ import annotations
 import os
 import shutil
 from datetime import datetime
+from pprint import pprint
 from time import sleep
 
 import firefly.domain as ff
@@ -67,6 +68,7 @@ from troposphere.sqs import Queue, QueuePolicy, RedrivePolicy
 
 class AwsAgent(Agent, ResourceNameGenerator, ff.LoggerAware):
     _configuration: ff.Configuration = None
+    _kernel: ff.Kernel = None
     _registry: ff.Registry = None
     _s3_client = None
     _s3_service: S3Service = None
@@ -74,15 +76,16 @@ class AwsAgent(Agent, ResourceNameGenerator, ff.LoggerAware):
     _cloudformation_client = None
     _adaptive_memory = None
     _account_id: str = None
+    _context: str = None
 
     def __call__(self, deployment: dict, **kwargs):
         self._env = deployment['environment']
         try:
-            self._bucket = self._configuration.contexts.get('firefly_aws').get('bucket')
+            self._bucket = self._configuration.contexts.get('firefly').get('bucket')
         except AttributeError:
-            raise ff.FrameworkError('No deployment bucket configured in firefly_aws')
+            raise ff.FrameworkError('No deployment bucket configured in firefly')
 
-        memory_settings = self._configuration.contexts.get('firefly_aws').get('memory_settings')
+        memory_settings = self._configuration.contexts.get('firefly').get('memory_settings')
         if memory_settings is not None:
             self._adaptive_memory = '1'
             os.environ['ADAPTIVE_MEMORY'] = '1'
@@ -91,7 +94,7 @@ class AwsAgent(Agent, ResourceNameGenerator, ff.LoggerAware):
 
         self._deployment = deployment
         self._project = self._configuration.all.get('project')
-        aws_config = self._configuration.contexts.get('firefly_aws')
+        aws_config = self._configuration.contexts.get('firefly')
         self._aws_config = aws_config
         self._region = aws_config.get('region')
         self._security_group_ids = aws_config.get('vpc', {}).get('security_group_ids')
@@ -100,49 +103,47 @@ class AwsAgent(Agent, ResourceNameGenerator, ff.LoggerAware):
         self._template_key = f'cloudformation/templates/{inflection.dasherize(self.service_name())}.json'
         self._create_project_stack()
 
-        for service in deployment['services']:
-            lambda_path = inflection.dasherize(self.lambda_resource_name(service["name"]))
-            template_path = inflection.dasherize(self.service_name(self._context_map.get_context(service["name"]).name))
-            self._code_path = f'lambda/code/{lambda_path}'
-            self._code_key = f'{self._code_path}/{datetime.now().isoformat()}.zip'
-            self._template_key = f'cloudformation/templates/{template_path}.json'
-            self._deploy_service(service)
+        lambda_path = inflection.dasherize(self.lambda_resource_name(self._context))
+        template_path = inflection.dasherize(self.service_name(self._context))
+        self._code_path = f'lambda/code/{lambda_path}'
+        self._code_key = f'{self._code_path}/{datetime.now().isoformat()}.zip'
+        self._template_key = f'cloudformation/templates/{template_path}.json'
+        self._deploy_service()
 
-    def _deploy_service(self, service: dict):
-        context = self._context_map.get_context(service['name'])
+    def _deploy_service(self):
         if self._aws_config.get('image_uri') is None:
-            self._package_and_deploy_code(context)
+            self._package_and_deploy_code()
 
         template = Template()
         template.set_version('2010-09-09')
 
         memory_size = template.add_parameter(Parameter(
-            f'{self.lambda_resource_name(service["name"])}MemorySize',
+            f'{self.lambda_resource_name(self._context)}MemorySize',
             Type=NUMBER,
             Default=self._aws_config.get('memory_sync', '3008')
         ))
 
         timeout_gateway = template.add_parameter(Parameter(
-            f'{self.lambda_resource_name(service["name"])}GatewayTimeout',
+            f'{self.lambda_resource_name(self._context)}GatewayTimeout',
             Type=NUMBER,
             Default='30'
         ))
 
         timeout_async = template.add_parameter(Parameter(
-            f'{self.lambda_resource_name(service["name"])}AsyncTimeout',
+            f'{self.lambda_resource_name(self._context)}AsyncTimeout',
             Type=NUMBER,
             Default='900'
         ))
 
-        role_title = f'{self.lambda_resource_name(service["name"])}ExecutionRole'
+        role_title = f'{self.lambda_resource_name(self._context)}ExecutionRole'
         role = self._add_role(role_title, template)
 
         params = {
-            'FunctionName': f'{self.service_name(service["name"])}Sync',
+            'FunctionName': f'{self.service_name(self._context)}Sync',
             'Role': GetAtt(role_title, 'Arn'),
             'MemorySize': Ref(memory_size),
             'Timeout': Ref(timeout_gateway),
-            'Environment': self._lambda_environment(context)
+            'Environment': self._lambda_environment()
         }
 
         image_uri = self._aws_config.get('image_uri')
@@ -169,16 +170,16 @@ class AwsAgent(Agent, ResourceNameGenerator, ff.LoggerAware):
                 SubnetIds=self._subnet_ids
             )
         api_lambda = template.add_resource(Function(
-            f'{self.lambda_resource_name(service["name"])}Sync',
+            f'{self.lambda_resource_name(self._context)}Sync',
             **params
         ))
 
-        route = inflection.dasherize(context.name)
+        route = inflection.dasherize(self._context)
         proxy_route = f'{route}/{{proxy+}}'
         template.add_resource(Permission(
-            f'{self.lambda_resource_name(service["name"])}SyncPermission',
+            f'{self.lambda_resource_name(self._context)}SyncPermission',
             Action='lambda:InvokeFunction',
-            FunctionName=f'{self.service_name(service["name"])}Sync',
+            FunctionName=f'{self.service_name(self._context)}Sync',
             Principal='apigateway.amazonaws.com',
             SourceArn=Join('', [
                 'arn:aws:execute-api:',
@@ -201,17 +202,17 @@ class AwsAgent(Agent, ResourceNameGenerator, ff.LoggerAware):
             except ValueError:
                 pass
             memory_size = template.add_parameter(Parameter(
-                f'{self.lambda_resource_name(service["name"])}MemorySizeAsync',
+                f'{self.lambda_resource_name(self._context)}MemorySizeAsync',
                 Type=NUMBER,
                 Default=value
             ))
 
         params = {
-            'FunctionName': self.lambda_function_name(service["name"], 'Async'),
+            'FunctionName': self.lambda_function_name(self._context, 'Async'),
             'Role': GetAtt(role_title, 'Arn'),
             'MemorySize': Ref(memory_size),
             'Timeout': Ref(timeout_async),
-            'Environment': self._lambda_environment(context)
+            'Environment': self._lambda_environment()
         }
 
         if image_uri is not None:
@@ -237,47 +238,47 @@ class AwsAgent(Agent, ResourceNameGenerator, ff.LoggerAware):
                 SubnetIds=self._subnet_ids
             )
         async_lambda = template.add_resource(Function(
-            self.lambda_resource_name(service["name"], type_='Async'),
+            self.lambda_resource_name(self._context, type_='Async'),
             **params
         ))
 
         if self._adaptive_memory:
-            self._add_adaptive_memory_functions(template, context, timeout_async, role_title, async_lambda)
+            self._add_adaptive_memory_functions(template, timeout_async, role_title, async_lambda)
             # self._add_adaptive_memory_streams(template, context, async_lambda, role)
 
         # Timers
-        for cls, _ in context.command_handlers.items():
-            if cls.has_timer():
-                timer = cls.get_timer()
-                if timer.environment is not None and timer.environment != self._env:
-                    continue
-                if isinstance(timer.command, str):
-                    timer_name = timer.command
-                else:
-                    timer_name = timer.command.__name__
-
-                target = Target(
-                    f'{self.service_name(service["name"])}AsyncTarget',
-                    Arn=GetAtt(self.lambda_resource_name(service["name"], type_='Async'), 'Arn'),
-                    Id=self.lambda_resource_name(service["name"], type_='Async'),
-                    Input=f'{{"_context": "{context.name}", "_type": "command", "_name": "{cls.__name__}"}}'
-                )
-                rule = template.add_resource(Rule(
-                    f'{timer_name}TimerRule',
-                    ScheduleExpression=f'cron({timer.cron})',
-                    State='ENABLED',
-                    Targets=[target]
-                ))
-                template.add_resource(Permission(
-                    f'{timer_name}TimerPermission',
-                    Action='lambda:invokeFunction',
-                    Principal='events.amazonaws.com',
-                    FunctionName=Ref(async_lambda),
-                    SourceArn=GetAtt(rule, 'Arn')
-                ))
+        for config in self._kernel.get_timers():
+            # {
+            #     'service': self._build_service(cls),
+            #     'id': timer.id,
+            #     'command': timer.command,
+            #     'environment': timer.environment,
+            #     'cron': timer.cron,
+            # }
+            timer_name = config['command']
+            _name = config['service'].__class__.__name__
+            target = Target(
+                f'{self.service_name(self._context)}AsyncTarget',
+                Arn=GetAtt(self.lambda_resource_name(self._context, type_='Async'), 'Arn'),
+                Id=self.lambda_resource_name(self._context, type_='Async'),
+                Input=f'{{"_context": "{self._context}", "_type": "command", "_name": "{_name}"}}'
+            )
+            rule = template.add_resource(Rule(
+                f'{timer_name}TimerRule',
+                ScheduleExpression=f'cron({config["cron"]})',
+                State='ENABLED',
+                Targets=[target]
+            ))
+            template.add_resource(Permission(
+                f'{timer_name}TimerPermission',
+                Action='lambda:invokeFunction',
+                Principal='events.amazonaws.com',
+                FunctionName=Ref(async_lambda),
+                SourceArn=GetAtt(rule, 'Arn')
+            ))
 
         integration = template.add_resource(Integration(
-            self.integration_name(context.name),
+            self.integration_name(self._context),
             ApiId=ImportValue(self.rest_api_reference()),
             PayloadFormatVersion='2.0',
             IntegrationType='AWS_PROXY',
@@ -292,7 +293,7 @@ class AwsAgent(Agent, ResourceNameGenerator, ff.LoggerAware):
         ))
 
         template.add_resource(Route(
-            f'{self.route_name(context.name)}Base',
+            f'{self.route_name(self._context)}Base',
             ApiId=ImportValue(self.rest_api_reference()),
             RouteKey=f'ANY /{route}',
             AuthorizationType='NONE',
@@ -301,7 +302,7 @@ class AwsAgent(Agent, ResourceNameGenerator, ff.LoggerAware):
         ))
 
         template.add_resource(Route(
-            f'{self.route_name(context.name)}Proxy',
+            f'{self.route_name(self._context)}Proxy',
             ApiId=ImportValue(self.rest_api_reference()),
             RouteKey=f'ANY /{proxy_route}',
             AuthorizationType='NONE',
@@ -313,40 +314,40 @@ class AwsAgent(Agent, ResourceNameGenerator, ff.LoggerAware):
 
         if 'errors' in self._aws_config:
             alerts_topic = template.add_resource(Topic(
-                self.alert_topic_name(service["name"]),
-                TopicName=self.alert_topic_name(service["name"])
+                self.alert_topic_name(self._context),
+                TopicName=self.alert_topic_name(self._context)
             ))
 
             if 'email' in self._aws_config.get('errors'):
                 for address in self._aws_config.get('errors').get('email').get('recipients').split(','):
                     template.add_resource(SubscriptionResource(
-                        self.alarm_subscription_name(context.name),
+                        self.alarm_subscription_name(self._context),
                         Protocol='email',
                         Endpoint=address,
-                        TopicArn=self._alert_topic_arn(context.name),
+                        TopicArn=self._alert_topic_arn(),
                         DependsOn=[alerts_topic]
                     ))
 
         # Queues / Topics
 
         subscriptions = {}
-        for subscription in self._get_subscriptions(context):
+        for subscription in self._get_subscriptions():
             if subscription['context'] not in subscriptions:
                 subscriptions[subscription['context']] = []
             subscriptions[subscription['context']].append(subscription)
 
         dlq = template.add_resource(Queue(
-            f'{self.queue_name(context.name)}Dlq',
-            QueueName=f'{self.queue_name(context.name)}Dlq',
+            f'{self.queue_name(self._context)}Dlq',
+            QueueName=f'{self.queue_name(self._context)}Dlq',
             VisibilityTimeout=905,
             ReceiveMessageWaitTimeSeconds=20,
             MessageRetentionPeriod=1209600
         ))
-        self._queue_policy(template, dlq, f'{self.queue_name(context.name)}Dlq', subscriptions)
+        self._queue_policy(template, dlq, f'{self.queue_name(self._context)}Dlq', subscriptions)
 
         queue = template.add_resource(Queue(
-            self.queue_name(context.name),
-            QueueName=self.queue_name(context.name),
+            self.queue_name(self._context),
+            QueueName=self.queue_name(self._context),
             VisibilityTimeout=905,
             ReceiveMessageWaitTimeSeconds=20,
             MessageRetentionPeriod=1209600,
@@ -356,28 +357,28 @@ class AwsAgent(Agent, ResourceNameGenerator, ff.LoggerAware):
             ),
             DependsOn=dlq
         ))
-        self._queue_policy(template, queue, self.queue_name(context.name), subscriptions)
+        self._queue_policy(template, queue, self.queue_name(self._context), subscriptions)
 
         template.add_resource(EventSourceMapping(
-            f'{self.lambda_resource_name(context.name)}AsyncMapping',
+            f'{self.lambda_resource_name(self._context)}AsyncMapping',
             BatchSize=1,
             Enabled=True,
             EventSourceArn=GetAtt(queue, 'Arn'),
-            FunctionName=self.lambda_function_name(service["name"], 'Async'),
+            FunctionName=self.lambda_function_name(self._context, 'Async'),
             DependsOn=[queue, async_lambda]
         ))
         topic = template.add_resource(Topic(
-            self.topic_name(context.name),
-            TopicName=self.topic_name(context.name)
+            self.topic_name(self._context),
+            TopicName=self.topic_name(self._context)
         ))
 
         for context_name, list_ in subscriptions.items():
-            if context_name == context.name and len(list_) > 0:
+            if context_name == self._context and len(list_) > 0:
                 template.add_resource(SubscriptionResource(
                     self.subscription_name(context_name),
                     Protocol='sqs',
                     Endpoint=GetAtt(queue, 'Arn'),
-                    TopicArn=self.topic_arn(context.name),
+                    TopicArn=self.topic_arn(self._context),
                     FilterPolicy={
                         '_name': [x['name'] for x in list_],
                     },
@@ -390,7 +391,7 @@ class AwsAgent(Agent, ResourceNameGenerator, ff.LoggerAware):
                 if context_name not in self._context_map.contexts:
                     self._find_or_create_topic(context_name)
                 template.add_resource(SubscriptionResource(
-                    self.subscription_name(context.name, context_name),
+                    self.subscription_name(self._context, context_name),
                     Protocol='sqs',
                     Endpoint=GetAtt(queue, 'Arn'),
                     TopicArn=self.topic_arn(context_name),
@@ -406,8 +407,8 @@ class AwsAgent(Agent, ResourceNameGenerator, ff.LoggerAware):
         # DynamoDB Table
 
         ddb_table = template.add_resource(Table(
-            self.ddb_resource_name(context.name),
-            TableName=self.ddb_table_name(context.name),
+            self.ddb_resource_name(self._context),
+            TableName=self.ddb_table_name(self._context),
             AttributeDefinitions=[
                 AttributeDefinition(AttributeName='pk', AttributeType='S'),
                 AttributeDefinition(AttributeName='sk', AttributeType='S'),
@@ -430,7 +431,7 @@ class AwsAgent(Agent, ResourceNameGenerator, ff.LoggerAware):
         ))
 
         for cb in self._pre_deployment_hooks:
-            cb(template=template, context=context, env=self._env)
+            cb(template=template, env=self._env)
 
         self.info('Deploying stack')
         self._s3_client.put_object(
@@ -446,23 +447,23 @@ class AwsAgent(Agent, ResourceNameGenerator, ff.LoggerAware):
             }
         )
 
-        stack_name = self.stack_name(context.name)
+        stack_name = self.stack_name(self._context)
         try:
             self._cloudformation_client.describe_stacks(StackName=stack_name)
-            self._update_stack(self.stack_name(context.name), url)
+            self._update_stack(self.stack_name(self._context), url)
         except ClientError as e:
             if f'Stack with id {stack_name} does not exist' in str(e):
-                self._create_stack(self.stack_name(context.name), url)
+                self._create_stack(self.stack_name(self._context), url)
             else:
                 raise e
 
         for cb in self._post_deployment_hooks:
-            cb(template=template, context=context, env=self._env)
+            cb(template=template, env=self._env)
 
         self.info('Done')
 
     def _add_adaptive_memory_streams(self, template, context: ff.Context, lambda_function, role):
-        stream_name = self.stream_resource_name(context.name)
+        stream_name = self.stream_resource_name(self._context)
         stream = template.add_resource(kinesis.Stream(
             stream_name,
             Name=stream_name,
@@ -540,8 +541,8 @@ class AwsAgent(Agent, ResourceNameGenerator, ff.LoggerAware):
         """
 
         analytics_stream = template.add_resource(analytics.Application(
-            self.analytics_application_resource_name(context.name),
-            ApplicationName=self.analytics_application_resource_name(context.name),
+            self.analytics_application_resource_name(self._context),
+            ApplicationName=self.analytics_application_resource_name(self._context),
             ApplicationConfiguration=analytics.ApplicationConfiguration(
                 ApplicationCodeConfiguration=analytics.ApplicationCodeConfiguration(
                     CodeContent=analytics.CodeContent(
@@ -577,8 +578,8 @@ class AwsAgent(Agent, ResourceNameGenerator, ff.LoggerAware):
         ))
 
         template.add_resource(analytics.ApplicationOutput(
-            f'{self.analytics_application_resource_name(context.name)}Output',
-            ApplicationName=self.analytics_application_resource_name(context.name),
+            f'{self.analytics_application_resource_name(self._context)}Output',
+            ApplicationName=self.analytics_application_resource_name(self._context),
             Output=analytics.Output(
                 DestinationSchema=analytics.DestinationSchema(
                     RecordFormatType="JSON"
@@ -591,23 +592,23 @@ class AwsAgent(Agent, ResourceNameGenerator, ff.LoggerAware):
         ))
 
     def _add_adaptive_memory_functions(self, template, context: ff.Context, timeout, role_title, async_lambda):
-        memory_settings = self._configuration.contexts.get('firefly_aws').get('memory_settings')
+        memory_settings = self._configuration.contexts.get('firefly').get('memory_settings')
         if memory_settings is None:
             raise ff.ConfigurationError('To use adaptive memory, you must provide a list of memory_settings')
 
         for memory in memory_settings:
             memory_size = template.add_parameter(Parameter(
-                f'{self.lambda_resource_name(context.name)}{memory}MemorySize',
+                f'{self.lambda_resource_name(self._context)}{memory}MemorySize',
                 Type=NUMBER,
                 Default=str(memory)
             ))
 
             params = {
-                'FunctionName': self.lambda_function_name(context.name, 'Async', memory=memory),
+                'FunctionName': self.lambda_function_name(self._context, 'Async', memory=memory),
                 'Role': GetAtt(role_title, 'Arn'),
                 'MemorySize': Ref(memory_size),
                 'Timeout': Ref(timeout),
-                'Environment': self._lambda_environment(context),
+                'Environment': self._lambda_environment(),
                 'DependsOn': async_lambda,
             }
 
@@ -636,26 +637,26 @@ class AwsAgent(Agent, ResourceNameGenerator, ff.LoggerAware):
                 )
 
             adaptive_memory_lambda = template.add_resource(Function(
-                self.lambda_resource_name(context.name, memory=memory),
+                self.lambda_resource_name(self._context, memory=memory),
                 **params
             ))
 
             queue = template.add_resource(Queue(
-                self.queue_name(context.name, memory=memory),
-                QueueName=self.queue_name(context.name, memory=memory),
+                self.queue_name(self._context, memory=memory),
+                QueueName=self.queue_name(self._context, memory=memory),
                 VisibilityTimeout=905,
                 ReceiveMessageWaitTimeSeconds=20,
                 MessageRetentionPeriod=1209600,
                 DependsOn=[adaptive_memory_lambda]
             ))
-            # self._queue_policy(template, queue, self.queue_name(context.name), subscriptions)
+            # self._queue_policy(template, queue, self.queue_name(self._context), subscriptions)
 
             template.add_resource(EventSourceMapping(
-                f'{self.lambda_resource_name(context.name, memory=memory)}AsyncMapping',
+                f'{self.lambda_resource_name(self._context, memory=memory)}AsyncMapping',
                 BatchSize=1,
                 Enabled=True,
                 EventSourceArn=GetAtt(queue, 'Arn'),
-                FunctionName=self.lambda_function_name(context.name, 'Async', memory=memory),
+                FunctionName=self.lambda_function_name(self._context, 'Async', memory=memory),
                 DependsOn=[queue, adaptive_memory_lambda]
             ))
 
@@ -684,24 +685,22 @@ class AwsAgent(Agent, ResourceNameGenerator, ff.LoggerAware):
             self.info(f'Creating stack for context "{context_name}"')
             self._create_stack(self.stack_name(context_name), template)
 
-    @staticmethod
-    def _get_subscriptions(context: ff.Context):
+    def _get_subscriptions(self):
         ret = []
-        for service, event_types in context.event_listeners.items():
-            for event_type in event_types:
-                if isinstance(event_type, str):
-                    context_name, event_name = event_type.split('.')
-                else:
-                    context_name = event_type.get_class_context()
-                    event_name = event_type.__name__
-                ret.append({
-                    'name': event_name,
-                    'context': context_name,
-                })
+        for event_type, services in self._kernel.get_event_listeners().items():
+            if isinstance(event_type, str):
+                context_name, event_name = event_type.split('.')
+            else:
+                context_name = event_type.get_class_context()
+                event_name = event_type.__name__
+            ret.append({
+                'name': event_name,
+                'context': context_name,
+            })
 
         return ret
 
-    def _package_and_deploy_code(self, context: ff.Context):
+    def _package_and_deploy_code(self):
         self.info('Setting up build directory')
         if not os.path.isdir('./build'):
             os.mkdir('./build')
@@ -710,24 +709,32 @@ class AwsAgent(Agent, ResourceNameGenerator, ff.LoggerAware):
         os.mkdir('./build/python-sources')
 
         self.info('Installing source files')
-        # TODO use setup.py instead?
         import subprocess
         subprocess.call([
             'pip', 'install',
-            '-r', self._deployment.get('requirements_file', 'requirements.txt'),
+            '-r', (self._deployment.get('requirements_file') or 'requirements.txt'),
             '-t', './build/python-sources'
         ])
 
         self.info('Packaging artifact')
         with open('./build/python-sources/app.py', 'w') as fp:
-            fp.write("""
+            fp.write("""from __future__ import annotations
+            
 import firefly as ff
+import logging
+
+logging.getLogger()
 
 kernel = ff.Kernel().boot()
-kernel.logger.set_level_to_info()
+kernel.logger.set_level_to_debug()
 
-app = kernel.get_application().app
+# app = kernel.get_application().app
 
+
+def app(event=None, context=None):
+    if isinstance(event, dict):
+        event = kernel.translate_http_event(event)
+    return kernel.get_application().app(event, context)
 """)
         os.chdir('./build/python-sources')
         with open('firefly.yml', 'w') as fp:
@@ -755,9 +762,9 @@ app = kernel.get_application().app
             )
         os.chdir('..')
 
-        self._clean_up_old_artifacts(context)
+        self._clean_up_old_artifacts()
 
-    def _clean_up_old_artifacts(self, context: ff.Context):
+    def _clean_up_old_artifacts(self):
         response = self._s3_client.list_objects(
             Bucket=self._bucket,
             Prefix=self._code_path
@@ -1003,17 +1010,17 @@ app = kernel.get_application().app
             sleep(5)
             status = self._cloudformation_client.describe_stacks(StackName=stack_name)['Stacks'][0]
 
-    def _lambda_environment(self, context: ff.Context):
-        env = ((context.config.get('extensions') or {}).get('firefly_aws') or {}).get('environment')
+    def _lambda_environment(self):
+        env = (self._configuration.contexts.get(self._context) or {}).get('environment')
 
         defaults = {
             'PROJECT': self._project,
             'FF_ENVIRONMENT': self._env,
             'ACCOUNT_ID': self._account_id,
-            'CONTEXT': context.name,
+            'CONTEXT': self._context,
             'REGION': self._region,
             'BUCKET': self._bucket,
-            'DDB_TABLE': self.ddb_table_name(context.name),
+            'DDB_TABLE': self.ddb_table_name(self._context),
         }
 
         if self._adaptive_memory is not None:

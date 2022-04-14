@@ -44,6 +44,7 @@ from firefly.domain.service.files.file_system import FileSystem, File
 from firefly.domain.value_object import EventBuffer
 from firefly.domain.utils import HasMemoryCache, load_class
 from firefly.domain.meta.get_arguments import get_arguments
+from firefly.domain.service.http.rest_router import RestRouter
 
 from firefly.domain.service.messaging.message_transport import MessageTransport
 from firefly.domain.service.core.domain_service import DomainService

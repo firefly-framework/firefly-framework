@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from typing import Dict, Optional, Tuple, Union
+from typing import Dict, Tuple, Union
 
 import firefly.domain as ffd
 from routes import Mapper

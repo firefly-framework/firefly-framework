@@ -31,3 +31,4 @@ from firefly.infrastructure.repository.initialize_storage import InitializeStora
 from firefly.infrastructure.middleware.begin_transaction import BeginTransaction
 from firefly.infrastructure.service.cli.argparse_executor import ArgparseExecutor
 from firefly.infrastructure.repository.migrate_database import MigrateDatabase
+from firefly.infrastructure.service.http.routes_rest_router import RoutesRestRouter

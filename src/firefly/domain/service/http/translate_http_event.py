@@ -14,31 +14,35 @@
 
 from __future__ import annotations
 
+import firefly.domain as ffd
+from urllib.parse import parse_qs
+
 
 class TranslateHttpEvent:
+    _router: ffd.RestRouter = None
+
     def __call__(self, event: dict) -> dict:
+        method = event['requestContext']['http']['method']
         path = event['rawPath']
         if path.startswith('/api'):
             path = path.replace('/api/', '/')
 
-        ret = {
+        endpoint, params = self._router.match(path, method)
+
+        return {
             'resource': path,
             'path': path,
-            'httpMethod': event['requestContext']['http']['method'],
+            'httpMethod': method,
             'requestContext': {
-                'resourcePath': path,
-                'httpMethod': event['requestContext']['http']['method'],
+                'resourcePath': endpoint.route,
+                'httpMethod': method,
                 'path': path,
             },
             'headers': event.get('headers'),
-            'queryStringParameters': event.get('rawQueryString'),
-            'pathParameters': event.get('pathParameters'),
+            'queryStringParameters': event.get('queryStringParameters'),
+            'pathParameters': params,
             'stageVariables': None,
             'body': event.get('body'),
             'isBase64Encoded': event.get('isBase64Encoded'),
-            'multiValueQueryStringParameters': {},
-
+            'multiValueQueryStringParameters': parse_qs(event.get('rawQueryString')),
         }
-
-        print(ret)
-        return ret

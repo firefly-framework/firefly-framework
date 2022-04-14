@@ -197,6 +197,7 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
     def _bootstrap_container(self):
         self.register_object('logger', ffi.ChaliceLogger)
         self.register_object('system_bus', ffd.SystemBus)
+        self.register_object('routes_rest_router', ffi.RoutesRestRouter)
         self.register_object('configuration_factory', ffi.YamlConfigurationFactory)
         self.register_object('message_transport', ffd.MessageTransport, lambda s: s.build(ffi.ChaliceMessageTransport))
         self.register_object('message_factory', ffd.MessageFactory)

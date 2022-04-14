@@ -110,6 +110,7 @@ def middleware(event, get_response, service):
 class ChaliceApplication(Application):
     app: Chalice = None
     configuration: ffd.Configuration = None
+    _router: ffd.RestRouter = None
     _context: str = None
     _debug: str = None
 
@@ -140,6 +141,7 @@ class ChaliceApplication(Application):
                 cors=True,
                 authorizer=authorizer
             )(func)
+            self._router.register(config['route'], ffd.HttpEndpoint(route=config['route'], method=config['method']))
 
         for k, v in self.configuration.contexts.items():
             if k.startswith('firefly') or (v or {}).get('is_extension', False) is True:

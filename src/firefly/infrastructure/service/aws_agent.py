@@ -733,7 +733,9 @@ kernel.logger.set_level_to_debug()
 
 def app(event=None, context=None):
     if isinstance(event, dict):
+        print(event)
         event = kernel.translate_http_event(event)
+        print(event)
     return kernel.get_application().app(event, context)
 """)
         os.chdir('./build/python-sources')

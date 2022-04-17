@@ -34,7 +34,7 @@ class TranslateHttpEvent:
             'path': path,
             'httpMethod': method,
             'requestContext': {
-                'resourcePath': endpoint.route,
+                'resourcePath': endpoint.route if endpoint is not None else event.get('rawPath'),
                 'httpMethod': method,
                 'path': path,
             },

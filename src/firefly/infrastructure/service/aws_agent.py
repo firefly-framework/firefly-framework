@@ -736,7 +736,9 @@ def app(event=None, context=None):
         print(event)
         event = kernel.translate_http_event(event)
         print(event)
-    return kernel.get_application().app(event, context)
+    response = kernel.get_application().app(event, context)
+    print(response)
+    return response
 """)
         os.chdir('./build/python-sources')
         with open('firefly.yml', 'w') as fp:

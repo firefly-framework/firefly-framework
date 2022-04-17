@@ -1,0 +1,57 @@
+{
+  "version": "2.0",
+  "routeKey": "ANY /hello-world/{proxy+}",
+  "rawPath": "/api/hello-world/say-hell/Gang",
+  "rawQueryString": "",
+  "cookies": [
+    "__hstc=135965742.1cdcc953d23d9ba92780aae48b52479e.1618250178859.1642788584977.1644495728558.17",
+    "__stripe_mid=4a49ebb1-d423-4a4a-b2e0-7e4499e8bd64e41c22",
+    "_ga=GA1.2.190499202.1579536227",
+    "_gcl_au=1.1.2017707906.1642443908",
+    "hubspotutk=1cdcc953d23d9ba92780aae48b52479e"
+  ],
+  "headers": {
+    "accept-encoding": "gzip",
+    "cache-control": "no-cache",
+    "content-length": "0",
+    "host": "fyyfi6211e.execute-api.us-west-2.amazonaws.com",
+    "pragma": "no-cache",
+    "sec-ch-ua": "\" Not A;Brand\";v=\"99\", \"Chromium\";v=\"99\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"Linux\"",
+    "sec-fetch-dest": "document",
+    "sec-fetch-mode": "navigate",
+    "sec-fetch-site": "none",
+    "sec-fetch-user": "?1",
+    "upgrade-insecure-requests": "1",
+    "user-agent": "Amazon CloudFront",
+    "via": "2.0 de33a243d95a626772ee38d6f5849f96.cloudfront.net (CloudFront)",
+    "x-amz-cf-id": "CZ3enIWRm_8zccujpqTdcHaIy_KUW4UBovN0H_ZnPO5vknayxq1DUQ==",
+    "x-amzn-trace-id": "Root=1-62582e02-665ecde97291dc1e7d875093",
+    "x-forwarded-for": "35.161.159.188, 70.132.37.69",
+    "x-forwarded-port": "443",
+    "x-forwarded-proto": "https"
+  },
+  "requestContext": {
+    "accountId": "611169215589",
+    "apiId": "fyyfi6211e",
+    "domainName": "fyyfi6211e.execute-api.us-west-2.amazonaws.com",
+    "domainPrefix": "fyyfi6211e",
+    "http": {
+      "method": "GET",
+      "path": "/api/hello-world/say-hell/Gang",
+      "protocol": "HTTP/1.1",
+      "sourceIp": "35.161.159.188",
+      "userAgent": "Amazon CloudFront"
+    },
+    "requestId": "QkwgcgesvHcEJPA=",
+    "routeKey": "ANY /hello-world/{proxy+}",
+    "stage": "api",
+    "time": "14/Apr/2022:14:21:54 +0000",
+    "timeEpoch": 1649946114617
+  },
+  "pathParameters": {
+    "proxy": "say-hell/Gang"
+  },
+  "isBase64Encoded": false
+}

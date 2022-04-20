@@ -15,16 +15,18 @@
 from __future__ import annotations
 
 import inspect
+import typing
 import uuid
 from dataclasses import fields
 from datetime import datetime, date
+from pprint import pprint
 from typing import Type, List, Optional, get_type_hints, get_origin, get_args
 
 import firefly.domain as ffd
 import inflection
 from firefly.domain.utils import is_type_hint
 from sqlalchemy import MetaData, Table, Column, ForeignKey, Text, String, Float, Integer, DateTime, Date, Boolean, Index
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import ProgrammingError, InvalidRequestError, OperationalError
 from sqlalchemy.orm import relationship, mapper
@@ -40,6 +42,7 @@ TYPE_MAPPINGS = {
     date: lambda: Date,
     bool: lambda: Boolean,
     uuid.UUID: lambda: UUID(as_uuid=True),
+    str: lambda: String,
 }
 
 
@@ -48,10 +51,13 @@ class MapEntities(ffd.HasMemoryCache, ffd.LoggerAware):
     _engine: Engine = None
     _metadata: MetaData = None
     _kernel: ffd.Kernel = None
+    _join_tables: dict = None
     _stack: list = None
     _db_type: str = None
 
     def __call__(self, entities: Optional[List[Type[ffd.Entity]]] = None):
+        self._join_tables = {}
+
         if self._engine is None:
             return
 
@@ -100,8 +106,8 @@ class MapEntities(ffd.HasMemoryCache, ffd.LoggerAware):
         }
         types = get_type_hints(entity)
         indexes = {}
-        relationships = self._parse_relationships(entity)
         join_tables = {}
+        relationships = self._parse_relationships(entity)
         mappings = self._cache_get(f'mappings.{inflection.underscore(entity.__name__)}')
         o2o_owner = '__one_to_one_owner_{}'
 
@@ -110,6 +116,7 @@ class MapEntities(ffd.HasMemoryCache, ffd.LoggerAware):
                 self.debug(f'Skipping private property {field.name}')
                 continue
 
+            self.debug(f'Processing field: {field.name}')
             t = types[field.name]
             column_args = [field.name]
             column_kwargs = {}
@@ -138,10 +145,6 @@ class MapEntities(ffd.HasMemoryCache, ffd.LoggerAware):
 
                 entities = [entity.__name__, relationships[field.name]['target'].__name__]
                 entities.sort()
-                if entities[1] == entity.__name__:
-                    self.debug('Defaulting to alphabetical ordering. Skipping.')
-                    continue
-
                 column_args[0] = column_args[0] + '_id'
                 column_args.append(UUID(as_uuid=True))
                 self.debug(f"Setting {o2o_owner.format(relationships[field.name]['target'].__name__)} to True")
@@ -152,42 +155,63 @@ class MapEntities(ffd.HasMemoryCache, ffd.LoggerAware):
                 )
 
             elif is_type_hint(t) and get_origin(t) is list:
-                self._map_entity(get_args(t)[0])
-                if relationships[field.name]['target_property'] is not None and \
-                        relationships[field.name]['other_side'] == 'many':
-                    names = [table_name, self._fqtn(relationships[field.name]['target']).split('.')[-1]]
-                    names.sort()
+                list_args = get_args(t)
 
-                    if names[0] == table_name:
-                        left_col = relationships[field.name]["target"].id_name()
-                        right_col = entity.id_name()
-                        left_table = names[0]
-                        right_table = names[1]
-                    else:
-                        left_col = entity.id_name()
-                        right_col = relationships[field.name]["target"].id_name()
-                        left_table = names[1]
-                        right_table = names[0]
+                if inspect.isclass(list_args[0]) and issubclass(list_args[0], ffd.Entity):
+                    self._map_entity(list_args[0])
+                    if relationships[field.name]['target_property'] is not None and \
+                            relationships[field.name]['other_side'] == 'many':
+                        names = [table_name, self._fqtn(relationships[field.name]['target']).split('.')[-1]]
+                        names.sort()
 
-                    join_tables[field.name] = Table(
-                        f'{names[0]}_{names[1]}',
-                        self._metadata,
-                        Column(
-                            inflection.underscore(entity.__name__), UUID(as_uuid=True), ForeignKey(
-                                f'{schema}.{left_table}.{left_col}'
+                        if names[0] == table_name:
+                            left_table = names[0]
+                            left_col = relationships[field.name]["target"].id_name()
+                            left_type = UUID(as_uuid=True) if self._has_uuid(entity, entity.id_field()) else Text
+                            right_table = names[1]
+                            right_col = entity.id_name()
+                            right_type = UUID(as_uuid=True) if self._has_uuid(
+                                relationships[field.name]["target"],
+                                relationships[field.name]["target"].id_field()
+                            ) else Text
+                        else:
+                            left_table = names[1]
+                            left_col = entity.id_name()
+                            left_type = UUID(as_uuid=True) if self._has_uuid(entity, entity.id_field()) else Text
+                            right_table = names[0]
+                            right_col = relationships[field.name]["target"].id_name()
+                            right_type = UUID(as_uuid=True) if self._has_uuid(
+                                    relationships[field.name]["target"],
+                                    relationships[field.name]["target"].id_field()
+                                ) else Text
+
+                        join_table_name = f'{names[0]}_{names[1]}'
+                        if join_table_name not in self._join_tables:
+                            self._join_tables[join_table_name] = Table(
+                                join_table_name,
+                                self._metadata,
+                                Column(
+                                    inflection.underscore(entity.__name__), left_type, ForeignKey(
+                                        f'{schema}.{left_table}.{left_col}'
+                                    )
+                                ),
+                                Column(
+                                    inflection.underscore(relationships[field.name]['target'].__name__), right_type,
+                                    ForeignKey(
+                                        f'{schema}.{right_table}.{right_col}'
+                                    )
+                                ),
+                                extend_existing=True,
+                                schema=schema
                             )
-                        ),
-                        Column(
-                            inflection.underscore(relationships[field.name]['target'].__name__), UUID(as_uuid=True),
-                            ForeignKey(
-                                f'{schema}.{right_table}.{right_col}'
-                            )
-                        ),
-                        extend_existing=True,
-                        schema=schema
-                    )
-                self.debug(f'property {field.name} is a list... not adding any columns')
-                continue
+                        join_tables[field.name] = self._join_tables[join_table_name]
+                    # elif relationships[field.name]['other_side'] in ('one', None):
+                    #     print(f"FUCK: {entity.__name__}")
+                    #     pprint(relationships[field.name])
+                    self.debug(f'property {field.name} is a list... not adding any columns')
+                    continue
+                else:
+                    column_args.append(ARRAY(TYPE_MAPPINGS[list_args[0]]()))
 
             elif is_type_hint(t) and get_origin(t) is dict:
                 a = get_args(t)
@@ -195,6 +219,9 @@ class MapEntities(ffd.HasMemoryCache, ffd.LoggerAware):
                     continue
                 else:
                     column_args.append(JSONB)
+
+            elif (inspect.isclass(t) and issubclass(t, ffd.ValueObject)) or t is dict:
+                column_args.append(JSONB)
 
             elif t is str:
                 self.debug(f'{field.name} is a string')
@@ -292,6 +319,14 @@ class MapEntities(ffd.HasMemoryCache, ffd.LoggerAware):
         setattr(entity, '__mapper__', mapper(entity, table, properties=properties))
         setattr(entity, '__table__', table)
         self._stack.pop()
+
+    def _has_uuid(self, entity: Type[ffd.Entity], field):
+        if get_type_hints(entity)[field.name] is uuid.UUID:
+            return True
+        if get_type_hints(entity)[field.name] is str and field.metadata.get('length', 0) == 36:
+            return True
+
+        return False
 
     @staticmethod
     def _add_indexes(args: list, indexes: dict, context: str, table: str):

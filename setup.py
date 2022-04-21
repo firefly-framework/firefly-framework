@@ -37,6 +37,7 @@ setuptools.setup(
         'dynamodb-json>=1.3',
         'inflection>=0.3.1',
         'marshmallow>=3.15.0',
+        'marshmallow-dataclass>=8.5.4',
         'marshmallow-sqlalchemy>=0.28.0',
         'multipart>=0.2.3',
         'psutil>=5.8.0',

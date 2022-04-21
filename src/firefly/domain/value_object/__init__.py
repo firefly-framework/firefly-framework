@@ -19,8 +19,10 @@ from datetime import datetime, date
 from typing import List, Union, Dict
 from typing import get_origin, get_args
 
+import firefly.domain as ffd
 import firefly.domain.error as errors
 import inflection
+import marshmallow_dataclass
 from firefly.domain.entity.validation import IsValidEmail, HasLength, MatchesPattern, IsValidUrl, IsLessThanOrEqualTo, \
     IsLessThan, IsGreaterThanOrEqualTo, IsGreaterThan, IsMultipleOf, HasMaxLength, HasMinLength, parse
 from firefly.domain.meta.build_argument_list import build_argument_list
@@ -28,6 +30,7 @@ from firefly.domain.meta.entity_meta import EntityMeta
 from firefly.domain.utils import is_type_hint
 from marshmallow import Schema, fields as m_fields, ValidationError, EXCLUDE
 from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
+from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy.orm import Session
 
 from .event_buffer import EventBuffer
@@ -348,7 +351,10 @@ class ValueObject(metaclass=EntityMeta):
             for k in list(data.keys()).copy():
                 if k.startswith('_'):
                     del data[k]
-            return cls.schema().load(data, session=cls._session, unknown=EXCLUDE, partial=True)
+            try:
+                return cls.schema().load(data, session=cls._session, unknown=EXCLUDE, partial=True)
+            except TypeError:
+                return cls.schema().load(data, unknown=EXCLUDE, partial=True)
         except ValidationError as e:
             missing = list(filter(lambda f: not f.startswith('_'), e.args[0].keys()))
             if len(missing) > 0:
@@ -358,19 +364,21 @@ class ValueObject(metaclass=EntityMeta):
             raise e
 
     @classmethod
-    def schema(cls, stack: list = None) -> Schema:
-        stack = stack or []
+    def schema(cls) -> Schema:
         if not isinstance(cls._cache, dict):
             cls._cache = {}
 
         if cls not in cls._cache:
-            class FieldContainer(SQLAlchemyAutoSchema):
-                class Meta:
-                    model = cls
-                    include_relationships = True
-                    load_instance = True
+            if issubclass(cls, ffd.Entity):
+                class FieldContainer(SQLAlchemyAutoSchema):
+                    class Meta:
+                        model = cls
+                        include_relationships = True
+                        load_instance = True
 
-            cls._cache[cls] = FieldContainer()
+                cls._cache[cls] = FieldContainer()
+            else:
+                cls._cache[cls] = marshmallow_dataclass.class_schema(cls)()
 
         return cls._cache[cls]
 
@@ -378,6 +386,12 @@ class ValueObject(metaclass=EntityMeta):
         while True:
             try:
                 return self.__repr__()
+            except InvalidRequestError:
+                ret = self.__class__.__name__ + '('
+                props = []
+                for f in fields(self):
+                    props.append(f"{f.name}={getattr(self, f.name)}")
+                return f"{self.__class__.__name__}({', '.join(props)})"
             except AttributeError as e:
                 if 'object has no attribute' in str(e):
                     attr = str(e).split(' ')[-1].strip("'")

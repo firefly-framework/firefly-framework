@@ -45,6 +45,11 @@ class Favorite(ff.Entity):
     name: str = ff.required()
 
 
+class Salary(ff.ValueObject):
+    amount: float = ff.required()
+    unit: str = ff.optional(default='USD')
+
+
 @ff.rest.crud()
 class User(ff.AggregateRoot):
     id: UUID = ff.id_()
@@ -53,4 +58,5 @@ class User(ff.AggregateRoot):
     settings: Settings = ff.required()
     profile: Profile = ff.required()
     addresses: List[Address] = ff.list_()
+    current_salary: Salary = ff.optional()
     # favorites: Dict[UUID, Favorite] = ff.dict_()

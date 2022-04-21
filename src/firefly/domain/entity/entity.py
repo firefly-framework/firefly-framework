@@ -73,6 +73,15 @@ class Entity(ContextAware, ValueObject):
         return ret[0] if len(ret) == 1 else ret
 
     @classmethod
+    def id_field(cls):
+        if not is_dataclass(cls):
+            raise TypeError('Entity::id_name() called on a non-dataclass entity')
+
+        for field_ in fields(cls):
+            if 'id' in field_.metadata:
+                return field_
+
+    @classmethod
     def match_id_from_argument_list(cls, args: dict):
         snake = f'{inflection.underscore(cls.__name__)}_id'
         if snake in args:

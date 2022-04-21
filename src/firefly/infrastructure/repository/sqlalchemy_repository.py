@@ -16,23 +16,34 @@ from __future__ import annotations
 
 import inspect
 from dataclasses import fields
+from datetime import datetime
 from typing import List, Callable, Union, Tuple, Optional, get_type_hints
 from uuid import UUID
 
 import firefly.domain as ffd
 import inflection
 from firefly.domain.repository.repository import T, Repository
+from firefly.domain.repository.search_criteria import Attr, AttributeString
 from sqlalchemy import MetaData, text, String
 from sqlalchemy.engine import Engine
-from sqlalchemy.orm import Session
+from sqlalchemy.exc import InvalidRequestError, NoResultFound
+from sqlalchemy.orm import Session, Query
 from sqlalchemy.orm.exc import ObjectDeletedError
 
 DEFAULT_LIMIT = 999999999999999999
 
 
+class MISSING:
+    pass
+
+
+missing = MISSING()
+
+
 class SqlalchemyRepository(Repository[T]):
     _map_entities: ffd.MapEntities = None
     _parse_relationships: ffd.ParseRelationships = None
+    _convert_criteria: ffd.ConvertCriteriaToSqlalchemy = None
     _metadata: MetaData = None
     _session: Session = None
     _engine: Engine = None
@@ -62,7 +73,12 @@ class SqlalchemyRepository(Repository[T]):
                 raise TypeError(f"Can't persist {entity.__class__.__name__}, missing {len(missing)} "
                                 f"required argument(s): {', '.join(missing)}")
 
-        list(map(lambda ee: self._session.add(ee), entities))
+        for ee in entities:
+            if hasattr(ee, 'created_on') and ee.created_on is None:
+                ee.created_on = datetime.now()
+            if hasattr(ee, 'updated_on'):
+                ee.updated_on = datetime.now()
+            self._session.add(ee)
 
     def remove(self, x: Union[T, List[T], Tuple[T], Callable, ffd.BinaryOp], **kwargs):
         # TODO handle case when x is SearchCriteria
@@ -77,22 +93,24 @@ class SqlalchemyRepository(Repository[T]):
             except ObjectDeletedError:
                 pass
             finally:
-                self._session.delete(x)
+                if hasattr(x, 'deleted_on'):
+                    x.deleted_on = datetime.now()
+                else:
+                    self._session.delete(x)
 
     def find(self, x: Union[str, UUID, Callable, ffd.SearchCriteria], **kwargs) -> T:
-        ret = None
         if isinstance(x, (str, UUID)):
-            ret = self._session.query(self._entity_type).get(x)
+            return self._session.query(self._entity_type).get(x)
         else:
-            if not isinstance(x, ffd.SearchCriteria):
-                x = self._get_search_criteria(x)
-
-            p = String().literal_processor(self._engine.dialect)
-            results = self._session.query(self._entity_type).filter(text(x.to_sql(processor=p))).all()
-            if len(results) > 0:
-                ret = results[0]
-
-        return ret
+            query = self._convert_criteria(
+                self._entity_type,
+                x if isinstance(x, ffd.SearchCriteria) else self._get_search_criteria(x),
+                self._session.query(self._entity_type)
+            )
+            try:
+                return query.one()
+            except NoResultFound as e:
+                raise ffd.NoResultFound() from e
 
     def filter(self, x: Union[Callable, ffd.BinaryOp], **kwargs) -> SqlalchemyRepository:
         self._query_details.update(kwargs)
@@ -100,14 +118,16 @@ class SqlalchemyRepository(Repository[T]):
 
         return self.copy()
 
-    def _do_filter(self, criteria: Union[Callable, ffd.BinaryOp], limit: int = None, offset: int = None,
-                   raw: bool = False, sort: tuple = None) -> List[T]:
+    def _do_filter(self, criteria: Union[Callable, ffd.BinaryOp] = None, limit: int = None, offset: int = None,
+                   raw: bool = False, sort: tuple = None, count: bool = False) -> List[T]:
+
+        query = self._session.query(self._entity_type)
         if criteria is not None:
-            criteria = self._get_search_criteria(criteria) if not isinstance(criteria, ffd.BinaryOp) else criteria
-            p = String().literal_processor(self._engine.dialect)
-            query = self._session.query(self._entity_type).filter(text(criteria.to_sql(processor=p)))
-        else:
-            query = self._session.query(self._entity_type)
+            query = self._convert_criteria(
+                self._entity_type,
+                self._get_search_criteria(criteria) if not isinstance(criteria, ffd.BinaryOp) else criteria,
+                query
+            )
 
         if limit is not None:
             query = query.limit(limit)
@@ -123,7 +143,7 @@ class SqlalchemyRepository(Repository[T]):
                 c = getattr(self._entity_type, field_)
                 query = query.order_by(getattr(c, direction)())
 
-        return query.all()
+        return query.all() if count is False else query.count()
 
     def sort(self, cb: Optional[Union[Callable, Tuple[Union[str, Tuple[str, bool]]]]] = None, **kwargs):
         if cb is None and 'key' in kwargs:
@@ -170,7 +190,7 @@ class SqlalchemyRepository(Repository[T]):
         params = self._query_details.copy()
         if 'criteria' in params and not isinstance(params['criteria'], ffd.BinaryOp):
             params['criteria'] = self._get_search_criteria(params['criteria'])
-        return self.filter(self._entity_type, count=True, **params)
+        return self._do_filter(count=True, **params)
 
     def __getitem__(self, item):
         if isinstance(item, slice):

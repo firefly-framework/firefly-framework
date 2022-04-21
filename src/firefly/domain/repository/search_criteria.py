@@ -110,10 +110,10 @@ class Attr:
             raise errors.InvalidOperand(f"Use of '{item}' is not currently supported.")
 
     def is_none(self):
-        return BinaryOp(self.attr, 'is', 'null')
+        return BinaryOp(self.attr, 'is', None)
 
     def is_not_none(self):
-        return BinaryOp(self.attr, 'is not', 'null')
+        return BinaryOp(self.attr, 'is not', None)
 
     def is_false(self):
         return BinaryOp(self.attr, 'is', False)
@@ -148,7 +148,7 @@ class Attr:
         return self.attr, True
 
     def __eq__(self, other):
-        return BinaryOp(self.attr, '==', other)
+        return BinaryOp(self.attr, '=', other)
 
     def __ne__(self, other):
         return BinaryOp(self.attr, '!=', other)
@@ -267,7 +267,7 @@ class SearchCriteria:
         else:
             rhv = bop.rhv
 
-        if bop.op == '==':
+        if bop.op == '=':
             return lhv == rhv
         if bop.op == '!=':
             return lhv != rhv
@@ -398,7 +398,7 @@ class SearchCriteria:
             ret_op = 'like'
             rhv = f"CONCAT('%', {rhv})"
 
-        return f'({lhv} {ret_op.replace("==", "=")} {rhv})', params, counter
+        return f'({lhv} {ret_op} {rhv})', params, counter
 
     @staticmethod
     def _process_op(v, params: dict, counter: int, prefix: str = None):
@@ -431,14 +431,14 @@ class SearchCriteria:
     def __repr__(self):
         lhv = repr(self.lhv)
         rhv = repr(self.rhv)
-        if lhv == '1' and rhv == '1' and self.op == '==':
+        if lhv == '1' and rhv == '1' and self.op == '=':
             return T
         if lhv == T and rhv != T:
             return rhv
         if rhv == T and lhv != T:
             return lhv
 
-        return f'({self.lhv} {self.op} {self.rhv})'.replace('==', '=')
+        return f'({self.lhv} {self.op} {self.rhv})'
 
     def __eq__(self, other):
         return isinstance(other, SearchCriteria) and self.to_dict() == other.to_dict()

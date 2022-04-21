@@ -64,6 +64,8 @@ def http_event(kernel, service, **kwargs):
     except (JSONDecodeError, ffd.InvalidArgument):
         body = kwargs
 
+    if request.query_params:
+        body.update(dict(request.query_params))
     response = service(**ffd.build_argument_list(body, service))
 
     if isinstance(response, ffd.ValueObject):

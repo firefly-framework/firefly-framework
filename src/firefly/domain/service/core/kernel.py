@@ -54,7 +54,7 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
 
     def __new__(cls, *args, **kwargs):
         if not cls.__instance:
-            cls.__instance = super(Kernel, cls).__new__(cls, *args, **kwargs)
+            cls.__instance = super(Kernel, cls).__new__(cls)
         return cls.__instance
 
     def __init__(self):
@@ -91,6 +91,9 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
 
     def user_token(self):
         current_request: Request = self.current_request()
+        if current_request is None:
+            return None, None
+
         token = None
         for k, v in current_request.headers.items():
             if k.lower() == 'authorization':
@@ -298,9 +301,11 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
     def _add_domain_object(self, k: str, v: type, context: str):
         if issubclass(v, ffd.Entity) and v is not ffd.Entity and context != 'firefly':
             v._logger = self.logger
-            self._entities.append(v)
-            if issubclass(v, ffd.AggregateRoot) and v is not ffd.AggregateRoot:
-                self._aggregates.append(v)
+            v.set_class_context(self._context)
+            if context == self._context and v not in self._entities:
+                self._entities.append(v)
+                if issubclass(v, ffd.AggregateRoot) and v is not ffd.AggregateRoot:
+                    self._aggregates.append(v)
         elif issubclass(v, ffd.ValueObject):
             v._logger = self.logger
             v._session = self.sqlalchemy_session

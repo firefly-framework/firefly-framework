@@ -16,7 +16,7 @@ import os
 import pytest
 
 os.environ['FF_ENVIRONMENT'] = 'test'
-# os.environ['DEBUG'] = '1'
+os.environ['DEBUG'] = '1'
 os.environ['CONTEXT'] = 'todo'
 os.environ['DB_NAME'] = 'firefly'
 os.environ['DB_USER'] = 'firefly'

@@ -35,4 +35,13 @@ def test_basic_associations():
         ]
     )
 
-    assert user.to_dict() == {'id': u_id, 'todo_lists': [], 'name': 'Bob Loblaw', 'profile': {'id': p_id, 'title': 'Lawyer', 'user': u_id}, 'addresses': [{'number': 1234, 'id': a_id1, 'residents': [u_id], 'street': 'Main'}, {'number': 5555, 'id': a_id2, 'residents': [u_id], 'street': 'Second'}], 'settings': None}
+    assert user.to_dict() == {'id': u_id, 'todo_lists': [], 'name': 'Bob Loblaw', 'profile': {'id': p_id, 'title': 'Lawyer', 'user': u_id}, 'addresses': [{'number': 1234, 'id': a_id1, 'residents': [u_id], 'street': 'Main'}, {'number': 5555, 'id': a_id2, 'residents': [u_id], 'street': 'Second'}], 'current_salary': None, 'settings': None}
+
+
+def test_value_object():
+    salary = todo.Salary.from_dict({'amount': 25_000})
+    assert isinstance(salary, todo.Salary)
+
+    d = salary.to_dict()
+    assert d['amount'] == 25000.0
+    assert d['unit'] == 'USD'

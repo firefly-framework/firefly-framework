@@ -57,7 +57,8 @@ def registry(kernel):
     yield kernel.registry
 
     kernel.sqlalchemy_session.rollback()
-    # kernel.sqlalchemy_metadata.drop_all()
+    for entity in kernel.get_aggregates():
+        kernel.registry(entity).reset()
 
 
 @pytest.fixture(scope="session")

@@ -17,9 +17,11 @@ from __future__ import annotations
 from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine
 from sqlalchemy.pool import NullPool
+import firefly.domain as ffd
 
 
 class EngineFactory:
+    _serializer: ffd.Serializer = None
     _db_name: str = None
     _db_user: str = None
     _db_password: str = None
@@ -47,7 +49,13 @@ class EngineFactory:
                 poolclass=NullPool
             )
 
-        return create_engine(self.get_connection_string(), echo=echo, poolclass=NullPool)
+        return create_engine(
+            self.get_connection_string(),
+            echo=echo,
+            poolclass=NullPool,
+            json_serializer=self._serializer.serialize,
+            json_deserializer=self._serializer.deserialize
+        )
 
     def get_connection_string(self):
         if self._db_type == 'sqlite':

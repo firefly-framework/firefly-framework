@@ -57,11 +57,11 @@ class MapEntities(ffd.HasMemoryCache, ffd.LoggerAware):
 
     def __call__(self, entities: Optional[List[Type[ffd.Entity]]] = None):
         self._join_tables = {}
+        self._stack = []
 
         if self._engine is None:
             return
 
-        self._stack = []
         if entities is None:
             entities = self._kernel.get_entities()
 
@@ -71,6 +71,10 @@ class MapEntities(ffd.HasMemoryCache, ffd.LoggerAware):
         self._generated_schemas = []
         self._add_relationship_metadata(entities)
         list(map(lambda e: self._map_entity(e), entities))
+
+    def reset(self):
+        self._stack = []
+        self._join_tables = {}
 
     def _add_relationship_metadata(self, entities: List[Type[ffd.Entity]]):
         for entity in entities:
@@ -145,6 +149,10 @@ class MapEntities(ffd.HasMemoryCache, ffd.LoggerAware):
 
                 entities = [entity.__name__, relationships[field.name]['target'].__name__]
                 entities.sort()
+                if entities[1] == entity.__name__ and relationships[field.name]['other_side'] is not None:
+                    self.debug('Defaulting to alphabetical ordering. Skipping.')
+                    continue
+
                 column_args[0] = column_args[0] + '_id'
                 column_args.append(UUID(as_uuid=True))
                 self.debug(f"Setting {o2o_owner.format(relationships[field.name]['target'].__name__)} to True")
@@ -205,9 +213,7 @@ class MapEntities(ffd.HasMemoryCache, ffd.LoggerAware):
                                 schema=schema
                             )
                         join_tables[field.name] = self._join_tables[join_table_name]
-                    # elif relationships[field.name]['other_side'] in ('one', None):
-                    #     print(f"FUCK: {entity.__name__}")
-                    #     pprint(relationships[field.name])
+
                     self.debug(f'property {field.name} is a list... not adding any columns')
                     continue
                 else:

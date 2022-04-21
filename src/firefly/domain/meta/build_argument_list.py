@@ -245,7 +245,7 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], 
                 else:
                     try:
                         args[name] = type_(params[name])
-                    except OverflowError:
+                    except (OverflowError, AttributeError):
                         args[name] = params[name]
             except TypeError:
                 args[name] = params[name]

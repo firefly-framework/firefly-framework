@@ -160,7 +160,7 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
     def register_query(self, cls):
         self._query_handlers[str(getattr(cls, const.QUERY))] = self._build_service(cls)
 
-    def current_request(self):
+    def current_request(self) -> Request:
         return self.get_application().app.current_request
 
     def _initialize_entity_crud_operations(self):

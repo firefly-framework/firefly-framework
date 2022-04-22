@@ -26,7 +26,7 @@ from firefly.domain.repository.repository import T, Repository
 from firefly.domain.repository.search_criteria import Attr, AttributeString
 from sqlalchemy import MetaData, text, String
 from sqlalchemy.engine import Engine
-from sqlalchemy.exc import InvalidRequestError, NoResultFound
+from sqlalchemy.exc import InvalidRequestError, NoResultFound, MultipleResultsFound
 from sqlalchemy.orm import Session, Query
 from sqlalchemy.orm.exc import ObjectDeletedError
 
@@ -111,6 +111,15 @@ class SqlalchemyRepository(Repository[T]):
                 return query.one()
             except NoResultFound as e:
                 raise ffd.NoResultFound() from e
+            except MultipleResultsFound as e:
+                raise ffd.MultipleResultsFound() from e
+
+    def one(self, x: Union[str, UUID, Callable, ffd.SearchCriteria], **kwargs) -> T:
+        results = list(self.filter(x, **kwargs))
+        if len(results) == 0:
+            raise ffd.NoResultFound()
+
+        return results.pop()
 
     def filter(self, x: Union[Callable, ffd.BinaryOp], **kwargs) -> SqlalchemyRepository:
         self._query_details.update(kwargs)

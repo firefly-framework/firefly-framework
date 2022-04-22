@@ -324,7 +324,7 @@ class AwsAgent(Agent, ResourceNameGenerator, ff.LoggerAware):
                         self.alarm_subscription_name(self._context),
                         Protocol='email',
                         Endpoint=address,
-                        TopicArn=self._alert_topic_arn(),
+                        TopicArn=self.alert_topic_arn(self._context),
                         DependsOn=[alerts_topic]
                     ))
 

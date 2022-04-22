@@ -48,6 +48,10 @@ class Repository(Generic[T], GenericBase, LoggerAware, ABC):
         pass
 
     @abstractmethod
+    def one(self, x: Union[str, Callable, ffd.BinaryOp], **kwargs) -> Optional[T]:
+        pass
+
+    @abstractmethod
     def filter(self, x: Union[Callable, ffd.BinaryOp], **kwargs) -> Repository:
         pass
 

@@ -93,17 +93,17 @@ class MapEntities(ffd.HasMemoryCache, ffd.LoggerAware):
         self._stack.append(entity)
 
         schema, table_name = self._fqtn(entity).split('.')
-        try:
-            if entity not in self._generated_schemas:
-                self._generated_schemas.append(entity)
-                self._engine.execute(CreateSchema(schema))
-        except ProgrammingError as e:
-            if self._db_type == 'sqlite':
-                schema = None
-            elif 'already exists' not in str(e):
-                raise e
-        except OperationalError:
-            pass
+        # try:
+        #     if entity not in self._generated_schemas:
+        #         self._generated_schemas.append(entity)
+        #         self._engine.execute(CreateSchema(schema))
+        # except ProgrammingError as e:
+        #     if self._db_type == 'sqlite':
+        #         schema = None
+        #     elif 'already exists' not in str(e):
+        #         raise e
+        # except OperationalError:
+        #     pass
         args = [table_name, self._metadata]
         kwargs = {
             'schema': schema,

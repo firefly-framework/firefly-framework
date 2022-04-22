@@ -41,7 +41,7 @@ setuptools.setup(
         'marshmallow-sqlalchemy>=0.28.0',
         'multipart>=0.2.3',
         'psutil>=5.8.0',
-        'psycopg2>=2.9.3',
+        'psycopg2-binary>=2.9.3',
         'python-dateutil>=2.8.1',
         'python-dotenv>=0.10.3',
         'python_jwt>=3.3.2',

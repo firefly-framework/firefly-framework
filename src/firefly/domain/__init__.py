@@ -25,6 +25,8 @@ from firefly.domain.entity.validation.validators import HasLength, HasMaxLength,
     Validation, IsNumeric, IsValidUrl, IsValidEmail, IsInt, IsType, IsFloat, IsOneOf, IsLessThan, IsLessThanOrEqualTo, \
     IsGreaterThanOrEqualTo,IsGreaterThan, IsDatetime, IsMultipleOf, Matches, MatchesPattern
 from firefly.domain.service.entity.convert_criteria_to_sqlalchemy import ConvertCriteriaToSqlalchemy
+from firefly.domain.entity.messaging.envelope import Envelope
+from firefly.domain.service.multithreading.batch_process import BatchProcess
 
 from firefly.domain.entity.core.endpoint import Endpoint
 from firefly.domain.entity.core.http_endpoint import HttpEndpoint
@@ -41,7 +43,7 @@ from firefly.domain.service.logging.logger import Logger, LoggerAware
 from firefly.domain.entity.core.configuration import Configuration
 from firefly.domain.factory.configuration_factory import ConfigurationFactory
 from firefly.domain.service.messaging.message_factory import MessageFactory
-from firefly.domain.service.cache import Cache
+from firefly.domain.service.cache.cache import Cache
 from firefly.domain.entity.core.mutex import Mutex
 from firefly.domain.service.messaging.mutex import RateLimiter
 from firefly.domain.service.files.file_system import FileSystem, File
@@ -51,9 +53,7 @@ from firefly.domain.meta.get_arguments import get_arguments
 from firefly.domain.service.http.rest_router import RestRouter
 
 from firefly.domain.service.messaging.message_transport import MessageTransport
-from firefly.domain.service.core.domain_service import DomainService
 from firefly.domain.service.core.application_service import ApplicationService
-from firefly.domain.service.entity.entity_registry import EntityRegistry
 
 from firefly.domain.service.core.kernel import Kernel
 from firefly.domain.event.framework_event import FrameworkEvent
@@ -65,7 +65,7 @@ from firefly.domain.repository.registry import Registry
 
 from firefly.domain.service.core.agent import Agent
 from firefly.domain.service.annotation.configuration_annotation import ConfigurationAnnotation
-from firefly.domain.service.annotation.agent import agent
+from firefly.domain.service.cache.cache import Cache
 from firefly.domain.service.annotation.command_handler import command_handler
 from firefly.domain.service.annotation.query_handler import query_handler
 from firefly.domain.service.annotation.on import on

@@ -16,9 +16,6 @@ import argparse
 import os
 
 import inflection
-from firefly.domain.meta.build_argument_list import build_argument_list
-from firefly.domain.entity.messaging.command import Command
-from firefly.domain.entity.messaging.query import Query
 from firefly.domain.entity.core.cli_app import CliApp
 from firefly.domain.entity.core.cli_argument import CliArgument
 from firefly.domain.service.command_line.cli_app_executor import CliAppExecutor

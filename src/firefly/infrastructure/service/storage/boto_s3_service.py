@@ -17,13 +17,13 @@ from __future__ import annotations
 import gzip
 import uuid
 
-import firefly as ff
-import firefly_aws.domain as awsd
-from botocore.exceptions import ClientError
+import firefly.domain as ffd
+
+from .s3_service import S3Service
 
 
-class BotoS3Service(awsd.S3Service, ff.LoggerAware):
-    _configuration: ff.Configuration = None
+class BotoS3Service(S3Service, ffd.LoggerAware):
+    _configuration: ffd.Configuration = None
     _s3_client = None
     _bucket: str = None
 

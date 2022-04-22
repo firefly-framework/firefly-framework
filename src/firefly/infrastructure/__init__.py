@@ -23,6 +23,7 @@ from firefly.infrastructure.service.storage.load_payload import LoadPayload
 from firefly.infrastructure.service.storage.prepare_s3_download import PrepareS3Download
 from firefly.infrastructure.service.storage.s3_service import S3Service
 from firefly.infrastructure.service.storage.store_large_payloads_in_s3 import StoreLargePayloadsInS3
+from firefly.infrastructure.service.storage.boto_s3_service import BotoS3Service
 from firefly.infrastructure.repository.sqlalchemy.engine_factory import EngineFactory
 from firefly.infrastructure.repository.sqlalchemy_repository_factory import SqlalchemyRepositoryFactory
 from firefly.infrastructure.repository.sqlalchemy_repository import SqlalchemyRepository
@@ -32,3 +33,5 @@ from firefly.infrastructure.middleware.begin_transaction import BeginTransaction
 from firefly.infrastructure.service.cli.argparse_executor import ArgparseExecutor
 from firefly.infrastructure.repository.migrate_database import MigrateDatabase
 from firefly.infrastructure.service.http.routes_rest_router import RoutesRestRouter
+from firefly.infrastructure.middleware.handle_envelope import HandleEnvelope
+from firefly.infrastructure.service.files.s3_file_system import S3FileSystem

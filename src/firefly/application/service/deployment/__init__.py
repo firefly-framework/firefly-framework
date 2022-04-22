@@ -11,6 +11,3 @@
 #
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
-
-# from .deploy import Deploy
-# from .migrate_repositories import MigrateRepositories

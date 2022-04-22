@@ -1,22 +1,36 @@
+#  Copyright (c) 2019 JD Williams
+#
+#  This file is part of Firefly, a Python SOA framework built by JD Williams. Firefly is free software; you can
+#  redistribute it and/or modify it under the terms of the GNU General Public License as published by the
+#  Free Software Foundation; either version 3 of the License, or (at your option) any later version.
+#
+#  Firefly is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
+#  implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General
+#  Public License for more details. You should have received a copy of the GNU Lesser General Public
+#  License along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#  You should have received a copy of the GNU General Public License along with Firefly. If not, see
+#  <http://www.gnu.org/licenses/>.
+
 from __future__ import annotations
 
 from datetime import date, datetime
 from typing import Tuple, List
 
-import firefly as ff
+import firefly.domain as ffd
 from botocore.exceptions import ClientError
 
 
-class S3FileSystem(ff.FileSystem, ff.LoggerAware):
+class S3FileSystem(ffd.FileSystem, ffd.LoggerAware):
     _s3_client = None
     _bucket: str = None
 
-    def read(self, file_name: str) -> ff.File:
+    def read(self, file_name: str) -> ffd.File:
         bucket, file_name = self._parse_file_path(file_name)
         try:
             response = self._s3_client.get_object(Bucket=bucket, Key=file_name)
         except self._s3_client.exceptions.NoSuchKey:
-            raise ff.NoSuchFile()
+            raise ffd.NoSuchFile()
 
         content = response['Body'].read()
         try:
@@ -24,13 +38,13 @@ class S3FileSystem(ff.FileSystem, ff.LoggerAware):
         except UnicodeDecodeError:
             pass
 
-        return ff.File(
+        return ffd.File(
             name=file_name,
             content=content,
             content_type=response.get('ContentType', None)
         )
 
-    def write(self, file: ff.File, path: str = None):
+    def write(self, file: ffd.File, path: str = None):
         path = '/'.join([(path or '').rstrip('/'), file.name])
         bucket, file_name = self._parse_file_path(path)
         params = {}
@@ -63,7 +77,7 @@ class S3FileSystem(ff.FileSystem, ff.LoggerAware):
 
         return ret
 
-    def filter(self, path: str, fields: list, criteria: ff.BinaryOp):
+    def filter(self, path: str, fields: list, criteria: ffd.SearchCriteria):
         bucket, file_name = self._parse_file_path(path)
 
         sql = f"select {', '.join(fields)} from s3object s"

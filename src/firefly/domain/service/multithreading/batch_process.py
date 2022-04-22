@@ -30,8 +30,6 @@ from multiprocessing import Pipe
 from multiprocessing.context import Process
 from typing import Callable, Iterable
 
-from ..core.domain_service import DomainService
-
 
 def wrapper(cb):
     def _wrapper(*args):
@@ -46,7 +44,7 @@ def wrapper(cb):
     return _wrapper
 
 
-class BatchProcess(DomainService):
+class BatchProcess:
     def __call__(self, cb: Callable, args: Iterable, timeout: int = None):
         processes = []
         connections = []

@@ -11,7 +11,3 @@
 #
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
-
-# from .asyncio_message_transport import AsyncioMessageTransport
-# from .fake_message_transport import FakeMessageTransport
-# from .memory_mutex import MemoryMutex

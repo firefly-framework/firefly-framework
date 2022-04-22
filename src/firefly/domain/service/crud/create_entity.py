@@ -14,11 +14,9 @@
 
 from __future__ import annotations
 
-from dataclasses import fields
-from typing import TypeVar, Generic, Type, get_type_hints
+from typing import TypeVar, Generic, Type
 
 import firefly.domain as ffd
-from firefly.domain.utils import is_aggregate_reference, apply_aggregate
 
 from .crud_operation import CrudOperation
 from ..core.application_service import ApplicationService

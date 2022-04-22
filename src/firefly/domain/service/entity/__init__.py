@@ -11,7 +11,3 @@
 #
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
-
-# from .map_entities import *
-# from .parse_relationships import *
-# from .validator import *

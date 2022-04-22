@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from typing import Union, Any
+from typing import Any
 
 from ..entity import Entity, id_, dict_, required
 

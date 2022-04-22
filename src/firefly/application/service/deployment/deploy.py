@@ -14,8 +14,6 @@
 
 from __future__ import annotations
 
-import os
-
 import firefly.domain as ffd
 from firefly.infrastructure.service.aws_agent import AwsAgent
 

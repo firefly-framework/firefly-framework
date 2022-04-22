@@ -11,8 +11,3 @@
 #
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
-
-from .iaaa import *
-from .core import *
-from .deployment import *
-from .utilities import *

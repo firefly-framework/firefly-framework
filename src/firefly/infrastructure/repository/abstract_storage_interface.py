@@ -132,7 +132,7 @@ class AbstractStorageInterface(LoggerAware, ABC):
             elif ffd.is_type_hint(v):
                 origin = ffd.get_origin(v)
                 args = ffd.get_args(v)
-                if origin is List and issubclass(args[0], ffd.AggregateRoot):
+                if origin is list and issubclass(args[0], ffd.AggregateRoot):
                     relationships[k] = {
                         'field_name': k,
                         'target': args[0],

@@ -59,4 +59,5 @@ class User(ff.AggregateRoot):
     profile: Profile = ff.required()
     addresses: List[Address] = ff.list_()
     current_salary: Salary = ff.optional()
+    tags: List[str] = ff.list_()
     # favorites: Dict[UUID, Favorite] = ff.dict_()

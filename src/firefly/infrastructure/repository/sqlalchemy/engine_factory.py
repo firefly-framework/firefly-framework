@@ -46,7 +46,9 @@ class EngineFactory:
                 'sqlite:///:memory:',
                 creator=lambda: sqlite3.connect('file::memory:?cache=shared', uri=True),
                 echo=echo,
-                poolclass=NullPool
+                poolclass=NullPool,
+                json_serializer=self._serializer.serialize,
+                json_deserializer=self._serializer.deserialize
             )
 
         return create_engine(

@@ -28,6 +28,13 @@ from firefly.domain.service.core.application import Application
 import firefly.domain.error as errors
 
 
+class TestAuthorizer:
+    def __call__(self, auth_request: AuthRequest):
+        if auth_request.token == 'allow':
+            return AuthResponse(['*'], principal_id='')
+        return AuthResponse([], principal_id='none')
+
+
 class FireflyAuthorizer:
     _kernel: ffd.Kernel = None
 
@@ -67,6 +74,9 @@ def http_event(kernel, service, **kwargs):
     if request.query_params:
         body.update(dict(request.query_params))
     response = service(**ffd.build_argument_list(body, service))
+
+    if isinstance(response, ffd.Envelope):
+        response = response.unwrap()
 
     if isinstance(response, ffd.ValueObject):
         response = response.to_dict()
@@ -123,7 +133,7 @@ class ChaliceApplication(Application):
         if self.app.debug:
             self.app.log.setLevel(logging.DEBUG)
 
-        authorizer = FireflyAuthorizer(kernel)
+        authorizer = FireflyAuthorizer(kernel) if os.environ.get('FF_ENVIRONMENT') != 'test' else TestAuthorizer()
         authorizer.__name__ = 'firefly_authorizer'
         self.app.authorizer()(authorizer)
 

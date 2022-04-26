@@ -18,7 +18,6 @@ import importlib
 import inspect
 import logging
 import os
-from pprint import pprint
 from typing import Optional, Type, Callable, List, Dict
 
 import boto3
@@ -30,9 +29,10 @@ import python_jwt
 from chalice.app import Request
 from firefly.infrastructure.service.container import Container
 from firefly.infrastructure.service.core.chalice_application import ChaliceApplication
-from sqlalchemy import MetaData
+from sqlalchemy import MetaData, event
 from sqlalchemy.engine import Engine, Connection
 from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.sql.ddl import DDL
 
 
 class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
@@ -87,12 +87,30 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
         self._app.initialize(self)
         self.initialize_storage()
 
+        event.listen(
+            self.sqlalchemy_metadata,
+            'before_create',
+            DDL(f"CREATE SCHEMA IF NOT EXISTS {self._context}")
+        )
+
         return self
+
+    def user_sub(self):
+        if os.environ.get('TEST_USER_SUB'):
+            return os.environ.get('TEST_USER_SUB')
+
+        headers, claims = self.user_token()
+        if headers is not None:
+            return headers.get('sub')
 
     def user_token(self):
         current_request: Request = self.current_request()
         if current_request is None:
             return None, None
+
+        if os.environ.get('TEST_USER_TOKEN_HEADERS') and os.environ.get('TEST_USER_TOKEN_CLAIMS'):
+            return self.serializer.deserialize(os.environ.get('TEST_USER_TOKEN_HEADERS')), \
+                   self.serializer.deserialize(os.environ.get('TEST_USER_TOKEN_CLAIMS'))
 
         token = None
         for k, v in current_request.headers.items():
@@ -277,6 +295,7 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
 
     def _build_service(self, cls):
         if cls not in self._service_cache:
+            print(f"FUCK: {cls}")
             self._service_cache[cls] = self.build(cls)
         return self._service_cache[cls]
 

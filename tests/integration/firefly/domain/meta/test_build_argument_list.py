@@ -56,3 +56,12 @@ def test_aggregate_parameter():
     assert isinstance(user.profile, todo.Profile)
     assert user.profile.title == 'Lawyer'
     assert user.name == 'Bob Loblaw'
+
+
+def test_list_of_strings():
+    user = todo.User(**build_argument_list({
+        'name': 'Bob Loblaw',
+        'tags': ['a', 'b', 'c']
+    }, todo.User))
+
+    assert len(user.tags) == 3

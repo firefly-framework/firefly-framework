@@ -93,17 +93,6 @@ class MapEntities(ffd.HasMemoryCache, ffd.LoggerAware):
         self._stack.append(entity)
 
         schema, table_name = self._fqtn(entity).split('.')
-        # try:
-        #     if entity not in self._generated_schemas:
-        #         self._generated_schemas.append(entity)
-        #         self._engine.execute(CreateSchema(schema))
-        # except ProgrammingError as e:
-        #     if self._db_type == 'sqlite':
-        #         schema = None
-        #     elif 'already exists' not in str(e):
-        #         raise e
-        # except OperationalError:
-        #     pass
         args = [table_name, self._metadata]
         kwargs = {
             'schema': schema,
@@ -212,7 +201,7 @@ class MapEntities(ffd.HasMemoryCache, ffd.LoggerAware):
                                 extend_existing=True,
                                 schema=schema
                             )
-                        join_tables[field.name] = self._join_tables[join_table_name]
+                        join_tables[field.name] = join_table_name
 
                     self.debug(f'property {field.name} is a list... not adding any columns')
                     continue
@@ -271,12 +260,21 @@ class MapEntities(ffd.HasMemoryCache, ffd.LoggerAware):
                 if idx is True:
                     indexes[
                         f'idx_{entity.get_class_context()}_{inflection.tableize(entity.__name__)}_{field.name}'
-                    ] = field.name
+                    ] = {
+                        'field_name': field.name,
+                        'unique': field.metadata.get('unique', False),
+                    }
                 else:
                     if idx not in indexes:
-                        indexes[idx] = [field.name]
+                        indexes[idx] = [{
+                            'field_name': field.name,
+                            'unique': field.metadata.get('unique', False),
+                        }]
                     else:
-                        indexes[idx].append(field.name)
+                        indexes[idx].append({
+                            'field_name': field.name,
+                            'unique': field.metadata.get('unique', False),
+                        })
 
         if mappings is not None:
             for k, v in mappings.items():
@@ -318,10 +316,12 @@ class MapEntities(ffd.HasMemoryCache, ffd.LoggerAware):
 
             elif v['this_side'] == 'many':
                 if v['other_side'] == 'many':
-                    kwargs['secondary'] = join_tables[k]
+                    join_table_key = join_tables[k]
+                    kwargs['secondary'] = self._join_tables[join_table_key]
                 self.debug(f'REL: ({entity.__name__}) {entity.__name__}.{k} = relationship({v["target"]}, {kwargs})')
                 properties[k] = relationship(v['target'], **kwargs)
 
+        setattr(entity, '__ff_relationships__', properties)
         setattr(entity, '__mapper__', mapper(entity, table, properties=properties))
         setattr(entity, '__table__', table)
         self._stack.pop()
@@ -338,13 +338,16 @@ class MapEntities(ffd.HasMemoryCache, ffd.LoggerAware):
     def _add_indexes(args: list, indexes: dict, context: str, table: str):
         for k, v in indexes.items():
             if str(k).startswith('idx_'):
-                args.append(Index(k, v))
+                args.append(Index(k, v['field_name'], unique=v['unique']))
             else:
                 idx_args = [f'idx_{context}_{table}']
+                unique = False
                 for column in v:
-                    idx_args[0] += f'_{column}'
-                    idx_args.append(column)
-                args.append(Index(*idx_args))
+                    idx_args[0] += f'_{column["field_name"]}'
+                    idx_args.append(column["field_name"])
+                    if column['unique']:
+                        unique = True
+                args.append(Index(*idx_args, unique=unique))
 
     @staticmethod
     def _fqtn(entity: Type[ffd.Entity]):

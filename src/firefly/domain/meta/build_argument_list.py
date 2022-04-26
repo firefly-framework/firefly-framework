@@ -52,7 +52,7 @@ def _handle_type_hint(params: typing.Any, t: type, key: str = None, required: bo
     origin = typing.get_origin(t)
     args = typing.get_args(t)
 
-    if origin is typing.List:
+    if origin is list:
         if key not in params:
             if required:
                 raise ffd.MissingArgument(f'Missing argument {key} for type {t}')
@@ -68,9 +68,12 @@ def _handle_type_hint(params: typing.Any, t: type, key: str = None, required: bo
                 if key is not None:
                     ret[key] = []
                     for v in params[key]:
-                        parameter = args[0].from_dict(v)
-                        if parameter is not None:
-                            ret[key].append(parameter)
+                        if not isinstance(v, dict):
+                            ret[key].append(v)
+                        else:
+                            parameter = args[0].from_dict(v)
+                            if parameter is not None:
+                                ret[key].append(parameter)
                     if len(ret[key]) == 0:
                         del ret[key]
                 else:

@@ -274,7 +274,7 @@ class ValueObject(metaclass=EntityMeta):
         if not is_type_hint(obj):
             return config
 
-        if get_origin(obj) is List:
+        if get_origin(obj) is list:
             config['type'] = 'array'
             args = get_args(obj)
             if inspect.isclass(args[0]) and issubclass(args[0], ValueObject):

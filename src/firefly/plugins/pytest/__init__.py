@@ -16,6 +16,8 @@ from __future__ import annotations
 
 import os
 
+from sqlalchemy.orm import Session, close_all_sessions
+
 import firefly as ff
 import firefly.infrastructure as ffi
 import pytest
@@ -36,6 +38,9 @@ def kernel(config) -> ff.Kernel:
     kernel: ff.Kernel = ff.Kernel().boot()
     kernel.register_object('message_transport', ChaliceMessageTransport)
 
+    kernel.sqlalchemy_metadata.drop_all(checkfirst=True)
+    kernel.sqlalchemy_metadata.create_all(checkfirst=True)
+
     return kernel
 
 
@@ -51,8 +56,8 @@ def system_bus(kernel):
 
 @pytest.fixture(scope="function")
 def registry(kernel):
-    kernel.sqlalchemy_metadata.drop_all()
-    kernel.sqlalchemy_metadata.create_all()
+    kernel.sqlalchemy_session.commit()
+    kernel.sqlalchemy_session.begin_nested()
 
     yield kernel.registry
 
@@ -69,3 +74,8 @@ def serializer(kernel):
 @pytest.fixture(scope="session")
 def map_entities(kernel):
     return kernel.map_entities
+
+
+@pytest.fixture(scope="session")
+def message_factory(kernel):
+    return kernel.message_factory

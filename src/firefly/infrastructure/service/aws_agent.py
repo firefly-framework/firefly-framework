@@ -728,17 +728,9 @@ logging.getLogger()
 kernel = ff.Kernel().boot()
 kernel.logger.set_level_to_debug()
 
-# app = kernel.get_application().app
-
 
 def app(event=None, context=None):
-    if isinstance(event, dict):
-        print(event)
-        event = kernel.translate_http_event(event)
-        print(event)
-    response = kernel.get_application().app(event, context)
-    print(response)
-    return response
+    return kernel.handle_invocation(event, context)
 """)
         os.chdir('./build/python-sources')
         with open('firefly.yml', 'w') as fp:

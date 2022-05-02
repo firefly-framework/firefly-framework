@@ -109,3 +109,7 @@ class NotFound(ApiError):
 
 class InvariantViolation(FrameworkError):
     pass
+
+
+class EmailExistsError(FrameworkError):
+    pass

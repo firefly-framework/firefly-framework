@@ -22,26 +22,26 @@ import firefly_test.todo.domain as domain
 
 
 class Settings(ff.Entity):
-    id: str = ff.id_()
+    id: UUID = ff.id_()
     user: User = ff.required()
     send_email: bool = ff.optional(default=True)
 
 
 class Profile(ff.AggregateRoot):
-    id: str = ff.id_()
+    id: UUID = ff.id_()
     user: User = ff.required()
     title: str = ff.optional()
 
 
 class Address(ff.AggregateRoot):
-    id: str = ff.id_()
+    id: UUID = ff.id_()
     street: str = ff.required()
     number: int = ff.required()
     residents: List[User] = ff.list_()
 
 
 class Favorite(ff.Entity):
-    id: str = ff.id_()
+    id: UUID = ff.id_()
     name: str = ff.required()
 
 

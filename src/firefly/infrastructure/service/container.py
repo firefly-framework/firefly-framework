@@ -21,49 +21,107 @@ from abc import ABC
 from typing import Tuple
 from unittest.mock import MagicMock
 
+import firefly.domain as ffd
+
+
+class ContainerProperty:
+    def __init__(self, constructor, container):
+        self._constructor = constructor
+        self._container = container
+
+    def __call__(self, _):
+        return self._constructor(self._container)
+
+
+class Constructor(ffd.ValueObject):
+    type: type = ffd.required()
+    name: str = ffd.optional()
+    constructor: typing.Any = ffd.optional()
+    instance: object = ffd.optional()
+
+    def __call__(self, container):
+        if self.instance is None:
+            try:
+                self.instance = self.constructor(container)
+            except TypeError as e:
+                raise TypeError(self.name) from e
+        return self.instance
+
+    def matches(self, type_: type = None, name: str = None):
+        if type_ is type:
+            return False
+
+        if inspect.isabstract(type_) and inspect.isclass(self.type) and issubclass(self.type, type_):
+            return True
+
+        if type_ is not None:
+            if self.type is type_:
+                return True
+
+        return name is not None and (name == self.name or name.lstrip('_') == self.name)
+
 
 class Container(ABC):
+    _static_dependencies = []
+
     def __init__(self):
-        self._cache = {}
-        self._annotations = None
-        self._unannotated = None
-        self._child_containers = []
+        self._stack = []
+        self._constructors = []
+
+        for dep in self.__class__._static_dependencies:
+            self.register_object(**dep)
 
     def __getattribute__(self, item: str):
         if item.startswith('_'):
             return object.__getattribute__(self, item)
 
-        if item in self._cache:
-            return self._cache[item]()
+        constructor = self._find_constructor(name=item)
+        if constructor is not None:
+            return constructor(self)
 
-        obj = object.__getattribute__(self, item)
+        return object.__getattribute__(self, item)
 
-        if inspect.ismethod(obj) and obj.__name__ != '<lambda>':
-            return obj
+    def reset(self):
+        self._stack = []
+        for constructor in self._constructors:
+            if constructor.name.startswith('sqlalchemy_'):
+                continue
+            constructor.instance = None
 
-        if not callable(obj):
-            raise AttributeError(f'Attribute {item} is not callable.')
+    @classmethod
+    def use(cls, name: str, type_: typing.Type = type, constructor: typing.Optional[typing.Callable] = None):
+        cls._static_dependencies.append({
+            'name': name,
+            'type_': type_,
+            'constructor': constructor,
+        })
 
-        if inspect.isclass(obj):
-            obj = self.build(obj)
-            self._cache[item] = lambda: obj
-        elif inspect.isfunction(obj) or inspect.ismethod(obj):
-            obj = obj()
-            if inspect.isfunction(obj):
-                self._cache[item] = obj
-            else:
-                self._cache[item] = lambda: obj
+    def register_object(self, name: str, type_: typing.Type = type,
+                        constructor: typing.Optional[typing.Callable] = None, force: bool = False):
+        if name.endswith('aware'):
+            return
+
+        c = self._find_constructor(type_, name)
+        if c is not None and force is False:
+            return
+
+        if constructor is None:
+            def constructor(s):
+                self.autowire(type_)
+                return type_()
+
+        if c is None:
+            self._constructors.append(Constructor(
+                name=name,
+                type=type_,
+                constructor=constructor
+            ))
         else:
-            self._cache[item] = lambda: obj
+            c.constructor = constructor
 
-        return self._cache[item]()
-
-    def _search_child_containers(self, item: str):
-        for container in self._child_containers:
-            if item in dir(container):
-                return getattr(container, item)
-
-        raise AttributeError(item)
+    def debug(self):
+        for constructor in self._constructors:
+            print(constructor)
 
     def build(self, class_: object, **kwargs):
         a = self.autowire(class_, kwargs)
@@ -81,202 +139,73 @@ class Container(ABC):
             if 'instantiate abstract class' not in str(e):
                 raise e
 
-    def autowire(self, class_, params: dict = None, with_mocks: bool = False):
-        if hasattr(class_, '__original_init'):
+    def autowire(self, class_, with_mocks: bool = False):
+        if class_ in self._stack:
             return class_
+        self._stack.append(class_)
 
-        if inspect.isclass(class_) and hasattr(class_, '__init__'):
-            class_ = self._wrap_constructor(class_, params, with_mocks)
-
-        ret = self._inject_properties(class_, with_mocks)
-
-        return ret
-
-    def register_container(self, container):
-        if container not in self._child_containers:
-            self._child_containers.append(container)
-        self._unannotated = None
-        for c in self._child_containers:
-            c._unannotated = None
-        return self
-
-    def match(self, name: str, type_):
-        t = self._find_by_type(self._get_annotations(), type_)
-
-        if len(t) == 1:
-            t = str(t[0])
-        elif len(t) == 0:
-            t = None
-        else:
-            x = None
-            for item in t:
-                if name == item or name.lstrip('_') == item:
-                    if getattr(self, item) is None:
-                        continue
-                    x = item
-                    break
-            t = x
-
-        # Found type in the container
-        if t is not None:
-            return getattr(self, t)
-
-        # Found object with same name in container
-        elif t is None and name in self._get_unannotated():
-            return getattr(self, name)
-
-    def get_registered_services(self):
-        ret = {}
-        annotations = typing.get_type_hints(type(self))
-        for k, v in self.__class__.__dict__.items():
-            if not str(k).startswith('_'):
-                ret[k] = annotations[k] if k in annotations else ''
-
-        return ret
-
-    def clear_annotation_cache(self):
-        self._annotations = None
-
-    def _wrap_constructor(self, class_, params, with_mocks):
-        init = class_.__init__
-
-        def init_wrapper(*args, **kwargs):
-            constructor_args = self._get_constructor_args(class_)
-
-            for name, type_ in constructor_args.items():
-                if type_ == Container:
-                    kwargs[name] = self
-                    continue
-
-                if type_ is not str and with_mocks is True:
-                    kwargs[name] = MagicMock(spec=type_ if type_ != 'nil' else None)
-                    continue
-
-                # Search this container, and any child containers for a match
-                t = self.match(name, type_)
-                if t is not None and name not in kwargs:
-                    kwargs[name] = t
-
-                # This is a string parameter. Look for params/environment variables to inject.
-                elif type_ is str:
-                    t = self._find_parameter(name)
-                    if t is not None:
-                        kwargs[name] = t
-
-            if params is not None:
-                for key, value in params.items():
-                    kwargs[key] = value
-
-            return init(*args, **kwargs)
-
-        setattr(class_, '__original_init', init)
-        class_.__init__ = init_wrapper
-
-        return class_
-
-    def _inject_properties(self, class_, with_mocks: bool):
-        properties, annotations = self._get_class_tree_properties(class_)
-        unannotated = self._get_unannotated()
+        properties, annotations_ = self._get_class_tree_properties(class_)
 
         for k, v in properties.items():
             if str(k).startswith('__') or v is not None:
                 continue
 
             try:
-                if k in annotations and isinstance(self, annotations[k]):
+                if k in annotations_ and isinstance(self, annotations_[k]):
                     setattr(class_, k, self)
                     continue
             except TypeError:
                 pass
 
             if with_mocks:
-                setattr(class_, k, MagicMock(spec=annotations[k] if k in annotations else None))
-            elif k in annotations:
-                if annotations[k] is str:
+                setattr(class_, k, property(
+                    fget=lambda key=k: MagicMock(spec=annotations_[k] if k in annotations_ else None))
+                )
+            else:
+                if annotations_.get(k) is str:
                     t = self._find_parameter(k)
                     if t is None:
                         t = self._find_parameter(k.lstrip('_'))
                     if t is not None:
                         setattr(class_, k, t)
                         continue
-                t = self.match(k, annotations[k])
-                if t is not None:
-                    setattr(class_, k, t)
-            elif k in unannotated:
-                setattr(class_, k, getattr(self, k))
-            elif k.lstrip('_') in unannotated:
-                setattr(class_, k, getattr(self, k.lstrip('_')))
+                else:
+                    constructor = self._find_constructor(annotations_.get(k), k)
+                    if constructor is not None:
+                        if constructor.instance is None:
+                            constructor.instance = constructor.constructor(self)
+                        setattr(class_, k, property(fget=ContainerProperty(constructor, self)))
 
+        self._stack.pop()
         return class_
 
-    def _get_class_tree_properties(self, class_: typing.Any, properties: dict = None, annotations: dict = None)\
+    def _find_constructor(self, type_: type = None, name: str = None):
+        for constructor in self._constructors:
+            if constructor.matches(type_, name):
+                return constructor
+
+    def _load_object(self, key: str):
+        if key not in self._cache:
+            self._cache[key] = self._constructors[key](self)
+        return self._cache[key]
+
+    def _get_class_tree_properties(self, class_: typing.Any, properties: dict = None, annotations_: dict = None)\
             -> Tuple[dict, dict]:
-        if properties is None and annotations is None:
+        if properties is None and annotations_ is None:
             properties = {}
-            annotations = {}
+            annotations_ = {}
 
         properties.update(class_.__dict__)
         try:
-            annotations.update(typing.get_type_hints(class_))
+            annotations_.update(typing.get_type_hints(class_))
         except AttributeError:
             pass
 
         if hasattr(class_, '__bases__'):
             for base in class_.__bases__:
-                properties, annotations = self._get_class_tree_properties(base, properties, annotations)
+                properties, annotations_ = self._get_class_tree_properties(base, properties, annotations_)
 
-        return properties, annotations
-
-    def _get_annotations(self):
-        return typing.get_type_hints(type(self))
-
-    def _get_unannotated(self):
-        annotations_ = self._get_annotations()
-        if self._unannotated is None:
-            # unannotated = inspect.getmembers(type(self), lambda a: not (inspect.isroutine(a)))
-            unannotated = inspect.getmembers(type(self))
-            self._unannotated = []
-            for entry in unannotated:
-                if entry[0] not in annotations_:
-                    self._unannotated.append(entry[0])
-            for child_container in self._child_containers:
-                self._unannotated.extend(child_container._get_unannotated())
-
-        return self._unannotated
-
-    @staticmethod
-    def _get_constructor_args(class_):
-        init = class_.__init__
-        if hasattr(class_, '__original_init'):
-            init = getattr(class_, '__original_init')
-        try:
-            constructor_args = typing.get_type_hints(init)
-        except NameError:
-            return {}
-        items = {}
-        items.update(constructor_args)
-        for arg in constructor_args.keys():
-            if arg != 'self' and arg not in items:
-                items[arg] = 'nil'
-
-        return items
-
-    @staticmethod
-    def _find_by_type(available: dict, t):
-        ret = []
-
-        for key, value in available.items():
-            try:
-                if issubclass(value, t):
-                    ret.append(key)
-            except TypeError:
-                try:
-                    if str(value) == str(t):
-                        ret.append(key)
-                except RecursionError:
-                    pass
-
-        return ret
+        return properties, annotations_
 
     @staticmethod
     def _find_parameter(name: str):

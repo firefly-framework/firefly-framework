@@ -23,6 +23,7 @@
 #
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
+from pprint import pprint
 
 import firefly as ff
 import firefly_test.todo.domain as todo
@@ -34,17 +35,15 @@ def test_create(registry, fixtures):
 
     settings, profile, u = fixtures
     users.append(u)
-    users.commit()
-    users.reset()
 
     user = users.find(u.id)
 
     assert isinstance(user, todo.User)
     assert user.name == 'Bob Loblaw'
-    assert user.id == u.id
-    assert user.settings.id == settings.id
+    assert str(user.id) == str(u.id)
+    assert str(user.settings.id) == str(settings.id)
     assert user.settings.send_email is False
-    assert user.profile.id == profile.id
+    assert str(user.profile.id) == str(profile.id)
     assert user.profile.title == 'Manager'
 
 
@@ -53,18 +52,15 @@ def test_update(registry, fixtures):
 
     settings, profile, u = fixtures
     users.append(u)
-    users.commit()
-    users.reset()
 
     user = users.find(u.id)
     user.name = 'Bob Seger'
     user.settings.send_email = True
     user.profile.title = 'Singer'
-
     users.commit()
     users.reset()
 
-    user = users.find(u.id)
+    user = list(users).pop()
     assert user.name == 'Bob Seger'
     assert user.settings.send_email is True
     assert user.profile.title == 'Singer'
@@ -76,8 +72,6 @@ def test_delete(registry, fixtures):
     settings, profile, u = fixtures
     id_ = u.id
     users.append(u)
-    users.commit()
-    users.reset()
 
     user = users.find(u.id)
     users.remove(user)
@@ -91,8 +85,6 @@ def test_search(registry, fixtures):
     users = registry(todo.User)
     settings, profile, u = fixtures
     users.append(u)
-    users.commit()
-    users.reset()
 
     assert isinstance(users.find(lambda uu: uu.name == 'Bob Loblaw'), todo.User)
     with pytest.raises(ff.NoResultFound):

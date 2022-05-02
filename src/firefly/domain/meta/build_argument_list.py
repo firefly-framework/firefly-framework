@@ -221,7 +221,11 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], 
                 args[name] = type_.from_dict(params[name])
                 nested = True
             elif isinstance(params, dict):
-                args[name] = type_.from_dict(params)
+                try:
+                    args[name] = type_.from_dict(params)
+                except TypeError as e:
+                    if required is True:
+                        raise e
 
             if nested:
                 del params[name]

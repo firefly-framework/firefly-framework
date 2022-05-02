@@ -14,6 +14,8 @@
 
 from __future__ import annotations
 
+from pprint import pprint
+
 import firefly.domain as ffd
 from alembic import autogenerate
 from alembic.operations import Operations
@@ -53,6 +55,12 @@ class MigrateDatabase:
 
             if isinstance(op, ModifyTableOps):
                 for op2 in op.ops:
-                    ops.invoke(op2)
+                    try:
+                        ops.invoke(op2)  # ProgrammingError
+                    except Exception:
+                        raise
             else:
-                ops.invoke(op)
+                try:
+                    ops.invoke(op)
+                except Exception:
+                    raise

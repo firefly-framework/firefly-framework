@@ -12,9 +12,9 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-import firefly.domain as ffd
-import firefly.infrastructure as ffi
 import pytest
+
+import firefly.domain as ffd
 
 
 class ThisCommand(ffd.Command):
@@ -22,7 +22,7 @@ class ThisCommand(ffd.Command):
     y: int = ffd.optional(default=0)
 
 
-def test_serialize_message(sut: ffi.JsonSerializer):
+def test_serialize_message(sut: ffd.Serializer):
     command = ThisCommand(x='foo')
     serialized = sut.serialize(command)
     deserialized = sut.deserialize(serialized)
@@ -34,4 +34,4 @@ def test_serialize_message(sut: ffi.JsonSerializer):
 
 @pytest.fixture()
 def sut():
-    return ffi.JsonSerializer()
+    return ffd.Serializer()

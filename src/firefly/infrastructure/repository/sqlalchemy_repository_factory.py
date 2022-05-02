@@ -35,6 +35,6 @@ class SqlalchemyRepositoryFactory(RepositoryFactory):
                 pass
             LocalRepository.__name__ = f'{entity.__name__}Repository'
             self._cache[entity] = self._kernel.build(LocalRepository)
-            self._cache[entity]._logger = self._kernel.logger
+            # setattr(self._cache[entity], '_logger', self._kernel.logger)
 
         return self._cache[entity]

@@ -238,7 +238,6 @@ class SqlalchemyRepository(Repository[T]):
         self._entities = results
 
     def commit(self, force_delete: bool = False):
-        self.debug('commit() called in %s', str(self))
         self._session.commit()
 
     def __repr__(self):
@@ -255,6 +254,7 @@ class SqlalchemyRepository(Repository[T]):
         super().reset()
         self._query_details = {}
         self._state = 'empty'
+        self._session.close_all()
 
     def migrate_schema(self):
         pass

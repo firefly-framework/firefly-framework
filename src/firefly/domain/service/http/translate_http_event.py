@@ -14,14 +14,19 @@
 
 from __future__ import annotations
 
-import firefly.domain as ffd
 from urllib.parse import parse_qs
+
+import firefly.domain as ffd
 
 
 class TranslateHttpEvent:
     _router: ffd.RestRouter = None
+    _context: str = None
 
     def __call__(self, event: dict) -> dict:
+        if 'requestContext' not in event or 'http' not in event.get('requestContext', {}):
+            return event
+
         method = event['requestContext']['http']['method']
         path = event['rawPath']
         if path.startswith('/api'):

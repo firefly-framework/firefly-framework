@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import os
 
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session, close_all_sessions
 
 import firefly as ff
@@ -34,12 +35,16 @@ def config():
 
 @pytest.fixture(scope="session")
 def kernel(config) -> ff.Kernel:
-    ff.Kernel.configuration = lambda self: ffi.MemoryConfigurationFactory()(config)
+    ff.Kernel.use('configuration', constructor=lambda self: ffi.MemoryConfigurationFactory()(config))
     kernel: ff.Kernel = ff.Kernel().boot()
-    kernel.register_object('message_transport', ChaliceMessageTransport)
+    kernel.register_object('message_transport', ChaliceMessageTransport, force=True)
+    kernel.reset()
 
-    kernel.sqlalchemy_metadata.drop_all(checkfirst=True)
-    kernel.sqlalchemy_metadata.create_all(checkfirst=True)
+    kernel.sqlalchemy_metadata.drop_all()
+    try:
+        kernel.sqlalchemy_metadata.create_all(checkfirst=True)
+    except OperationalError:
+        pass
 
     return kernel
 
@@ -52,6 +57,14 @@ def client(kernel) -> TestHTTPClient:
 @pytest.fixture(scope="session")
 def system_bus(kernel):
     return kernel.system_bus
+
+
+@pytest.fixture(scope="function", autouse=True)
+def start_test_transaction(kernel):
+    transaction = kernel.sqlalchemy_connection.begin()
+    yield
+    print("ROLLING BACK")
+    transaction.rollback()
 
 
 @pytest.fixture(scope="function")

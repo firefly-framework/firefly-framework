@@ -28,6 +28,23 @@ from firefly.domain.service.core.application import Application
 import firefly.domain.error as errors
 
 
+STATUS_CODES = {
+    'BadRequest': 400,
+    'Unauthorized': 401,
+    'Forbidden': 403,
+    'NotFound': 404,
+    'ApiError': 500,
+}
+
+ACCESS_CONTROL_HEADERS = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+    'Access-Control-Allow-Headers': 'Authorization, Accept, Accept-Language, Content-Language, Content-Type, '
+                                    'Content-Range',
+    'Access-Control-Expose-Headers': '*',
+}
+
+
 class TestAuthorizer:
     def __call__(self, auth_request: AuthRequest):
         if auth_request.token == 'allow':
@@ -73,7 +90,23 @@ def http_event(kernel, service, **kwargs):
 
     if request.query_params:
         body.update(dict(request.query_params))
-    response = service(**ffd.build_argument_list(body, service))
+
+    try:
+        response = service(**ffd.build_argument_list(body, service))
+    except ffd.UnauthenticatedError:
+        return {
+            'statusCode': 403,
+            'headers': ACCESS_CONTROL_HEADERS,
+            'body': None,
+            'isBase64Encoded': False,
+        }
+    except ffd.ApiError as e:
+        return {
+            'statusCode': STATUS_CODES[e.__class__.__name__],
+            'headers': ACCESS_CONTROL_HEADERS,
+            'body': None,
+            'isBase64Encoded': False,
+        }
 
     if isinstance(response, ffd.Envelope):
         response = response.unwrap()
@@ -81,6 +114,7 @@ def http_event(kernel, service, **kwargs):
     if isinstance(response, ffd.ValueObject):
         response = response.to_dict()
 
+    print(response)
     return json.loads(kernel.serializer.serialize(response))
 
 

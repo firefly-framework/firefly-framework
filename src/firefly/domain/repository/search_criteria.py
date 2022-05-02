@@ -19,9 +19,11 @@ from dataclasses import is_dataclass, fields
 from datetime import datetime, date
 from typing import Union, List, Type, get_type_hints, Callable
 
+import regex
+from dateparser import parse
+
 import firefly.domain as ffd
 import firefly.domain.error as errors
-import regex
 
 T = '__FF_SKIP_TYPE'
 
@@ -225,9 +227,9 @@ class SearchCriteria:
         elif isinstance(val, str) and val.startswith('a:'):
             return Attr(val.split(':')[1])
         elif isinstance(val, str) and val.startswith('datetime:'):
-            return ffd.parse(val.split(':')[1])
+            return parse(val.replace('datetime:', ''))
         elif isinstance(val, str) and val.startswith('date:'):
-            return ffd.parse(val.split(':')[1]).date()
+            return parse(val.split(':')[1]).date()
         else:
             return val
 

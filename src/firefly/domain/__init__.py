@@ -84,4 +84,5 @@ from firefly.domain.service.crud.update_entity import UpdateEntity
 from firefly.domain.service.crud.delete_entity import DeleteEntity
 from firefly.domain.service.crud.query_service import QueryService
 
+from firefly.domain.service.core.handle_invocation import HandleInvocation
 from firefly.domain.error import *

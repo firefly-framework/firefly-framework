@@ -63,8 +63,6 @@ def test_one_to_one(registry):
     assert user.profile.title == "What's up folks?"
 
     users.append(user)
-    users.commit()
-
     user: todo.User = users.find(user.id)
 
     assert isinstance(user.settings, todo.Settings)
@@ -88,7 +86,6 @@ def test_one_to_one_missing_one_side(registry):
             )
         )
         registry(todo.User).append(user)
-        registry(todo.User).commit()
 
 
 def test_many_to_one(registry):
@@ -110,14 +107,14 @@ def test_many_to_one(registry):
             todo.Task(name='Do stuff', due_date=datetime.now())
         ]
     )
-    user.todo_lists.append(todo_list)
     users.append(user)
     users.commit()
     users.reset()
     user = users.find(user.id)
 
+    print(user)
     assert len(user.todo_lists) == 1
-    assert user.todo_lists[0].id == todo_list.id
+    assert str(user.todo_lists[0].id) == str(todo_list.id)
 
 
 def test_many_to_many(registry):
@@ -165,9 +162,6 @@ def test_many_to_many(registry):
     users.append(user_3)
     users.append(user_4)
 
-    users.commit()
-    users.reset()
-
     address_1 = addresses.find(address_1.id)
     address_2 = addresses.find(address_2.id)
 
@@ -201,8 +195,6 @@ def test_many_to_many(registry):
 #     )
 #     id_ = user.id
 #     users.append(user)
-#     users.commit()
-#     users.reset()
 #
 #     user = users.find(id_)
 #     assert len(user.favorites.keys()) == 4

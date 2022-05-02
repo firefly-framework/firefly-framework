@@ -16,16 +16,23 @@ from datetime import datetime, date
 
 import pytest
 import firefly as ff
-from firefly.infrastructure.service.serialization.default_serializer import FireflyEncoder
+from firefly.domain.service.serialization.serializer import JSONEncoder as FireflyEncoder
+from dateparser import parse
 
 
 def test_datetime(spy):
     def criteria(x):
         return x.my_date == datetime(year=1990, month=1, day=1)
     c = criteria(spy)
+
     assert isinstance(c.rhv, datetime)
     j = json.dumps(c.to_dict(), cls=FireflyEncoder)
-    c = ff.BinaryOp.from_dict(json.loads(j))
+    print()
+    print(j)
+    print(json.loads(j))
+    c = ff.SearchCriteria.from_dict(json.loads(j))
+    print(c.to_dict())
+    print('---')
     assert isinstance(c.rhv, datetime)
 
 
@@ -35,7 +42,7 @@ def test_date(spy):
     c = criteria(spy)
     assert isinstance(c.rhv, date)
     j = json.dumps(c.to_dict(), cls=FireflyEncoder)
-    c = ff.BinaryOp.from_dict(json.loads(j))
+    c = ff.SearchCriteria.from_dict(json.loads(j))
     assert isinstance(c.rhv, date)
 
 

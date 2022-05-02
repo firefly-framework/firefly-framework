@@ -36,34 +36,20 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from pprint import pprint
+import pytest
+from sqlalchemy import MetaData
 
 import firefly_test.todo.domain as todo
-import pytest
-from firefly import ParseRelationships
-from firefly.domain.service.entity.map_entities import MapEntities
-from firefly.infrastructure import EngineFactory, PythonLogger
-from sqlalchemy import MetaData, Column, Table, inspect
-from sqlalchemy.engine import Engine
-from sqlalchemy.orm import InstrumentedAttribute, class_mapper
+from firefly.infrastructure import EngineFactory
 
 
 def test_one_to_one(sut, metadata):
     sut([todo.User, todo.Settings])
 
 
-
-
 @pytest.fixture()
-def sut(engine, metadata):
-    ret = MapEntities()
-    ret._logger = PythonLogger()
-
-    ret._parse_relationships = ParseRelationships()
-    ret._engine = engine
-    ret._metadata = metadata
-
-    return ret
+def sut(kernel):
+    return kernel.map_entities
 
 
 @pytest.fixture()

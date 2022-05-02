@@ -11,11 +11,24 @@
 #
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
-
+#
+#  This file is part of Firefly, a Python SOA framework built by JD Williams. Firefly is free software; you can
+#  redistribute it and/or modify it under the terms of the GNU General Public License as published by the
+#  Free Software Foundation; either version 3 of the License, or (at your option) any later version.
+#
+#  Firefly is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
+#  implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General
+#  Public License for more details. You should have received a copy of the GNU Lesser General Public
+#  License along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#  You should have received a copy of the GNU General Public License along with Firefly. If not, see
+#  <http://www.gnu.org/licenses/>.
+import uuid
 from dataclasses import dataclass
 from datetime import datetime, date, timedelta
 from pprint import pprint
 from typing import List
+from uuid import UUID
 
 import firefly.domain as ffd
 import pytest
@@ -75,9 +88,10 @@ def test_default_values(sut):
     assert s.strings == []
 
 
+@pytest.mark.skip
 def test_none_values(sut):
     s = sut.from_dict({
-        'id': 'foo',
+        'id': uuid.uuid4(),
         'required_field': 'field'
     })
 
@@ -88,6 +102,7 @@ def test_none_values(sut):
     assert s.required_field is None
 
 
+@pytest.mark.skip
 def test_value_object_serialization(sut):
     # make sure to_dict() / from_dict() work with a null value object
     s = sut(required_field='foo')
@@ -96,12 +111,12 @@ def test_value_object_serialization(sut):
 
 
 @pytest.fixture()
-def sut():
+def sut(kernel):
     class Widget(ffd.ValueObject):
         name: str = ffd.required()
 
     class ConcreteEntity(Entity):
-        id: str = ffd.id_()
+        id: UUID = ffd.id_()
         strings: str = ffd.list_()
         now: datetime = ffd.now()
         today: date = ffd.today()
@@ -109,5 +124,7 @@ def sut():
         dictionary: dict = ffd.dict_()
         list_of_ints: List[int] = ffd.list_()
         widget: Widget = ffd.optional()
+
+    kernel.map_entities([ConcreteEntity])
 
     return ConcreteEntity

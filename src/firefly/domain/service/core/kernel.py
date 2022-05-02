@@ -18,6 +18,7 @@ import importlib
 import inspect
 import logging
 import os
+from pprint import pprint
 from typing import Optional, Type, Callable, List, Dict
 
 import boto3
@@ -40,6 +41,7 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
     _app: ChaliceApplication = None
     _entities: List[Type[ffd.Entity]] = []
     _aggregates: List[Type[ffd.AggregateRoot]] = []
+    _value_objects: List[Type[ffd.ValueObject]] = []
     _application_services: List[Type[ffd.ApplicationService]] = []
     _http_endpoints: List[dict] = []
     _cli_endpoints: List[dict] = []
@@ -80,12 +82,18 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
                 continue
             self._load_context(k, v or {})
 
+        # self.debug()
         self.auto_generate_aggregate_apis()
         self._initialize_entity_crud_operations()
         self._app = self.chalice_application
         self._build_services()
         self._app.initialize(self)
         self.initialize_storage()
+
+        for t in self._value_objects + self._entities:
+            t._logger = self.logger
+            if issubclass(t, ffd.ValueObject):
+                t._session = self.sqlalchemy_session
 
         event.listen(
             self.sqlalchemy_metadata,
@@ -129,7 +137,7 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
         if claims is None:
             return False
 
-        for s in claims['scope'].split(' '):
+        for s in claims['cognito:groups']:
             if s == scope:
                 return True
 
@@ -164,13 +172,6 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
 
     def get_middleware(self):
         return self._middleware
-
-    def register_object(self, name: str, type_: Type = type, constructor: Optional[Callable] = None):
-        if hasattr(self.__class__, name):
-            return
-        setattr(self.__class__, name, constructor) if constructor is not None else setattr(self.__class__, name, type_)
-        if type_ is not type:
-            self.__class__.__annotations__[name] = type_
 
     def register_command(self, cls):
         self._command_handlers[str(getattr(cls, const.COMMAND))] = self._build_service(cls)
@@ -232,7 +233,9 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
         self.register_object('sqlalchemy_engine_factory', ffi.EngineFactory)
         self.register_object('sqlalchemy_engine', Engine, lambda s: s.sqlalchemy_engine_factory(True))
         self.register_object('sqlalchemy_connection', Connection, lambda s: s.sqlalchemy_engine.connect())
-        self.register_object('sqlalchemy_sessionmaker', sessionmaker, lambda s: sessionmaker(bind=s.sqlalchemy_engine))
+        self.register_object(
+            'sqlalchemy_sessionmaker', sessionmaker, lambda s: sessionmaker(bind=s.sqlalchemy_connection)
+        )
         self.register_object('sqlalchemy_session', Session, lambda s: s.sqlalchemy_sessionmaker())
         self.register_object('sqlalchemy_metadata', MetaData, lambda s: MetaData(bind=s.sqlalchemy_engine))
         self.register_object(
@@ -246,6 +249,7 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
         self.register_object('sqs_client', constructor=lambda s: boto3.client('sqs'))
         self.register_object('s3_client', constructor=lambda s: boto3.client('s3'))
         self.register_object('kinesis_client', constructor=lambda s: boto3.client('kinesis'))
+        self.register_object('cognito_client', constructor=lambda s: boto3.client('cognito-idp'))
 
     def _build_services(self):
         for cls in self._application_services:
@@ -295,7 +299,6 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
 
     def _build_service(self, cls):
         if cls not in self._service_cache:
-            print(f"FUCK: {cls}")
             self._service_cache[cls] = self.build(cls)
         return self._service_cache[cls]
 
@@ -319,15 +322,13 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
 
     def _add_domain_object(self, k: str, v: type, context: str):
         if issubclass(v, ffd.Entity) and v is not ffd.Entity and context != 'firefly':
-            v._logger = self.logger
             v.set_class_context(self._context)
             if context == self._context and v not in self._entities:
                 self._entities.append(v)
                 if issubclass(v, ffd.AggregateRoot) and v is not ffd.AggregateRoot:
                     self._aggregates.append(v)
         elif issubclass(v, ffd.ValueObject):
-            v._logger = self.logger
-            v._session = self.sqlalchemy_session
+            self._value_objects.append(v)
         elif self._should_autowire(v):
             self.register_object(inflection.underscore(k), v)
 

@@ -29,13 +29,13 @@ def test_create_user(registry, user_id):
 def test_update_user(client, registry, serializer, user_id):
     client.put(f'/todo/users/{user_id}', body=serializer.serialize({
         'name': 'John Doe'
-    }))
+    }), headers={'authorization': 'allow'})
     user = registry(todo.User).find(user_id)
     assert user.name == 'John Doe'
 
 
 def test_delete_user(client, registry, user_id):
-    client.delete(f'/todo/users/{user_id}')
+    client.delete(f'/todo/users/{user_id}', headers={'authorization': 'allow'})
     registry(todo.User).reset()
     assert registry(todo.User).find(user_id) is None
 
@@ -43,18 +43,19 @@ def test_delete_user(client, registry, user_id):
 def test_read_users(client, registry, serializer):
     client.post(f'/todo/users', body=serializer.serialize(
         {'name': 'Bob Loblaw', 'settings': {'send_email': False}, 'profile': {'title': 'Lawyer'}}
-    ))
+    ), headers={'authorization': 'allow'})
     client.post(f'/todo/users', body=serializer.serialize(
         {'name': 'John Doe', 'settings': {'send_email': False}, 'profile': {'title': 'Anonymous'}}
-    ))
+    ), headers={'authorization': 'allow'})
     client.post(f'/todo/users', body=serializer.serialize(
         {'name': 'Jane Doe', 'settings': {'send_email': False}, 'profile': {'title': 'Anonymous'}}
-    ))
+    ), headers={'authorization': 'allow'})
 
     criteria = (lambda u: u.name == 'Bob Loblaw')(EntityAttributeSpy())
     response = client.get('/todo/users', body=serializer.serialize({
         'criteria': criteria,
-    }))
+    }), headers={'authorization': 'allow'})
+    print(response.body)
     users = serializer.deserialize(response.body)
 
     assert len(users) == 1
@@ -63,7 +64,7 @@ def test_read_users(client, registry, serializer):
     criteria = (lambda u: u.name.startswith('J'))(EntityAttributeSpy())
     response = client.get('/todo/users', body=serializer.serialize({
         'criteria': criteria,
-    }))
+    }), headers={'authorization': 'allow'})
     users = serializer.deserialize(response.body)
     assert len(users) == 2
 
@@ -80,6 +81,6 @@ def user_id(client, serializer):
         'profile': {
             'title': 'Executive',
         },
-    }))
+    }), headers={'Authorization': 'allow'})
 
     return id_

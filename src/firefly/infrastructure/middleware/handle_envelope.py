@@ -17,6 +17,8 @@ from __future__ import annotations
 import json
 from typing import Callable, Any
 
+from chalice import Response
+
 import firefly.domain as ffd
 
 ACCESS_CONTROL_HEADERS = {
@@ -38,10 +40,9 @@ class HandleEnvelope(ffd.Middleware):
 
         if isinstance(response, ffd.Envelope):
             ret = {
-                'statusCode': 200,
+                'status_code': 200,
                 'headers': ACCESS_CONTROL_HEADERS,
                 'body': response.unwrap(),
-                'isBase64Encoded': False,
             }
 
             try:
@@ -51,7 +52,7 @@ class HandleEnvelope(ffd.Middleware):
 
             range_ = response.get_range()
             if range_ is not None:
-                ret['statusCode'] = 206
+                ret['status_code'] = 206
                 if range_['upper'] > range_['total']:
                     range_['upper'] = range_['total']
                 ret['headers']['content-range'] = f'{range_["lower"]}-{range_["upper"]}/{range_["total"]}'
@@ -59,7 +60,9 @@ class HandleEnvelope(ffd.Middleware):
                     ret['headers']['content-range'] = f'{range_["unit"]} {ret["headers"]["content-range"]}'
 
             if 'location' in response.headers:
-                ret['statusCode'] = 303
+                ret['status_code'] = 303
                 ret['headers']['location'] = response.headers['location']
 
+        if isinstance(ret, dict) and 'status_code' in ret:
+            return Response(**ret)
         return ret

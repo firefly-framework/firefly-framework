@@ -20,9 +20,11 @@ import functools
 import logging
 from json.decoder import JSONDecodeError
 
+import cognitojwt
+
 import firefly.domain as ffd
 from chalice import Chalice
-from chalice.app import SQSEvent, AuthRequest, AuthResponse, Request
+from chalice.app import SQSEvent, AuthRequest, AuthResponse, Request, Response
 from chalice.test import Client
 from firefly.domain.service.core.application import Application
 import firefly.domain.error as errors
@@ -45,39 +47,8 @@ ACCESS_CONTROL_HEADERS = {
 }
 
 
-class TestAuthorizer:
-    def __call__(self, auth_request: AuthRequest):
-        if auth_request.token == 'allow':
-            return AuthResponse(['*'], principal_id='')
-        return AuthResponse([], principal_id='none')
-
-
-class FireflyAuthorizer:
-    _kernel: ffd.Kernel = None
-
-    def __init__(self, kernel: ffd.Kernel):
-        self._kernel = kernel
-
-    def __call__(self, auth_request: AuthRequest):
-        auth_function = os.environ.get('AUTH_FUNCTION')
-        resp = self._kernel.system_bus.request(auth_function, data={
-            'token': auth_request.token,
-        })
-        if not isinstance(resp, dict) or 'scope' not in resp:
-            routes = self._get_allowed_routes('')
-        else:
-            routes = self._get_allowed_routes(resp['scope'])
-
-        return AuthResponse(routes=routes, principal_id='user')
-
-    def _get_allowed_routes(self, scope: str):
-        ret = []
-        for route in self._kernel.get_http_endpoints():
-            for s in scope.split(' '):
-                if route.validate_scope(s) is True:
-                    ret.append(route.route)
-
-        return ret
+def chalice_response(response: dict):
+    return Response(**response)
 
 
 def http_event(kernel, service, **kwargs):
@@ -94,19 +65,17 @@ def http_event(kernel, service, **kwargs):
     try:
         response = service(**ffd.build_argument_list(body, service))
     except ffd.UnauthenticatedError:
-        return {
-            'statusCode': 403,
+        return chalice_response({
+            'status_code': 403,
             'headers': ACCESS_CONTROL_HEADERS,
             'body': None,
-            'isBase64Encoded': False,
-        }
+        })
     except ffd.ApiError as e:
-        return {
-            'statusCode': STATUS_CODES[e.__class__.__name__],
+        return chalice_response({
+            'status_code': STATUS_CODES[e.__class__.__name__],
             'headers': ACCESS_CONTROL_HEADERS,
             'body': None,
-            'isBase64Encoded': False,
-        }
+        })
 
     if isinstance(response, ffd.Envelope):
         response = response.unwrap()
@@ -114,7 +83,12 @@ def http_event(kernel, service, **kwargs):
     if isinstance(response, ffd.ValueObject):
         response = response.to_dict()
 
-    print(response)
+    if isinstance(response, dict) and 'status_code' in response:
+        response = chalice_response(response)
+
+    if isinstance(response, Response):
+        return response
+
     return json.loads(kernel.serializer.serialize(response))
 
 
@@ -167,10 +141,6 @@ class ChaliceApplication(Application):
         if self.app.debug:
             self.app.log.setLevel(logging.DEBUG)
 
-        authorizer = FireflyAuthorizer(kernel) if os.environ.get('FF_ENVIRONMENT') != 'test' else TestAuthorizer()
-        authorizer.__name__ = 'firefly_authorizer'
-        self.app.authorizer()(authorizer)
-
         for service in kernel.get_middleware():
             self.app.register_middleware(service)
 
@@ -184,10 +154,14 @@ class ChaliceApplication(Application):
                 path=config['route'],
                 methods=[str(config['method']).upper()],
                 name=config['service'].__class__.__name__,
-                cors=True,
-                authorizer=authorizer
+                cors=True
             )(func)
-            self._router.register(config['route'], ffd.HttpEndpoint(route=config['route'], method=config['method']))
+            self._router.register(config['route'], ffd.HttpEndpoint(
+                route=config['route'],
+                method=config['method'],
+                scopes=config['scopes'],
+                secured=config['secured']
+            ))
 
         for k, v in self.configuration.contexts.items():
             if k.startswith('firefly') or (v or {}).get('is_extension', False) is True:

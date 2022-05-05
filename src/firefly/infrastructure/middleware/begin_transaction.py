@@ -16,9 +16,13 @@ from __future__ import annotations
 
 from typing import Callable, Any
 
-import firefly.domain as ffd
+from chalice import Response, ForbiddenError
 from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy.orm import Session
+
+import firefly.domain as ffd
+from firefly.infrastructure.service.core.chalice_application import STATUS_CODES, ACCESS_CONTROL_HEADERS, \
+    chalice_response
 
 
 @ffd.middleware()
@@ -35,6 +39,22 @@ class BeginTransaction(ffd.Middleware):
         try:
             ret = get_response(event)
             self._session.commit()
+        except ffd.ApiError as e:
+            self._session.rollback()
+            if e.__class__.__name__ in STATUS_CODES:
+                return chalice_response({
+                    'status_code': STATUS_CODES[e.__class__.__name__],
+                    'headers': ACCESS_CONTROL_HEADERS,
+                    'body': None,
+                })
+            raise e
+        except ffd.UnauthenticatedError:
+            self._session.rollback()
+            return chalice_response({
+                'status_code': 403,
+                'headers': ACCESS_CONTROL_HEADERS,
+                'body': None,
+            })
         except Exception:
             self._session.rollback()
             raise

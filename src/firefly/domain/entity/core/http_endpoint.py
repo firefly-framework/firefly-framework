@@ -35,7 +35,6 @@ CATEGORIES = ('read', 'write', 'admin')
 
 
 class HttpEndpoint(Endpoint):
-    gateway: str = optional()
     route: str = required()
     method: str = optional(default='GET')
     query_params: dict = optional()

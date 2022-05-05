@@ -945,6 +945,9 @@ def app(event=None, context=None):
                                 'Action': [
                                     'athena:*',
                                     'cloudfront:CreateInvalidation',
+                                    'cognito-idp:AdminConfirmSignUp',
+                                    'cognito-idp:AdminSetUserPassword',
+                                    'cognito-idp:ListUserPoolClients',
                                     'dynamodb:*',
                                     'ec2:*NetworkInterface',
                                     'ec2:DescribeNetworkInterfaces',

@@ -27,6 +27,7 @@ from firefly.domain.entity.validation.validators import HasLength, HasMaxLength,
 from firefly.domain.service.entity.convert_criteria_to_sqlalchemy import ConvertCriteriaToSqlalchemy
 from firefly.domain.entity.messaging.envelope import Envelope
 from firefly.domain.service.multithreading.batch_process import BatchProcess
+from firefly.domain.factory.cognito_factory import CognitoFactory
 
 from firefly.domain.entity.core.endpoint import Endpoint
 from firefly.domain.entity.core.http_endpoint import HttpEndpoint

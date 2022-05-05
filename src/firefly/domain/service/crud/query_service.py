@@ -43,15 +43,14 @@ class QueryService(Generic[T], GenericBase, ffd.ApplicationService):
     _kernel: ffd.Kernel = None
 
     def __call__(self, **kwargs):
+        is_admin = self._kernel.requesting_user_has_scope(f'{self._context}.admin')
+
         try:
             if self._type().id_name() in kwargs:
-                return self._registry(self._type()).find(kwargs[self._type().id_name()]).to_dict(
-                    force_all=self._kernel.is_admin(self._context)
-                )
+                return self._registry(self._type()).find(kwargs[self._type().id_name()]).to_dict(force_all=is_admin)
         except KeyError:
             raise ffd.MissingArgument(self._type().id_name())
 
-        is_admin = self._kernel.requesting_user_has_scope(f'{self._context}.admin')
         limit = None
         offset = None
         if 'limit' in kwargs and 'offset' in kwargs:

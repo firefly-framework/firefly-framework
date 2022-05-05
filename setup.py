@@ -32,6 +32,7 @@ setuptools.setup(
         'alembic>=1.7.7',
         'boto3>=1.12.42',
         'chalice>=1.26.6',
+        'cognitojwt>=1.4.1',
         'dateparser>=0.7.4',
         'dirsync>=2.2.3',
         'dynamodb-json>=1.3',
@@ -50,6 +51,7 @@ setuptools.setup(
         'sqlalchemy>=1.4.32',
         'terminaltables>=3.1.0',
         'troposphere>=2.7.1',
+        'warrant>=0.6.1',
         'websockets>=8.0.2',
     ],
     extras_require={

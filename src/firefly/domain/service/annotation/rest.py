@@ -29,7 +29,7 @@ function_name = re.compile(r'.*function\s([^\.]+)\..*')
 
 
 class Rest(ffd.ConfigurationAnnotation):
-    def __call__(self, route: str, method: str = 'GET', generates: type = None, gateway: str = None,
+    def __call__(self, route: str, method: str = 'GET', generates: type = None,
                  query_params: dict = None, secured: bool = True, scopes: List[str] = None, tags: List[str] = None,
                  **kwargs):
         def on_wrapper(cls):
@@ -42,7 +42,6 @@ class Rest(ffd.ConfigurationAnnotation):
                 route=prefix + route,
                 method=method,
                 message=generates,
-                gateway=gateway,
                 query_params=query_params,
                 service=cls,
                 secured=secured,
@@ -63,7 +62,7 @@ class Rest(ffd.ConfigurationAnnotation):
         return on_wrapper
 
     @staticmethod
-    def crud(exclude: list = None, gateway: str = None, config: dict = None, prefix: str = None):
+    def crud(exclude: list = None, config: dict = None, prefix: str = None):
         exclude = exclude or []
         config = config or {}
 
@@ -84,7 +83,6 @@ class Rest(ffd.ConfigurationAnnotation):
                     route=f'/{base}',
                     method='post',
                     message=f'{context}.Create{cls.__name__}',
-                    gateway=gateway,
                     service=cls,
                     secured=config.get('create', {}).get('secured', True),
                     scopes=config.get('create', {}).get('scopes', [f'{context}.{cls.__name__}.write'])
@@ -95,7 +93,6 @@ class Rest(ffd.ConfigurationAnnotation):
                     route=f'/{base}/{{{cls.id_name()}}}',
                     method='put',
                     message=f'{context}.Update{cls.__name__}',
-                    gateway=gateway,
                     service=cls,
                     secured=config.get('update', {}).get('secured', True),
                     scopes=config.get('update', {}).get('scopes', [f'{context}.{cls.__name__}.write'])
@@ -106,7 +103,6 @@ class Rest(ffd.ConfigurationAnnotation):
                     route=f'/{base}/{{{cls.id_name()}}}',
                     method='delete',
                     message=f'{context}.Delete{cls.__name__}',
-                    gateway=gateway,
                     service=cls,
                     secured=config.get('delete', {}).get('secured', True),
                     scopes=config.get('delete', {}).get('scopes', [f'{context}.{cls.__name__}.write'])
@@ -117,7 +113,6 @@ class Rest(ffd.ConfigurationAnnotation):
                     route=f'/{base}',
                     method='get',
                     message=f'{context}.{inflection.pluralize(cls.__name__)}',
-                    gateway=gateway,
                     service=cls,
                     secured=config.get('read', {}).get('secured', True),
                     scopes=config.get('read', {}).get('scopes', [f'{context}.{cls.__name__}.read'])
@@ -127,7 +122,6 @@ class Rest(ffd.ConfigurationAnnotation):
                     route=f'/{base}/{{{cls.id_name()}}}',
                     method='get',
                     message=f'{context}.{inflection.pluralize(cls.__name__)}',
-                    gateway=gateway,
                     service=cls,
                     secured=config.get('read', {}).get('secured', True),
                     scopes=config.get('read', {}).get('scopes', [f'{context}.{cls.__name__}.read'])

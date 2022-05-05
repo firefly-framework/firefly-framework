@@ -59,16 +59,15 @@ def system_bus(kernel):
     return kernel.system_bus
 
 
-@pytest.fixture(scope="function", autouse=True)
+@pytest.fixture(scope="function")
 def start_test_transaction(kernel):
     transaction = kernel.sqlalchemy_connection.begin()
     yield
-    print("ROLLING BACK")
     transaction.rollback()
 
 
 @pytest.fixture(scope="function")
-def registry(kernel):
+def registry(kernel, start_test_transaction):
     kernel.sqlalchemy_session.commit()
     kernel.sqlalchemy_session.begin_nested()
 

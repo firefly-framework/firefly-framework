@@ -30,8 +30,10 @@ from firefly.infrastructure.repository.sqlalchemy_repository import SqlalchemyRe
 from firefly.infrastructure.repository.sqlalchemy_connection_factory import SqlalchemyConnectionFactory
 from firefly.infrastructure.repository.initialize_storage import InitializeStorage
 from firefly.infrastructure.middleware.begin_transaction import BeginTransaction
+from firefly.infrastructure.middleware.authorize_request import AuthorizeRequest
+from firefly.infrastructure.middleware.handle_envelope import HandleEnvelope
 from firefly.infrastructure.service.cli.argparse_executor import ArgparseExecutor
 from firefly.infrastructure.repository.migrate_database import MigrateDatabase
 from firefly.infrastructure.service.http.routes_rest_router import RoutesRestRouter
-from firefly.infrastructure.middleware.handle_envelope import HandleEnvelope
 from firefly.infrastructure.service.files.s3_file_system import S3FileSystem
+from firefly.infrastructure.factory.cognito_factory import DefaultCognitoFactory

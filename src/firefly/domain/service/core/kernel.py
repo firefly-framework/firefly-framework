@@ -133,7 +133,13 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
         return python_jwt.process_jwt(token)
 
     def requesting_user_has_scope(self, scope: str):
-        header, claims = self.user_token()
+        try:
+            header, claims = self.user_token()
+        except ValueError as e:
+            if 'not enough values to unpack' not in str(e):
+                raise e
+            return False
+
         if claims is None:
             return False
 
@@ -191,7 +197,6 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
                 ))) == 0:
                     self._http_endpoints.append({
                         'service': service,
-                        'gateway': endpoint.gateway,
                         'route': endpoint.route,
                         'method': endpoint.method,
                         'query_params': endpoint.query_params,
@@ -219,6 +224,7 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
     def _bootstrap_container(self):
         self.register_object('logger', ffi.ChaliceLogger)
         self.register_object('system_bus', ffd.SystemBus)
+        self.register_object('cognito_factory', ffd.CognitoFactory, lambda s: s.build(ffi.DefaultCognitoFactory))
         self.register_object('routes_rest_router', ffi.RoutesRestRouter)
         self.register_object('configuration_factory', ffi.YamlConfigurationFactory)
         self.register_object('message_transport', ffd.MessageTransport, lambda s: s.build(ffi.ChaliceMessageTransport))
@@ -257,7 +263,6 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
                 for endpoint in getattr(cls, const.HTTP_ENDPOINTS):
                     self._http_endpoints.append({
                         'service': self._build_service(cls),
-                        'gateway': endpoint.gateway,
                         'route': endpoint.route,
                         'method': endpoint.method,
                         'query_params': endpoint.query_params,

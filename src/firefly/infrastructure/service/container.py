@@ -24,6 +24,9 @@ from unittest.mock import MagicMock
 import firefly.domain as ffd
 
 
+DO_NOT_RESET = ('routes_rest_router',)
+
+
 class ContainerProperty:
     def __init__(self, constructor, container):
         self._constructor = constructor
@@ -84,7 +87,7 @@ class Container(ABC):
     def reset(self):
         self._stack = []
         for constructor in self._constructors:
-            if constructor.name.startswith('sqlalchemy_'):
+            if constructor.name.startswith('sqlalchemy_') or constructor.name in DO_NOT_RESET:
                 continue
             constructor.instance = None
 

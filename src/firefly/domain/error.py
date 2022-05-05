@@ -107,6 +107,10 @@ class NotFound(ApiError):
     pass
 
 
+class AuthorizationError(FrameworkError):
+    pass
+
+
 class InvariantViolation(FrameworkError):
     pass
 

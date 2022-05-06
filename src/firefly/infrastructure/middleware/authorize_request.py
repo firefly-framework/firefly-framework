@@ -57,7 +57,7 @@ class AuthorizeRequest(ffd.Middleware):
                 break
 
         if self._ff_environment == 'test':
-            return self._handle_test_request(token, event, get_response)
+            return self._handle_test_request(token, event, get_response, self._get_endpoint(event.path, event.method))
 
         try:
             claims = cognitojwt.decode(token, self._region, self._user_pool_id, app_client_id=self._clients)
@@ -67,8 +67,12 @@ class AuthorizeRequest(ffd.Middleware):
 
         return get_response(event)
 
-    def _validate_token_claims(self, claims: dict, method: str, path: str):
+    def _get_endpoint(self, path: str, method: str):
         endpoint, _ = self._rest_router.match(path, method)
+        return endpoint
+
+    def _validate_token_claims(self, claims: dict, method: str, path: str):
+        endpoint = self._get_endpoint(path, method)
         if endpoint is not None:
             if endpoint.secured is False:
                 return
@@ -78,11 +82,13 @@ class AuthorizeRequest(ffd.Middleware):
             raise ffd.Forbidden()
         raise RuntimeError('Could not match route. This should never happen.')
 
-    def _handle_test_request(self, token: str, event, get_response: Callable):
+    def _handle_test_request(self, token: str, event, get_response: Callable, endpoint):
         try:
-            if token.lower() == 'allow':
+            print(endpoint)
+            if token.lower() == 'allow' or endpoint.secured is False:
                 return get_response(event)
         except AttributeError:
-            pass
+            if endpoint.secured is False:
+                return get_response(event)
 
         raise ffd.Forbidden()

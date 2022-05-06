@@ -308,7 +308,7 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
             try:
                 self._service_cache[cls] = self.build(cls)
             except OperationalError:
-                pass  # Temporarily ignore DB connection errors.
+                self._service_cache[cls] = None
         return self._service_cache[cls]
 
     def _load_context(self, context_name: str, config: dict):

@@ -31,16 +31,18 @@ class BeginTransaction(ffd.Middleware):
 
     def __call__(self, event, get_response: Callable) -> Any:
         try:
-            self._session.begin()
+            if self._session:
+                self._session.begin()
         except InvalidRequestError as e:
             if 'A transaction is already begun on this Session' not in str(e):
                 raise e
 
         try:
             ret = get_response(event)
-            self._session.commit()
+            if self._session:
+                self._session.commit()
         except ffd.ApiError as e:
-            self._session.rollback()
+            self._rollback()
             if e.__class__.__name__ in STATUS_CODES:
                 return chalice_response({
                     'status_code': STATUS_CODES[e.__class__.__name__],
@@ -49,14 +51,18 @@ class BeginTransaction(ffd.Middleware):
                 })
             raise e
         except ffd.UnauthenticatedError:
-            self._session.rollback()
+            self._rollback()
             return chalice_response({
                 'status_code': 403,
                 'headers': ACCESS_CONTROL_HEADERS,
                 'body': None,
             })
         except Exception:
-            self._session.rollback()
+            self._rollback()
             raise
 
         return ret
+
+    def _rollback(self):
+        if self._session:
+            self._session.rollback()

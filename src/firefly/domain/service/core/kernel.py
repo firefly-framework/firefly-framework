@@ -32,6 +32,7 @@ from firefly.infrastructure.service.container import Container
 from firefly.infrastructure.service.core.chalice_application import ChaliceApplication
 from sqlalchemy import MetaData, event
 from sqlalchemy.engine import Engine, Connection
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.sql.ddl import DDL
 
@@ -304,7 +305,10 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
 
     def _build_service(self, cls):
         if cls not in self._service_cache:
-            self._service_cache[cls] = self.build(cls)
+            try:
+                self._service_cache[cls] = self.build(cls)
+            except OperationalError:
+                pass  # Temporarily ignore DB connection errors.
         return self._service_cache[cls]
 
     def _load_context(self, context_name: str, config: dict):

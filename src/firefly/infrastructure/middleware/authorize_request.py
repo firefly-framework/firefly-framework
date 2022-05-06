@@ -32,7 +32,7 @@ class AuthorizeRequest(ffd.Middleware):
     _ff_environment: str = None
 
     def __init__(self):
-        if self._user_pool_id is not None:
+        if self._user_pool_id not in (None, ''):
             response = self._kernel.cognito_client.list_user_pool_clients(
                 UserPoolId=self._user_pool_id
             )

@@ -22,7 +22,7 @@ from typing import Tuple
 from unittest.mock import MagicMock
 
 import firefly.domain as ffd
-
+from pydantic.dataclasses import dataclass
 
 DO_NOT_RESET = ('routes_rest_router',)
 
@@ -36,17 +36,19 @@ class ContainerProperty:
         return self._constructor(self._container)
 
 
-class Constructor(ffd.ValueObject):
-    type: type = ffd.required()
-    name: str = ffd.optional()
-    constructor: typing.Any = ffd.optional()
-    instance: object = ffd.optional()
+@dataclass
+class Constructor:
+    type: type
+    name: str = None
+    constructor: typing.Any = None
+    instance: object = None
 
     def __call__(self, container):
         if self.instance is None:
             try:
                 self.instance = self.constructor(container)
             except TypeError as e:
+                raise e
                 raise TypeError(self.name) from e
         return self.instance
 
@@ -179,7 +181,7 @@ class Container(ABC):
                             constructor.instance = constructor.constructor(self)
                         setattr(class_, k, property(fget=ContainerProperty(constructor, self)))
 
-        self._stack.pop()
+        # self._stack.pop()
         return class_
 
     def _find_constructor(self, type_: type = None, name: str = None):

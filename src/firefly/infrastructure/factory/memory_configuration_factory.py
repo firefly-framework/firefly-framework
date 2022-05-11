@@ -19,4 +19,4 @@ import firefly.domain as ffd
 
 class MemoryConfigurationFactory(ffd.ConfigurationFactory):
     def __call__(self, config: dict) -> ffd.Configuration:
-        return ffd.Configuration(_config=config)
+        return ffd.Configuration(config=config)

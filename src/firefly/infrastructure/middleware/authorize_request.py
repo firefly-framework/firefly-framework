@@ -16,11 +16,10 @@ from __future__ import annotations
 
 from typing import Callable, Any
 
-import chalice.app
 import cognitojwt
+from fastapi import Request
 
 import firefly.domain as ffd
-from chalice.app import ForbiddenError, BadRequestError
 
 
 @ffd.middleware()
@@ -44,11 +43,8 @@ class AuthorizeRequest(ffd.Middleware):
                 raise ffd.ApiError('Could not initialize clients list from Cognito')
             self._clients = clients
 
-    def __call__(self, event, get_response: Callable) -> Any:
-        request = self._kernel.current_request()
-        if request is None or not hasattr(event, 'method'):
-            return get_response(event)
-
+    async def __call__(self, request: Request, call_next: Callable) -> Any:
+        request.auth
         headers = request.headers
         token = None
         for k, v in headers.items():

@@ -12,13 +12,5 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from typing import Tuple, List, Union, Type
-
-from .domain import *
-from .infrastructure import *
-
-EventList = Union[Event, Tuple[str, Union[dict, object]], List[Union[Event, Tuple[str, Union[dict, object]]]]]
-TypeOfMessage = Union[str, Type[Message]]
-TypeOfCommand = Union[str, Type[Command]]
-TypeOfEvent = Union[str, Type[Event]]
-TypeOfQuery = Union[str, Type[Query]]
+from firefly.domain import *
+from firefly.infrastructure import *

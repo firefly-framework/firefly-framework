@@ -16,7 +16,6 @@ from __future__ import annotations
 
 from typing import List, Type, Dict
 
-import firefly as ff
 import firefly.domain as ffd
 import inflection
 
@@ -27,10 +26,6 @@ class Context(ffd.Entity):
     kernel: ffd.Kernel = ffd.hidden()
     is_extension: bool = ffd.optional(default=False)
     entities: List[Type[ffd.Entity]] = ffd.list_()
-    command_handlers: Dict[Type[ffd.ApplicationService], ff.TypeOfCommand] = ffd.dict_()
-    query_handlers: Dict[Type[ffd.ApplicationService], ff.TypeOfQuery] = ffd.dict_()
-    event_listeners: Dict[Type[ffd.ApplicationService], List[ff.TypeOfEvent]] = ffd.dict_()
-    endpoints: List[ff.Endpoint] = ffd.list_()
 
     def __post_init__(self):
         self.ports = []

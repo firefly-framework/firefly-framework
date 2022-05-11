@@ -16,12 +16,11 @@ from __future__ import annotations
 
 from typing import Callable, Any
 
-from chalice import Response, ForbiddenError
 from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy.orm import Session
 
 import firefly.domain as ffd
-from firefly.infrastructure.service.core.chalice_application import STATUS_CODES, ACCESS_CONTROL_HEADERS, \
+from firefly.domain.service.core.fast_api_application import STATUS_CODES, ACCESS_CONTROL_HEADERS, \
     chalice_response
 
 

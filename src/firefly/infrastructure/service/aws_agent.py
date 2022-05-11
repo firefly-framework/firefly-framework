@@ -721,16 +721,18 @@ class AwsAgent(Agent, ResourceNameGenerator, ff.LoggerAware):
             fp.write("""from __future__ import annotations
             
 import firefly as ff
-import logging
-
-logging.getLogger()
+from mangum import Mangum
 
 kernel = ff.Kernel().boot()
-kernel.logger.set_level_to_debug()
 
 
-def app(event=None, context=None):
-    return kernel.handle_invocation(event, context)
+def app(event, scope):
+    print(event)
+    print(scope)
+    return kernel.handle_invocation(event, scope)
+    
+    
+handler = Mangum(kernel.get_application().app, lifespan="off")
 """)
         os.chdir('./build/python-sources')
         with open('firefly.yml', 'w') as fp:

@@ -16,15 +16,18 @@ import argparse
 import os
 
 import inflection
-from firefly.domain.entity.core.cli_app import CliApp
-from firefly.domain.entity.core.cli_argument import CliArgument
+
+import firefly.domain as ffd
+from firefly.domain.entity.core.cli import CliApp, CliArgument
 from firefly.domain.service.command_line.cli_app_executor import CliAppExecutor
 from firefly.domain.service.messaging.message_factory import MessageFactory
 from firefly.domain.service.messaging.system_bus import SystemBusAware
+from firefly.domain.service.core.kernel import Kernel
 
 
 class ArgparseExecutor(CliAppExecutor, SystemBusAware):
     _message_factory: MessageFactory = None
+    _kernel: Kernel = None
 
     def __init__(self):
         self._app = None
@@ -58,8 +61,8 @@ class ArgparseExecutor(CliAppExecutor, SystemBusAware):
             self._parser.print_help()
             return
 
-        instance = self._message_factory.command(self._message_cache[target], vars(args))
-        self.invoke(instance)
+        service = self._kernel.build(self._message_cache[target])
+        service(**ffd.build_argument_list(vars(args), service))
 
     def _initialize(self):
         self._add_verbosity_arguments(self._parser)
@@ -104,7 +107,7 @@ class ArgparseExecutor(CliAppExecutor, SystemBusAware):
                 p = sp.add_parser(k, help=v['endpoint'].help if 'endpoint' in v else None)
                 self._add_verbosity_arguments(p)
                 if 'endpoint' in v:
-                    self._message_cache[k] = v['endpoint'].message
+                    self._message_cache[k] = v['endpoint'].service
                 self._configure_argparse(v, p)
 
     @staticmethod

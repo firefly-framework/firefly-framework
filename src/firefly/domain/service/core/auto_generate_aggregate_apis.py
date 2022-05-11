@@ -29,8 +29,6 @@ class AutoGenerateAggregateApis(ApplicationService, LoggerAware):
 
     def __call__(self):
         for entity in self._kernel.get_entities():
-            if entity.get_class_context() != self._context:
-                entity._context = self._context
             self._process_entity(entity)
 
     def _process_entity(self, entity: type):

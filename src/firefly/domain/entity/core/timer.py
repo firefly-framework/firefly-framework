@@ -17,11 +17,11 @@ from __future__ import annotations
 from typing import Union, Type
 
 import firefly.domain as ffd
+from pydantic.dataclasses import dataclass
 
 
-class Timer(ffd.Entity):
-    id: str = ffd.id_()
-    command: Union[str, Type[ffd.Command]] = ffd.required()
-    environment: str = ffd.optional()
-    cron: str = ffd.optional()
-    # rate: str = optional()
+@dataclass
+class Timer:
+    command: Union[str, Type[ffd.Command]]
+    environment: str = None
+    cron: str = None

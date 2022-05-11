@@ -23,7 +23,7 @@ import firefly.domain.constants as const
 import firefly.domain.error as error
 import inflection
 from firefly import domain as ffd
-from firefly.domain.entity.core.http_endpoint import HttpEndpoint
+from firefly.domain.entity.core.endpoints import HttpEndpoint
 
 function_name = re.compile(r'.*function\s([^\.]+)\..*')
 
@@ -38,11 +38,12 @@ class Rest(ffd.ConfigurationAnnotation):
                 parent = function_name.match(str(cls)).groups()[0]
                 prefix = f'/{inflection.pluralize(inflection.dasherize(inflection.underscore(parent)))}/{{id}}'
 
+            print(cls)
             endpoint = HttpEndpoint(
                 route=prefix + route,
                 method=method,
                 message=generates,
-                query_params=query_params,
+                query_params=query_params or {},
                 service=cls,
                 secured=secured,
                 scopes=scopes or [],
@@ -69,7 +70,7 @@ class Rest(ffd.ConfigurationAnnotation):
         def on_wrapper(cls):
             if not hasattr(cls, const.HTTP_ENDPOINTS):
                 setattr(cls, const.HTTP_ENDPOINTS, [])
-            context = cls.get_class_context()
+            context = os.environ.get('CONTEXT')
             base = inflection.pluralize(inflection.dasherize(inflection.underscore(cls.__name__)))
             if prefix is not None:
                 base = f'{prefix.strip("/")}/{base}'

@@ -18,8 +18,7 @@ import inspect
 import os
 
 import firefly.domain as ffd
-from firefly.domain.entity.core.cli_argument import CliArgument
-from firefly.domain.entity.core.cli_endpoint import CliEndpoint
+from firefly.domain.entity.core.cli import CliArgument, CliEndpoint
 import firefly.domain.constants as const
 
 
@@ -48,8 +47,6 @@ class Cli:
                 app=app if app is not None else command.split(' ')[0],
                 command=command,
                 description=description,
-                message=f'{os.environ.get("CONTEXT", "firefly")}.{cls.__name__}',
-                alias=alias,
                 help=help_,
                 arguments=arguments,
                 service=cls

@@ -14,7 +14,7 @@
 
 from abc import ABC, abstractmethod
 
-from firefly.domain.entity.core.cli_app import CliApp
+from firefly.domain.entity.core.cli import CliApp
 from firefly.domain.service.logging.logger import LoggerAware
 from firefly.domain.service.messaging.system_bus import SystemBusAware
 

@@ -14,15 +14,23 @@
 
 from __future__ import annotations
 
-from pprint import pprint
+from dataclasses import field
+from typing import Type, List, Union
 
 import firefly.domain as ffd
-from sqlalchemy import MetaData
+from pydantic.dataclasses import dataclass
 
 
-class InitializeStorage:
-    _map_entities: ffd.MapEntities = None
-    _metadata: MetaData = None
+@dataclass
+class HttpEndpoint:
+    route: str
+    service: type = None
+    message: Union[Type[ffd.Message], str] = None
+    method: str = 'GET'
+    query_params: dict = field(default_factory=lambda: {})
+    secured: bool = True
+    scopes: List[str] = field(default_factory=lambda: [])
+    tags: List[str] = field(default_factory=lambda: [])
 
-    def __call__(self):
-        self._map_entities()
+    def __eq__(self, other):
+        return isinstance(other, HttpEndpoint) and self.route == other.route and self.method == other.method

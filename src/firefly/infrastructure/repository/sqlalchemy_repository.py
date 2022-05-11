@@ -52,27 +52,12 @@ class SqlalchemyRepository(Repository[T]):
         super().__init__()
 
         self._entity_type = self._type()
-        self._table = inflection.tableize(self._entity_type.get_fqn())
         self._index = 0
         self._state = 'empty'
         self._query_details = {}
 
     def append(self, entity: Union[T, List[T], Tuple[T]], **kwargs):
         entities = entity if isinstance(entity, list) else [entity]
-
-        types = get_type_hints(entities[0].__class__)
-        for entity in entities:
-            missing = []
-            for field_ in fields(entity):
-                is_required = field_.metadata.get('required', False) is True
-                has_no_value = getattr(entity, field_.name) is None
-                is_entity = inspect.isclass(types[field_.name]) and issubclass(types[field_.name], ffd.Entity)
-                if is_required and has_no_value and is_entity:
-                    missing.append(field_.name)
-            if len(missing) > 0:
-                raise TypeError(f"Can't persist {entity.__class__.__name__}, missing {len(missing)} "
-                                f"required argument(s): {', '.join(missing)}")
-
         for ee in entities:
             if hasattr(ee, 'created_on') and ee.created_on is None:
                 ee.created_on = datetime.now()
@@ -127,8 +112,8 @@ class SqlalchemyRepository(Repository[T]):
 
         return self.copy()
 
-    def _do_filter(self, criteria: Union[Callable, ffd.BinaryOp] = None, limit: int = None, offset: int = None,
-                   raw: bool = False, sort: tuple = None, count: bool = False) -> List[T]:
+    async def _do_filter(self, criteria: Union[Callable, ffd.BinaryOp] = None, limit: int = None, offset: int = None,
+                         raw: bool = False, sort: tuple = None, count: bool = False) -> List[T]:
 
         query = self._session.query(self._entity_type)
         if criteria is not None:
@@ -139,9 +124,9 @@ class SqlalchemyRepository(Repository[T]):
             )
 
         if limit is not None:
-            query = query.limit(limit)
+            query.limit(limit)
         if offset is not None:
-            query = query.offset(offset)
+            query.offset(offset)
         if sort is not None:
             for s in sort:
                 if isinstance(s, tuple):

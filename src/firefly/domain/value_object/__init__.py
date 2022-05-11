@@ -19,21 +19,15 @@ from datetime import datetime, date
 from typing import List, Union, Dict
 from typing import get_origin, get_args
 
-import firefly.domain as ffd
-import firefly.domain.error as errors
 import inflection
-import marshmallow_dataclass
+from pydantic import BaseModel
+from sqlalchemy.exc import InvalidRequestError
+
 from firefly.domain.entity.validation.validators import IsValidEmail, HasLength, MatchesPattern, IsValidUrl, \
     IsLessThanOrEqualTo, IsLessThan, IsGreaterThanOrEqualTo, IsGreaterThan, IsMultipleOf, HasMaxLength, HasMinLength, \
     parse
 from firefly.domain.meta.build_argument_list import build_argument_list
-from firefly.domain.meta.entity_meta import EntityMeta
 from firefly.domain.utils import is_type_hint
-from marshmallow import Schema, fields as m_fields, ValidationError, EXCLUDE
-from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
-from sqlalchemy.exc import InvalidRequestError
-from sqlalchemy.orm import Session
-
 from .event_buffer import EventBuffer
 from .generic_base import GenericBase
 from .parameter import Parameter
@@ -46,30 +40,8 @@ class Empty:
 _defs = {}
 
 
-MARSHMALLOW_MAPPINGS = {
-    str: m_fields.Str,
-    int: m_fields.Int,
-    float: m_fields.Float,
-    bool: m_fields.Bool,
-    datetime: m_fields.DateTime,
-    date: m_fields.Date,
-}
-
-
 # noinspection PyDataclass
-class ValueObject(metaclass=EntityMeta):
-    _logger = None
-    _session: Session = None
-    _cache = None
-    _mappings = {
-        str: 'string',
-        int: 'integer',
-        float: 'number',
-        bool: 'boolean',
-        datetime: 'string',
-        date: 'string',
-    }
-
+class ValueObject(BaseModel):
     def __init__(self, **kwargs):
         pass
 
@@ -328,60 +300,60 @@ class ValueObject(metaclass=EntityMeta):
 
         return config
 
-    @classmethod
-    def from_dict(cls, data: dict, map_: dict = None, skip: list = None):
-        if map_ is not None:
-            d = data.copy()
-            for source, target in map_.items():
-                if source in d:
-                    d[target] = d[source]
-            data = d
+    # @classmethod
+    # def from_dict(cls, data: dict, map_: dict = None, skip: list = None):
+    #     if map_ is not None:
+    #         d = data.copy()
+    #         for source, target in map_.items():
+    #             if source in d:
+    #                 d[target] = d[source]
+    #         data = d
+    #
+    #     if skip is not None:
+    #         d = data.copy()
+    #         for k in data.keys():
+    #             if k in skip:
+    #                 del d[k]
+    #         data = d
+    #
+    #     for k, v in list(data.items()).copy():
+    #         if k.endswith('_'):
+    #             data[str(k).rstrip('_')] = v
+    #             del data[k]
+    #     try:
+    #         for k in list(data.keys()).copy():
+    #             if k.startswith('_'):
+    #                 del data[k]
+    #         try:
+    #             return cls.schema().load(data, session=cls._session, unknown=EXCLUDE, partial=True)
+    #         except TypeError:
+    #             return cls.schema().load(data, unknown=EXCLUDE, partial=True)
+    #     except ValidationError as e:
+    #         missing = list(filter(lambda f: not f.startswith('_'), e.args[0].keys()))
+    #         if len(missing) > 0:
+    #             raise errors.MissingArgument(
+    #                 f"Missing {len(missing)} required argument(s) for class {cls.__name__}: {', '.join(missing)}"
+    #             ) from e
+    #         raise e
 
-        if skip is not None:
-            d = data.copy()
-            for k in data.keys():
-                if k in skip:
-                    del d[k]
-            data = d
-
-        for k, v in list(data.items()).copy():
-            if k.endswith('_'):
-                data[str(k).rstrip('_')] = v
-                del data[k]
-        try:
-            for k in list(data.keys()).copy():
-                if k.startswith('_'):
-                    del data[k]
-            try:
-                return cls.schema().load(data, session=cls._session, unknown=EXCLUDE, partial=True)
-            except TypeError:
-                return cls.schema().load(data, unknown=EXCLUDE, partial=True)
-        except ValidationError as e:
-            missing = list(filter(lambda f: not f.startswith('_'), e.args[0].keys()))
-            if len(missing) > 0:
-                raise errors.MissingArgument(
-                    f"Missing {len(missing)} required argument(s) for class {cls.__name__}: {', '.join(missing)}"
-                ) from e
-            raise e
-
-    @classmethod
-    def schema(cls) -> Schema:
-        if not isinstance(cls._cache, dict):
-            cls._cache = {}
-
-        if cls not in cls._cache:
-            if issubclass(cls, ffd.Entity):
-                class FieldContainer(SQLAlchemyAutoSchema):
-                    class Meta:
-                        model = cls
-                        include_relationships = True
-                        load_instance = True
-
-                cls._cache[cls] = FieldContainer()
-            else:
-                cls._cache[cls] = marshmallow_dataclass.class_schema(cls)()
-
-        return cls._cache[cls]
+    # @classmethod
+    # def schema(cls) -> Schema:
+    #     if not isinstance(cls._cache, dict):
+    #         cls._cache = {}
+    #
+    #     if cls not in cls._cache:
+    #         if issubclass(cls, ffd.Entity):
+    #             class FieldContainer(SQLAlchemyAutoSchema):
+    #                 class Meta:
+    #                     model = cls
+    #                     include_relationships = True
+    #                     load_instance = True
+    #
+    #             cls._cache[cls] = FieldContainer()
+    #         else:
+    #             cls._cache[cls] = marshmallow_dataclass.class_schema(cls)()
+    #
+    #     return cls._cache[cls]
 
     def __str__(self):
         while True:

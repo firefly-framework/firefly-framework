@@ -17,6 +17,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Callable, Any
 
+from fastapi import Request
+
 import firefly.domain as ffd
 
 
@@ -25,5 +27,5 @@ class Middleware(ffd.MetaAware, ABC):
     Middleware must be placed in the *infrastructure* layer.
     """
     @abstractmethod
-    def __call__(self, event, get_response: Callable) -> Any:
+    async def __call__(self, request: Request, call_next: Callable) -> Any:
         pass

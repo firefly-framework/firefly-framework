@@ -22,8 +22,7 @@ from sqlalchemy.orm import Session, close_all_sessions
 import firefly as ff
 import firefly.infrastructure as ffi
 import pytest
-from chalice.test import TestHTTPClient
-from firefly.infrastructure.service.messaging.chalice_message_transport import ChaliceMessageTransport
+from firefly.infrastructure.service.messaging.test_message_transport import TestMessageTransport
 
 os.environ['FF_ENVIRONMENT'] = 'test'
 
@@ -37,7 +36,7 @@ def config():
 def kernel(config) -> ff.Kernel:
     ff.Kernel.use('configuration', constructor=lambda self: ffi.MemoryConfigurationFactory()(config))
     kernel: ff.Kernel = ff.Kernel().boot()
-    kernel.register_object('message_transport', ChaliceMessageTransport, force=True)
+    kernel.register_object('message_transport', TestMessageTransport, force=True)
     kernel.reset()
 
     kernel.sqlalchemy_metadata.drop_all()

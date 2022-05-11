@@ -16,14 +16,14 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..entity import Entity, id_, dict_, required
+from pydantic.dataclasses import dataclass
 
 
-class Envelope(Entity):
-    id: str = id_()
-    headers: dict = dict_()
-    raw_request: dict = dict_()
-    body: Any = required()
+@dataclass
+class Envelope:
+    headers: dict = lambda: {}
+    raw_request: dict = lambda: {}
+    body: Any = None
 
     @classmethod
     def wrap(cls, body: Any) -> Envelope:

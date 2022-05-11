@@ -19,16 +19,13 @@ import logging
 import firefly.domain as ffd
 
 
-class ChaliceLogger(ffd.Logger):
-    _application: ffd.Application = None
+class DefaultLogger(ffd.Logger):
     _serializer: ffd.Serializer = None
     _max_length: int = 5120  # ~5k
 
     @property
     def log(self):
-        if self._application.app is None:
-            return logging
-        return self._application.app.log
+        return logging
 
     def debug(self, message: str, *args, **kwargs):
         if isinstance(message, dict):

@@ -16,10 +16,8 @@ from __future__ import annotations
 
 from abc import ABC
 
-import firefly as ff
 import firefly.domain as ffd
-from firefly.domain.meta.meta_aware import MetaAware
 
 
-class AggregateRoot(ffd.Entity, MetaAware, ABC):
-    pass
+class AggregateRoot(ffd.Entity):
+    __abstract__ = True

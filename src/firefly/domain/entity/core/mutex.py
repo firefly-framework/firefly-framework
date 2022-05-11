@@ -16,10 +16,10 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from ..aggregate_root import AggregateRoot
-from ..entity import id_, now
+from pydantic.dataclasses import dataclass
 
 
-class Mutex(AggregateRoot):
-    name: str = id_(is_uuid=False)
-    created: datetime = now()
+@dataclass
+class Mutex:
+    name: str
+    created: datetime = datetime.now()

@@ -29,7 +29,7 @@ from firefly.domain.utils import merge
 
 class YamlConfigurationFactory(ConfigurationFactory):
     def __call__(self) -> Configuration:
-        configuration = Configuration(_config=self._load_config())
+        configuration = Configuration(config=self._load_config())
         for context, config in configuration.contexts.items():
             module = importlib.import_module(context)
             if module.__file__ is None:

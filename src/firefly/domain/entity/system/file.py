@@ -16,10 +16,11 @@ from __future__ import annotations
 
 from typing import Union
 
-import firefly.domain as ffd
+from pydantic.dataclasses import dataclass
 
 
-class File(ffd.ValueObject):
-    name: str = ffd.required()
-    content: Union[bytes, str] = ffd.optional()  # Base64-Encoded
-    content_type: str = ffd.optional()
+@dataclass
+class File:
+    name: str
+    content: Union[bytes, str] = None
+    content_type: str = None

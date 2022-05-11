@@ -16,22 +16,15 @@ from __future__ import annotations
 
 from typing import Any
 
+from starlette.testclient import TestClient
+
 import firefly.domain as ffd
-from chalice.test import Client
 
 
-class ChaliceMessageTransport(ffd.MessageTransport, ffd.LoggerAware):
+class TestMessageTransport(ffd.MessageTransport, ffd.LoggerAware):
     _kernel: ffd.Kernel = None
     _serializer: ffd.Serializer = None
     _context: str = None
-
-    __client: Client = None
-
-    @property
-    def _client(self):
-        if self.__client is None:
-            self.__client = self._kernel.get_application().get_test_client()
-        return self.__client
 
     def dispatch(self, event: ffd.Event) -> None:
         if event.get_context() != self._context:

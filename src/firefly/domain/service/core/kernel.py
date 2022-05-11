@@ -19,27 +19,30 @@ import inspect
 import logging
 import os
 from pprint import pprint
-from typing import Optional, Type, Callable, List, Dict
+from typing import Optional, Type, Callable, List, Dict, Any
 
 import boto3
 import firefly.domain as ffd
 import firefly.domain.constants as const
-import firefly.infrastructure as ffi
 import inflection
 import python_jwt
-from chalice.app import Request
-from firefly.infrastructure.service.container import Container
-from firefly.infrastructure.service.core.chalice_application import ChaliceApplication
 from sqlalchemy import MetaData, event
 from sqlalchemy.engine import Engine, Connection
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.sql.ddl import DDL
+from firefly.domain.entity.entity import Base
 
 
-class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
+def bind_metadata(self):
+    meta = Base.metadata
+    meta.bind = self.sqlalchemy_engine
+    return meta
+
+
+class Kernel(ffd.Container, ffd.SystemBusAware, ffd.LoggerAware):
     _service_cache: dict = {}
-    _app: ChaliceApplication = None
+    _app: ffd.FastApiApplication = None
     _entities: List[Type[ffd.Entity]] = []
     _aggregates: List[Type[ffd.AggregateRoot]] = []
     _value_objects: List[Type[ffd.ValueObject]] = []
@@ -83,13 +86,11 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
                 continue
             self._load_context(k, v or {})
 
-        # self.debug()
         self.auto_generate_aggregate_apis()
         self._initialize_entity_crud_operations()
-        self._app = self.chalice_application
+        self._app = self.fastapi_application
         self._build_services()
         self._app.initialize(self)
-        self.initialize_storage()
 
         for t in self._value_objects + self._entities:
             t._logger = self.logger
@@ -103,6 +104,23 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
         )
 
         return self
+
+    def process(self, message: ffd.Message) -> Any:
+        app_service = None
+        if isinstance(message, ffd.Command) and str(message) in self._command_handlers:
+            app_service = self._command_handlers[str(message)]
+        elif isinstance(message, ffd.Query) and str(message) in self._query_handlers:
+            app_service = self._query_handlers[str(message)]
+        elif isinstance(message, ffd.Event) and str(message) in self._event_listeners:
+            return list(map(
+                lambda s: s(**ffd.build_argument_list(message.to_dict(), s)),
+                self._event_listeners[str(message)]
+            ))
+
+        if app_service is None:
+            raise ffd.ConfigurationError()
+
+        return app_service(**ffd.build_argument_list(message.to_dict(), app_service))
 
     def user_sub(self):
         if os.environ.get('TEST_USER_SUB'):
@@ -223,19 +241,21 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
             raise ffd.ConfigurationError(f'No {t} handler was generated for {key}')
 
     def _bootstrap_container(self):
-        self.register_object('logger', ffi.ChaliceLogger)
+        import firefly.infrastructure as ffi
+
+        self.register_object('logger', ffi.DefaultLogger)
         self.register_object('system_bus', ffd.SystemBus)
         self.register_object('cognito_factory', ffd.CognitoFactory, lambda s: s.build(ffi.DefaultCognitoFactory))
         self.register_object('routes_rest_router', ffi.RoutesRestRouter)
         self.register_object('configuration_factory', ffi.YamlConfigurationFactory)
-        self.register_object('message_transport', ffd.MessageTransport, lambda s: s.build(ffi.ChaliceMessageTransport))
         self.register_object('message_factory', ffd.MessageFactory)
         self.register_object('serializer', ffd.Serializer)
         self.register_object('map_entities', ffd.MapEntities)
         self.register_object('parse_relationships', ffd.ParseRelationships)
         self.register_object('configuration', ffd.Configuration, lambda s: s.configuration_factory())
-        self.register_object('chalice_application', ChaliceApplication)
+        self.register_object('fastapi_application', ffd.FastApiApplication)
         self.register_object('registry', ffd.Registry)
+        self.register_object('argparse_executor', ffi.ArgparseExecutor)
 
         self.register_object('sqlalchemy_engine_factory', ffi.EngineFactory)
         self.register_object('sqlalchemy_engine', Engine, lambda s: s.sqlalchemy_engine_factory(True))
@@ -244,10 +264,11 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
             'sqlalchemy_sessionmaker', sessionmaker, lambda s: sessionmaker(bind=s.sqlalchemy_connection)
         )
         self.register_object('sqlalchemy_session', Session, lambda s: s.sqlalchemy_sessionmaker())
-        self.register_object('sqlalchemy_metadata', MetaData, lambda s: MetaData(bind=s.sqlalchemy_engine))
+        self.register_object('sqlalchemy_metadata', MetaData, bind_metadata)
         self.register_object(
             'repository_factory', ffd.RepositoryFactory, lambda s: s.build(ffi.SqlalchemyRepositoryFactory)
         )
+        self.register_object('convert_criteria_to_sqlalchemy', ffd.ConvertCriteriaToSqlalchemy)
 
         self.register_object('cloudformation_client', constructor=lambda s: boto3.client('cloudformation'))
         self.register_object('ddb_client', constructor=lambda s: boto3.client('dynamodb'))
@@ -331,7 +352,6 @@ class Kernel(Container, ffd.SystemBusAware, ffd.LoggerAware):
 
     def _add_domain_object(self, k: str, v: type, context: str):
         if issubclass(v, ffd.Entity) and v is not ffd.Entity and context != 'firefly':
-            v.set_class_context(self._context)
             if context == self._context and v not in self._entities:
                 self._entities.append(v)
                 if issubclass(v, ffd.AggregateRoot) and v is not ffd.AggregateRoot:

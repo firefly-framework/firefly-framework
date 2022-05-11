@@ -14,33 +14,27 @@
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
-
 import firefly.domain as ffd
-from firefly.domain.meta.firefly_type import FireflyType
-
-from ..logging.logger import LoggerAware
-from ..messaging.system_bus import SystemBusAware
 
 
-class ApplicationService(FireflyType, ABC, SystemBusAware, LoggerAware):
-    _event_buffer: ffd.EventBuffer = None
+class ProcessMessage:
     _kernel: ffd.Kernel = None
 
-    @abstractmethod
-    async def __call__(self, **kwargs):
-        pass
+    def __call__(self, message: ffd.Message):
+        app_service = None
+        print(str(message))
+        return
+        if isinstance(message, ffd.Command) and str(message) in self._kernel.get_command_handlers():
+            app_service = self._kernel.get_command_handlers()[str(message)]
+        elif isinstance(message, ffd.Query) and str(message) in self._kernel.get_query_handlers():
+            app_service = self._kernel.get_query_handlers()[str(message)]
+        elif isinstance(message, ffd.Event) and str(message) in self._kernel.get_event_listeners():
+            return list(map(
+                lambda s: s(**ffd.build_argument_list(message.to_dict(), s)),
+                self._kernel.get_event_listeners()[str(message)]
+            ))
 
-    @classmethod
-    def get_arguments(cls) -> dict:
-        return ffd.get_arguments(cls.__call__)
+        if app_service is None:
+            raise ffd.ConfigurationError()
 
-    def _buffer_events(self, events):
-        if isinstance(events, list):
-            for event in events:
-                if isinstance(event, (ffd.Event, tuple)):
-                    self._event_buffer.append(event)
-        elif isinstance(events, ffd.Event) or (isinstance(events, tuple) and len(events) == 2):
-            self._event_buffer.append(events)
-
-        return events
+        return app_service(**ffd.build_argument_list(message.to_dict(), app_service))

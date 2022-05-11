@@ -20,12 +20,10 @@ import functools
 import logging
 from json.decoder import JSONDecodeError
 
-import cognitojwt
+from fastapi import FastAPI
+from starlette.testclient import TestClient
 
 import firefly.domain as ffd
-from chalice import Chalice
-from chalice.app import SQSEvent, AuthRequest, AuthResponse, Request, Response
-from chalice.test import Client
 from firefly.domain.service.core.application import Application
 import firefly.domain.error as errors
 
@@ -127,22 +125,22 @@ def middleware(event, get_response, service):
     return service(event, get_response)
 
 
-class ChaliceApplication(Application):
-    app: Chalice = None
+class FastApiApplication(Application):
+    app: FastAPI = None
     configuration: ffd.Configuration = None
     _router: ffd.RestRouter = None
     _context: str = None
     _debug: str = None
 
+    async def handle(self, message):
+        pass
+
     def initialize(self, kernel: ffd.Kernel):
         app_name = self._context
-        self.app = Chalice(app_name=app_name)
-        self.app.debug = self._debug == '1'
-        if self.app.debug:
-            self.app.log.setLevel(logging.DEBUG)
+        self.app = FastAPI(debug=(self._debug == '1'))
 
         for service in kernel.get_middleware():
-            self.app.register_middleware(service)
+            self.app.middleware('http')(service)
 
         for config in kernel.get_http_endpoints():
             config['service'].__name__ = config['service'].__class__.__name__
@@ -153,8 +151,7 @@ class ChaliceApplication(Application):
             self.app.route(
                 path=config['route'],
                 methods=[str(config['method']).upper()],
-                name=config['service'].__class__.__name__,
-                cors=True
+                name=config['service'].__class__.__name__
             )(func)
             self._router.register(config['route'], ffd.HttpEndpoint(
                 route=config['route'],
@@ -163,40 +160,40 @@ class ChaliceApplication(Application):
                 secured=config['secured']
             ))
 
-        for k, v in self.configuration.contexts.items():
-            if k.startswith('firefly') or (v or {}).get('is_extension', False) is True:
-                continue
-            memory_settings = (self.configuration.contexts.get('firefly', {}) or {}).get('memory_settings')
-            if memory_settings is not None:
-                for memory in memory_settings:
-                    func = functools.update_wrapper(functools.partial(sqs_event, kernel=kernel), sqs_event)
-                    func.__name__ = f'sqs_event_{memory}'
-                    self.app.on_sqs_message(
-                        queue=kernel.resource_name_generator.queue_name(app_name, memory)
-                    )(func)
-            else:
-                func = functools.update_wrapper(functools.partial(sqs_event, kernel=kernel), sqs_event)
-                func.__name__ = f'sqs_event'
-                self.app.on_sqs_message(queue=kernel.resource_name_generator.queue_name(app_name))(
-                    func
-                )
+        # for k, v in self.configuration.contexts.items():
+        #     if k.startswith('firefly') or (v or {}).get('is_extension', False) is True:
+        #         continue
+        #     memory_settings = (self.configuration.contexts.get('firefly', {}) or {}).get('memory_settings')
+        #     if memory_settings is not None:
+        #         for memory in memory_settings:
+        #             func = functools.update_wrapper(functools.partial(sqs_event, kernel=kernel), sqs_event)
+        #             func.__name__ = f'sqs_event_{memory}'
+        #             self.app.on_sqs_message(
+        #                 queue=kernel.resource_name_generator.queue_name(app_name, memory)
+        #             )(func)
+        #     else:
+        #         func = functools.update_wrapper(functools.partial(sqs_event, kernel=kernel), sqs_event)
+        #         func.__name__ = f'sqs_event'
+        #         self.app.on_sqs_message(queue=kernel.resource_name_generator.queue_name(app_name))(
+        #             func
+        #         )
 
-        for endpoint in kernel.get_cli_endpoints():
-            func_name = endpoint.service.__name__
-            func = functools.update_wrapper(
-                functools.partial(lambda_handler, service=kernel.build(endpoint.service), serializer=kernel.serializer),
-                lambda_handler
-            )
-            func.__name__ = func_name
-            self.app.lambda_function(name=func_name)(func)
+        # for endpoint in kernel.get_cli_endpoints():
+        #     func_name = endpoint.service.__name__
+        #     func = functools.update_wrapper(
+        #         functools.partial(lambda_handler, service=kernel.build(endpoint.service), serializer=kernel.serializer),
+        #         lambda_handler
+        #     )
+        #     func.__name__ = func_name
+        #     self.app.lambda_function(name=func_name)(func)
 
-        for k, v in list(kernel.get_command_handlers().items()) + list(kernel.get_query_handlers().items()):
-            func_name = str(k).split('.').pop()
-            func = functools.update_wrapper(
-                functools.partial(lambda_handler, service=v, serializer=kernel.serializer), lambda_handler
-            )
-            func.__name__ = func_name
-            self.app.lambda_function(name=func_name)(func)
+        # for k, v in list(kernel.get_command_handlers().items()) + list(kernel.get_query_handlers().items()):
+        #     func_name = str(k).split('.').pop()
+        #     func = functools.update_wrapper(
+        #         functools.partial(lambda_handler, service=v, serializer=kernel.serializer), lambda_handler
+        #     )
+        #     func.__name__ = func_name
+        #     self.app.lambda_function(name=func_name)(func)
 
     def get_test_client(self):
-        return Client(self.app)
+        return TestClient(self.app)

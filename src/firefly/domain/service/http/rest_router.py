@@ -17,7 +17,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Optional, Tuple
 
-from ...entity.core.http_endpoint import HttpEndpoint
+from ...entity.core.endpoints import HttpEndpoint
 
 
 class RestRouter(ABC):

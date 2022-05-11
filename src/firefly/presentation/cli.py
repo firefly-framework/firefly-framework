@@ -12,17 +12,16 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-from firefly.domain.entity.core.cli_app import CliApp
-from firefly.infrastructure.factory.yaml_configuration_factory import YamlConfigurationFactory
+import firefly as ff
 from firefly.infrastructure.service import set_env
 
 
 @set_env
 def main():
-    YamlConfigurationFactory()()
+    ff.YamlConfigurationFactory()()
     from firefly import Kernel
     kernel = Kernel().boot()
-    app = CliApp(name='firefly')
+    app = ff.CliApp(name='firefly')
     for endpoint in kernel.get_cli_endpoints():
         app.endpoints.append(endpoint)
     kernel.argparse_executor.run(app)

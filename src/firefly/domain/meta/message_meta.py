@@ -26,7 +26,7 @@ class MessageMeta(ABCMeta):
 
         if 'fields_' in kwargs and 'annotations_' in kwargs:
             for k, v in kwargs['fields_'].items():
-                my_dict[k] = ffd.optional(default=v)
+                my_dict[k] = v
             if '__annotations__' in my_dict:
                 my_dict['__annotations__'].update(kwargs['annotations_'])
             else:

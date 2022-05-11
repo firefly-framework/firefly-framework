@@ -14,29 +14,31 @@
 
 from __future__ import annotations
 
-from ..aggregate_root import AggregateRoot
-from ..entity import dict_
+from dataclasses import field
+
+from pydantic.dataclasses import dataclass
 
 
-class Configuration(AggregateRoot):
-    _config: dict = dict_()
+@dataclass
+class Configuration:
+    config: dict = field(default_factory=lambda: {})
 
     def __post_init__(self):
-        if self._config is None:
-            self._config = {}
+        if self.config is None:
+            self.config = {}
 
     @property
     def all(self):
-        return self._config
+        return self.config
 
     @property
     def contexts(self):
-        return self._config.get('contexts', {})
+        return self.config.get('contexts', {})
 
     @contexts.setter
     def contexts(self, value):
-        self._config['contexts'] = value
+        self.config['contexts'] = value
 
     @property
     def environments(self):
-        return self._config.get('environments', {})
+        return self.config.get('environments', {})

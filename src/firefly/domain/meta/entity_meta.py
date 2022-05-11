@@ -15,34 +15,18 @@
 from __future__ import annotations
 
 from abc import ABCMeta
-from dataclasses import dataclass
+# from dataclasses import dataclass
+
+import pydantic
+from pydantic.dataclasses import dataclass
+from pydantic.main import ModelMetaclass
 
 
 class EntityMeta(ABCMeta):
     def __new__(mcs, name, bases, dct, **kwargs):
-        ret = super().__new__(mcs, name, bases, dct)
-        ret = dataclass(ret, eq=False)
-
-        is_aggregate = False
-        for c in bases:
-            # We can't import AggregateRoot for a proper issubclass check without getting a circular reference.
-            if 'AggregateRoot' in str(c):
-                is_aggregate = True
-                break
-
-        if is_aggregate:
-            if 'create_on' in kwargs:
-                ret._create_on = kwargs['create_on']
-            if 'delete_on' in kwargs:
-                ret._delete_on = kwargs['delete_on']
-            if 'update_on' in kwargs:
-                ret._update_on = kwargs['update_on']
-            if 'sync_with' in kwargs:
-                ret._create_on = f"{kwargs['sync_with']}Created"
-                ret._delete_on = f"{kwargs['sync_with']}Deleted"
-                ret._update_on = f"{kwargs['sync_with']}Updated"
-
-        return ret
+        return dataclass(
+            super().__new__(mcs, name, bases, dct), eq=False
+        )
 
     def __init__(cls, name, bases, dct, **kwargs):
         super().__init__(name, bases, dct)

@@ -14,15 +14,36 @@
 
 from __future__ import annotations
 
-from typing import Any, List, Type
+from dataclasses import field
+from typing import List, Type, Any, Optional, Union
 
-import firefly.domain as ffd
+from dataclasses import dataclass
 
 
-class CliArgument(ffd.ValueObject):
-    name: str = ffd.required()
-    type: Type = ffd.required()
-    default: Any = ffd.optional()
-    required: bool = ffd.optional(default=False)
-    help: str = ffd.optional()
-    alias: List[str] = ffd.list_()
+@dataclass
+class CliApp:
+    name: str
+    description: str = None
+    endpoints: Optional[List[CliEndpoint]] = field(default_factory=lambda: [])
+
+
+@dataclass
+class CliArgument:
+    name: str
+    type: Type
+    default: Any = None
+    required: bool = False
+    help: str = None
+    alias: Optional[Union[List[str], str]] = None
+
+
+@dataclass
+class CliEndpoint:
+    app: str
+    command: str
+    service: type
+    description: str = None
+    alias: List[str] = field(default_factory=lambda: [])
+    help: str = None
+    arguments: List[CliArgument] = field(default_factory=lambda: [])
+    message: Any = ''

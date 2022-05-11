@@ -17,8 +17,8 @@ from __future__ import annotations
 from firefly.infrastructure.service.aws_agent import AwsAgent
 from firefly.infrastructure.factory.yaml_configuration_factory import YamlConfigurationFactory
 from firefly.infrastructure.factory.memory_configuration_factory import MemoryConfigurationFactory
-from firefly.infrastructure.service.logging.chalice_logger import ChaliceLogger
-from firefly.infrastructure.service.messaging.chalice_message_transport import ChaliceMessageTransport
+from firefly.infrastructure.service.logging.default_logger import DefaultLogger
+from firefly.infrastructure.service.messaging.boto_message_transport import BotoMessageTransport
 from firefly.infrastructure.service.storage.load_payload import LoadPayload
 from firefly.infrastructure.service.storage.prepare_s3_download import PrepareS3Download
 from firefly.infrastructure.service.storage.s3_service import S3Service
@@ -28,7 +28,6 @@ from firefly.infrastructure.repository.sqlalchemy.engine_factory import EngineFa
 from firefly.infrastructure.repository.sqlalchemy_repository_factory import SqlalchemyRepositoryFactory
 from firefly.infrastructure.repository.sqlalchemy_repository import SqlalchemyRepository
 from firefly.infrastructure.repository.sqlalchemy_connection_factory import SqlalchemyConnectionFactory
-from firefly.infrastructure.repository.initialize_storage import InitializeStorage
 from firefly.infrastructure.middleware.begin_transaction import BeginTransaction
 from firefly.infrastructure.middleware.authorize_request import AuthorizeRequest
 from firefly.infrastructure.middleware.handle_envelope import HandleEnvelope

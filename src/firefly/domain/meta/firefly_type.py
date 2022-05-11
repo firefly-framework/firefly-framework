@@ -31,6 +31,7 @@ class FireflyType(ContextAware, ABC):
         except AttributeError:
             context = self._context
 
+        print(self.__class__)
         return f'{context}.{self.__class__.__name__}' \
             if context is not None else self.__class__.__name__
 

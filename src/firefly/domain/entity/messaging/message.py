@@ -17,7 +17,6 @@ from __future__ import annotations
 import uuid
 from dataclasses import asdict, fields
 
-import firefly.domain as ffd
 from firefly.domain.meta.firefly_type import FireflyType
 from firefly.domain.meta.message_meta import MessageMeta
 from firefly.domain.meta.get_arguments import get_arguments
@@ -25,7 +24,6 @@ from firefly.domain.meta.get_arguments import get_arguments
 
 class Message(FireflyType, metaclass=MessageMeta):
     _id: str = None
-    _context: str = None
 
     def __init__(self, *args, **kwargs):
         pass

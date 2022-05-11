@@ -112,8 +112,8 @@ class SqlalchemyRepository(Repository[T]):
 
         return self.copy()
 
-    async def _do_filter(self, criteria: Union[Callable, ffd.BinaryOp] = None, limit: int = None, offset: int = None,
-                         raw: bool = False, sort: tuple = None, count: bool = False) -> List[T]:
+    def _do_filter(self, criteria: Union[Callable, ffd.BinaryOp] = None, limit: int = None, offset: int = None,
+                   raw: bool = False, sort: tuple = None, count: bool = False) -> List[T]:
 
         query = self._session.query(self._entity_type)
         if criteria is not None:

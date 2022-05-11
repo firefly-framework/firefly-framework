@@ -14,14 +14,18 @@
 
 from __future__ import annotations
 
+import os
 import uuid
-from uuid import UUID
 
+from dotenv import load_dotenv
 from pydantic_sqlalchemy import sqlalchemy_to_pydantic
-from sqlalchemy import inspect
+from sqlalchemy import inspect, MetaData
 from sqlalchemy.orm import declarative_base
 
-Base = declarative_base()
+load_dotenv()
+
+meta = MetaData(schema=os.environ.get('CONTEXT'))
+Base = declarative_base(metadata=meta)
 
 
 class Entity(Base):

@@ -23,10 +23,6 @@ class Application(ABC):
     app = None
 
     @abstractmethod
-    async def handle(self, message):
-        pass
-
-    @abstractmethod
     def initialize(self, kernel: ffd.Kernel):
         pass
 

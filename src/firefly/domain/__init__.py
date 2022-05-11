@@ -88,5 +88,6 @@ from firefly.domain.service.core.handle_invocation import HandleInvocation
 from firefly.domain.error import *
 
 from firefly.domain.service.core.fast_api_application import FastApiApplication
+from firefly.domain.service.core.chalice_application import ChaliceApplication
 from firefly.domain.service.dependency_injection.container import Container
 from firefly.domain.service.core.kernel import Kernel

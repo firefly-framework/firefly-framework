@@ -36,7 +36,10 @@ def config():
 def kernel(config) -> ff.Kernel:
     ff.Kernel.use('configuration', constructor=lambda self: ffi.MemoryConfigurationFactory()(config))
     kernel: ff.Kernel = ff.Kernel().boot()
-    kernel.register_object('message_transport', TestMessageTransport, force=True)
+
+    if os.environ.get('DEPLOYMENT_MODE', 'lambda') == 'lambda':
+        kernel.register_object('message_transport', ff.ChaliceMessageTransport, force=True)
+
     kernel.reset()
 
     kernel.sqlalchemy_metadata.drop_all()
@@ -49,7 +52,7 @@ def kernel(config) -> ff.Kernel:
 
 
 @pytest.fixture(scope="session")
-def client(kernel) -> TestHTTPClient:
+def client(kernel):
     return kernel.get_application().get_test_client().http
 
 

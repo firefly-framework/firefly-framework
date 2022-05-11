@@ -22,6 +22,8 @@ from pprint import pprint
 from typing import Optional, Type, Callable, List, Dict, Any
 
 import boto3
+from dotenv import load_dotenv
+
 import firefly.domain as ffd
 import firefly.domain.constants as const
 import inflection
@@ -88,7 +90,8 @@ class Kernel(ffd.Container, ffd.SystemBusAware, ffd.LoggerAware):
 
         self.auto_generate_aggregate_apis()
         self._initialize_entity_crud_operations()
-        self._app = self.fastapi_application
+        self._app = self.chalice_application if os.environ.get('DEPLOYMENT_MODE', 'lambda') == 'lambda' else \
+            self.fastapi_application
         self._build_services()
         self._app.initialize(self)
 
@@ -131,7 +134,7 @@ class Kernel(ffd.Container, ffd.SystemBusAware, ffd.LoggerAware):
             return headers.get('sub')
 
     def user_token(self):
-        current_request: Request = self.current_request()
+        current_request = self.current_request()
         if current_request is None:
             return None, None
 
@@ -204,7 +207,7 @@ class Kernel(ffd.Container, ffd.SystemBusAware, ffd.LoggerAware):
     def register_query(self, cls):
         self._query_handlers[str(getattr(cls, const.QUERY))] = self._build_service(cls)
 
-    def current_request(self) -> Request:
+    def current_request(self):
         return self.get_application().app.current_request
 
     def _initialize_entity_crud_operations(self):
@@ -254,8 +257,10 @@ class Kernel(ffd.Container, ffd.SystemBusAware, ffd.LoggerAware):
         self.register_object('parse_relationships', ffd.ParseRelationships)
         self.register_object('configuration', ffd.Configuration, lambda s: s.configuration_factory())
         self.register_object('fastapi_application', ffd.FastApiApplication)
+        self.register_object('chalice_application', ffd.ChaliceApplication)
         self.register_object('registry', ffd.Registry)
         self.register_object('argparse_executor', ffi.ArgparseExecutor)
+        self.register_object('resource_name_generator', ffd.ResourceNameGenerator)
 
         self.register_object('sqlalchemy_engine_factory', ffi.EngineFactory)
         self.register_object('sqlalchemy_engine', Engine, lambda s: s.sqlalchemy_engine_factory(True))

@@ -14,17 +14,21 @@
 
 from __future__ import annotations
 
+import inspect
 import os
 import uuid
+from datetime import datetime, date
+from typing import get_origin, get_args, get_type_hints
 
-from devtools import debug
+import inflection
 from dotenv import load_dotenv
-from pydantic_sqlalchemy import sqlalchemy_to_pydantic
-from sqlalchemy import inspect, MetaData
+from marshmallow import Schema, fields as m_fields, ValidationError, EXCLUDE
+from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
+from sqlalchemy import inspect as sa_inspect, MetaData
 from sqlalchemy.orm import declarative_base
 
 import firefly.domain as ffd
-from firefly.domain.service.entity.pydantic_model_from_entity import pydantic_model_from_entity
+from firefly.domain.utils import is_type_hint
 
 load_dotenv()
 
@@ -32,13 +36,21 @@ meta = MetaData(schema=os.environ.get('CONTEXT'))
 Base = declarative_base(metadata=meta)
 
 
+MARSHMALLOW_MAPPINGS = {
+    str: m_fields.Str,
+    int: m_fields.Int,
+    float: m_fields.Float,
+    bool: m_fields.Bool,
+    datetime: m_fields.DateTime,
+    date: m_fields.Date,
+}
+
+
 class Entity(Base):
     __abstract__ = True
     _logger = None
-
-    @staticmethod
-    def __try_update_forward_refs__():
-        pass
+    _cache = {}
+    _session = None
 
     def __init__(self, *args, **kwargs):
         if kwargs.get(self.id_name(), None) is None:
@@ -51,33 +63,121 @@ class Entity(Base):
 
         return self.id_value() == other.id_value()
 
-    def to_dict(self):
-        return self.pydantic_model().from_orm(self).dict()
+    def to_dict(self, skip: list = None, **kwargs):
+        caller = kwargs.get('caller')
+        include_relationships = kwargs.get('include_relationships', True)
+        ret = self.schema().dump(self)
+
+        if include_relationships:
+            types = get_type_hints(self.__class__)
+            for field_name in self.__mapper__.class_manager.keys():
+                if field_name.startswith('_'):
+                    continue
+                t = types[field_name]
+                if t is caller.__class__ and caller == getattr(self, field_name):
+                    continue
+                if inspect.isclass(t) and issubclass(t, (ffd.ValueObject, ffd.Entity)):
+                    try:
+                        ret[field_name] = getattr(self, field_name).to_dict(
+                            skip=skip, caller=self
+                        )
+                    except AttributeError:
+                        pass
+                elif is_type_hint(t) and get_origin(t) is list:
+                    args = get_args(t)
+                    if args[0] is caller.__class__:
+                        continue
+                    if inspect.isclass(args[0]) and issubclass(args[0], (ffd.ValueObject, ffd.Entity)):
+                        try:
+                            ret[field_name] = [
+                                e.to_dict(skip=skip, caller=self)
+                                for e in getattr(self, field_name)
+                            ]
+                        except AttributeError:
+                            pass
+
+        if skip is not None:
+            for s in skip:
+                if s in ret:
+                    del ret[s]
+
+        return ret
 
     @classmethod
-    def from_dict(cls, data: dict):
-        print(cls.pydantic_model().schema())
-        return cls({
-            k: v
-            for k, v in data.items() if k in cls._sa_class_manager
-        })
-        # return cls(**ffd.build_argument_list(data, cls))
+    def from_dict(cls, data: dict, map_: dict = None, skip: list = None):
+        if map_ is not None:
+            d = data.copy()
+            for source, target in map_.items():
+                if source in d:
+                    d[target] = d[source]
+            data = d
+
+        if skip is not None:
+            d = data.copy()
+            for k in data.keys():
+                if k in skip:
+                    del d[k]
+            data = d
+
+        for k, v in list(data.items()).copy():
+            if k.endswith('_'):
+                data[str(k).rstrip('_')] = v
+                del data[k]
+        try:
+            for k in list(data.keys()).copy():
+                if k.startswith('_'):
+                    del data[k]
+            try:
+                return cls.schema().load(data, session=cls._session, unknown=EXCLUDE, partial=True)
+            except TypeError:
+                return cls.schema().load(data, unknown=EXCLUDE, partial=True)
+        except ValidationError as e:
+            missing = list(filter(lambda f: not f.startswith('_'), e.args[0].keys()))
+            if len(missing) > 0:
+                raise ffd.MissingArgument(
+                    f"Missing {len(missing)} required argument(s) for class {cls.__name__}: {', '.join(missing)}"
+                ) from e
+            raise e
+
+    def load_dict(self, data: dict):
+        for field_name in self.__mapper__.class_manager.keys():
+            if field_name in data:
+                setattr(self, field_name, data[field_name])
+
+    @classmethod
+    def match_id_from_argument_list(cls, args: dict):
+        snake = f'{inflection.underscore(cls.__name__)}_id'
+        if snake in args:
+            return {snake: args[snake]}
+
+        id_name = cls.id_name()
+        if id_name in args:
+            return {id_name: args[id_name]}
 
     def id_value(self):
-        return getattr(self, self.id_name(self.__class__))
+        return getattr(self, self.id_name())
 
     @classmethod
     def id_name(cls):
-        ret = list(map(lambda x: x.name, inspect(cls).primary_key))
+        ret = list(map(lambda x: x.name, sa_inspect(cls).primary_key))
         return ret if len(ret) > 1 else ret[0]
 
     @classmethod
-    def pydantic_model(cls):
-        if not hasattr(cls, '__ff_cache__'):
-            cls.__ff_cache__ = {
-                cls.__name__: pydantic_model_from_entity(cls)
-            }
-        elif cls.__name__ not in getattr(cls, '__ff_cache__'):
-            cls.__ff_cache__[cls.__name__] = pydantic_model_from_entity(cls)
+    def schema(cls) -> Schema:
+        if not isinstance(cls._cache, dict):
+            cls._cache = {}
 
-        return cls.__ff_cache__[cls.__name__]
+        if cls not in cls._cache:
+            class FieldContainer(SQLAlchemyAutoSchema):
+                class Meta:
+                    model = cls
+                    include_relationships = True
+                    load_instance = True
+
+            cls._cache[cls] = FieldContainer()
+
+        return cls._cache[cls]
+
+    @classmethod
+    def get_class_context(cls):
+        return os.environ.get('CONTEXT')

@@ -206,6 +206,7 @@ class Kernel(ffd.Container, ffd.SystemBusAware, ffd.LoggerAware):
 
     def _initialize_entity_crud_operations(self):
         for entity in self._entities:
+            entity._session = self.sqlalchemy_session
             for endpoint in getattr(entity, const.HTTP_ENDPOINTS, []):
                 service = self._locate_service_for_entity(entity, endpoint.method)
                 if len(list(filter(

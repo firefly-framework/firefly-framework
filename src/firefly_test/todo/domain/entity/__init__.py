@@ -66,14 +66,14 @@ class TodoList(ff.AggregateRoot):
         if self.name is None:
             self.name = f"{self.user.name}'s TODO List"
 
-    def add_task(self, task: Task) -> ff.EventList:
+    def add_task(self, task: Task):
         self.tasks.append(task)
         return 'TaskAdded', task
 
     def remove_task(self, task: Task):
         self.tasks.remove(task)
 
-    def complete_task(self, task_id: str) -> ff.EventList:
+    def complete_task(self, task_id: str):
         for task in self.tasks:
             if task_id == task.id:
                 task.complete_task()

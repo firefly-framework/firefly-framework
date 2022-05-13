@@ -77,17 +77,6 @@ def test_one_to_one(registry):
     assert profile.title == "What's up folks?"
 
 
-def test_one_to_one_missing_one_side(registry):
-    with pytest.raises(TypeError):
-        user = todo.User(
-            name='Bob Loblaw',
-            settings=todo.Settings(
-                send_email=False
-            )
-        )
-        registry(todo.User).append(user)
-
-
 def test_many_to_one(registry):
     users = registry(todo.User)
 

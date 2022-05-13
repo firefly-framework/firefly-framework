@@ -15,12 +15,15 @@
 import uuid
 from pprint import pprint
 
+from devtools import debug
+
 import firefly_test.todo.domain as todo
 import pytest
 
 
 def test_create_user(registry, user_id):
     user = list(registry(todo.User)).pop()
+    debug(user)
     assert user.name == 'Bob Loblaw'
     assert user.settings.send_email is True
     assert user.profile.title == 'Executive'

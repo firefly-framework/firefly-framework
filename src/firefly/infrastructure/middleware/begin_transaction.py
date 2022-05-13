@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from typing import Callable, Any
 
+from sqlalchemy import MetaData
 from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy.orm import Session
 
@@ -27,6 +28,7 @@ from firefly.domain.service.core.fast_api_application import STATUS_CODES, ACCES
 @ffd.middleware()
 class BeginTransaction(ffd.Middleware):
     _session: Session = None
+    _meta: MetaData = None
 
     def __call__(self, event, get_response: Callable) -> Any:
         try:

@@ -59,6 +59,7 @@ class FireflyEncoder(JSONEncoder):
 
 class Serializer:
     _message_factory: ffd.MessageFactory = None
+    _context: str = None
 
     def serialize(self, data):
         return json.dumps(data, cls=FireflyEncoder, skipkeys=True)
@@ -73,7 +74,7 @@ class Serializer:
             raise errors.InvalidArgument('Could not deserialize data')
 
         if isinstance(ret, dict) and '_name' in ret:
-            fqn = f'{ret["_context"]}.{ret["_name"]}'
+            fqn = f'{ret.get("_context", self._context)}.{ret["_name"]}'
             t = ffd.load_class(fqn)
             if t is None:
                 args = [fqn]

@@ -18,8 +18,11 @@ import inspect
 import os
 import typing
 from abc import ABC
+from pprint import pprint
 from typing import Tuple
 from unittest.mock import MagicMock
+
+import inflection
 
 import firefly.domain as ffd
 from pydantic.dataclasses import dataclass
@@ -48,8 +51,8 @@ class Constructor:
             try:
                 self.instance = self.constructor(container)
             except TypeError as e:
-                raise e
-                raise TypeError(self.name) from e
+                if 'abstract class' not in str(e):
+                    raise TypeError(self.name) from e
         return self.instance
 
     def matches(self, type_: type = None, name: str = None):
@@ -128,13 +131,10 @@ class Container(ABC):
         for constructor in self._constructors:
             print(constructor)
 
-    def build(self, class_: object, **kwargs):
-        a = self.autowire(class_, kwargs)
-        try:
-            return a()
-        except TypeError as e:
-            if 'instantiate abstract class' not in str(e):
-                raise e
+    def build(self, class_: type, **kwargs):
+        name = inflection.underscore(class_.__name__)
+        self.register_object(name, class_)
+        return getattr(self, name)
 
     def mock(self, class_, **kwargs):
         a = self.autowire(class_, kwargs, with_mocks=True)
@@ -150,7 +150,6 @@ class Container(ABC):
         self._stack.append(class_)
 
         properties, annotations_ = self._get_class_tree_properties(class_)
-
         for k, v in properties.items():
             if str(k).startswith('__') or v is not None:
                 continue
@@ -189,11 +188,6 @@ class Container(ABC):
             if constructor.matches(type_, name):
                 return constructor
 
-    def _load_object(self, key: str):
-        if key not in self._cache:
-            self._cache[key] = self._constructors[key](self)
-        return self._cache[key]
-
     def _get_class_tree_properties(self, class_: typing.Any, properties: dict = None, annotations_: dict = None)\
             -> Tuple[dict, dict]:
         if properties is None and annotations_ is None:
@@ -204,7 +198,9 @@ class Container(ABC):
         try:
             annotations_.update(typing.get_type_hints(class_))
         except AttributeError:
-            pass
+            if class_.__name__ == 'AuthorizeRequest':
+                print("FUCK FACE")
+                print(typing.get_type_hints(class_))
 
         if hasattr(class_, '__bases__'):
             for base in class_.__bases__:

@@ -17,10 +17,14 @@ from __future__ import annotations
 import os
 import uuid
 
+from devtools import debug
 from dotenv import load_dotenv
 from pydantic_sqlalchemy import sqlalchemy_to_pydantic
 from sqlalchemy import inspect, MetaData
 from sqlalchemy.orm import declarative_base
+
+import firefly.domain as ffd
+from firefly.domain.service.entity.pydantic_model_from_entity import pydantic_model_from_entity
 
 load_dotenv()
 
@@ -48,7 +52,16 @@ class Entity(Base):
         return self.id_value() == other.id_value()
 
     def to_dict(self):
-        return self._pydantic_model().from_orm(self).dict()
+        return self.pydantic_model().from_orm(self).dict()
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        print(cls.pydantic_model().schema())
+        return cls({
+            k: v
+            for k, v in data.items() if k in cls._sa_class_manager
+        })
+        # return cls(**ffd.build_argument_list(data, cls))
 
     def id_value(self):
         return getattr(self, self.id_name(self.__class__))
@@ -59,12 +72,12 @@ class Entity(Base):
         return ret if len(ret) > 1 else ret[0]
 
     @classmethod
-    def _pydantic_model(cls):
+    def pydantic_model(cls):
         if not hasattr(cls, '__ff_cache__'):
             cls.__ff_cache__ = {
-                cls.__name__: sqlalchemy_to_pydantic(cls)
+                cls.__name__: pydantic_model_from_entity(cls)
             }
         elif cls.__name__ not in getattr(cls, '__ff_cache__'):
-            cls.__ff_cache__[cls.__name__] = sqlalchemy_to_pydantic(cls)
+            cls.__ff_cache__[cls.__name__] = pydantic_model_from_entity(cls)
 
         return cls.__ff_cache__[cls.__name__]

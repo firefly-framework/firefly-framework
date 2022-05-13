@@ -20,6 +20,9 @@ import typing
 from dataclasses import is_dataclass, fields, MISSING
 from datetime import datetime, date
 
+from devtools import debug
+from sqlalchemy.orm import DeclarativeMeta
+
 import firefly.domain as ffd
 from dateparser import parse
 from firefly.domain.meta.firefly_type import FireflyType
@@ -63,7 +66,7 @@ def _handle_type_hint(params: typing.Any, t: type, key: str = None, required: bo
                 ret[key] = list(map(lambda a: _handle_type_hint(a, args[0]), params[key]))
             else:
                 ret = list(map(lambda a: _handle_type_hint(a, args[0]), params[key]))
-        elif inspect.isclass(args[0]) and issubclass(args[0], ffd.ValueObject):
+        elif inspect.isclass(args[0]) and issubclass(args[0], (ffd.ValueObject, ffd.Entity)):
             try:
                 if key is not None:
                     ret[key] = []
@@ -91,7 +94,7 @@ def _handle_type_hint(params: typing.Any, t: type, key: str = None, required: bo
 
         if is_type_hint(args[1]):
             ret[key] = {k: _handle_type_hint(v, args[1]) for k, v in params[key].items()}
-        elif inspect.isclass(args[1]) and issubclass(args[1], ffd.ValueObject):
+        elif inspect.isclass(args[1]) and issubclass(args[1], (ffd.ValueObject, ffd.Entity)):
             ret[key] = {k: args[1].from_dict(v) for k, v in params[key].items()}
         else:
             ret[key] = params[key]
@@ -107,7 +110,7 @@ def _handle_type_hint(params: typing.Any, t: type, key: str = None, required: bo
                 break
 
     else:
-        if inspect.isclass(t) and issubclass(t, ffd.ValueObject):
+        if inspect.isclass(t) and issubclass(t, (ffd.ValueObject, ffd.Entity)):
             if key in params:
                 return t.from_dict(params[key])
             else:
@@ -155,50 +158,47 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], 
     is_dc = False
     params = _fix_keywords(params)
 
-    if is_dataclass(obj):
+    if is_dataclass(obj) or (inspect.isclass(obj) and issubclass(obj, ffd.ValueObject)):
         is_dc = True
-        field_dict = {}
-        # noinspection PyDataclass
-        for field_ in fields(obj):
-            field_dict[field_.name] = field_
-        sig = inspect.signature(obj.__init__)
+        sig = getattr(obj, '__fields__')
         types = typing.get_type_hints(obj)
     elif inspect.isclass(obj) and hasattr(obj, '__call__'):
-        sig = inspect.signature(obj.__call__)
+        sig = inspect.signature(obj.__call__).parameters
         types = typing.get_type_hints(obj.__call__)
     elif not inspect.isclass(obj) and isinstance(obj, FireflyType):
-        sig = inspect.signature(obj.__class__.__call__)
+        sig = inspect.signature(obj.__class__.__call__).parameters
         types = typing.get_type_hints(obj.__class__.__call__)
     elif isinstance(obj, type):
-        sig = inspect.signature(obj.__init__)
+        sig = inspect.signature(obj.__init__).parameters
         types = typing.get_type_hints(obj.__init__)
     else:
-        sig = inspect.signature(obj)
+        sig = inspect.signature(obj).parameters
         try:
             types = typing.get_type_hints(obj)
         except NameError:
             types = obj.__annotations__
 
     has_kwargs = False
-    for param in sig.parameters.values():
-        if param.kind == inspect.Parameter.VAR_KEYWORD:
-            has_kwargs = True
+    for param in sig.values():
+        try:
+            if param.kind == inspect.Parameter.VAR_KEYWORD:
+                has_kwargs = True
+        except AttributeError:
+            pass
 
-    for name, param in sig.parameters.items():
-        if name == 'self' or param.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
-            continue
+    for name, param in sig.items():
+        try:
+            if name == 'self' or param.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
+                continue
+        except AttributeError:
+            pass
 
         required = False
-        if is_dc:
-            required = field_dict[name].metadata.get('required', False) is True
-            try:
-                d = field_dict[name].default_factory()
-                if d is not MISSING:
-                    required = False
-            except (AttributeError, TypeError):
-                pass
-        elif param.default == inspect.Parameter.empty:
-            required = True
+        try:
+            if param.default == inspect.Parameter.empty:
+                required = True
+        except AttributeError:
+            pass
 
         type_ = types[name] if name in types else None
         if params and name in params:
@@ -206,7 +206,7 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], 
             if val is not None:
                 params[name] = val
 
-        if isinstance(type_, type) and issubclass(type_, ffd.ValueObject):
+        if isinstance(type_, type) and issubclass(type_, (ffd.ValueObject, ffd.Entity)):
             if params is None:
                 if required is False:
                     continue
@@ -282,9 +282,9 @@ def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], 
     return args
 
 
-def copy_params(params: dict, sig: inspect.Signature):
+def copy_params(params: dict, sig: dict):
     params_copy = params.copy()
-    for n in sig.parameters.keys():
+    for n in sig.keys():
         if n in params_copy:
             del params_copy[n]
     return params_copy

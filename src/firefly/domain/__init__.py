@@ -76,8 +76,6 @@ from firefly.domain.meta.build_argument_list import build_argument_list
 from firefly.domain.service.core.application import Application
 from firefly.domain.service.resource_name_generator import ResourceNameGenerator
 
-from firefly.domain.service.entity.map_entities import MapEntities
-from firefly.domain.service.entity.parse_relationships import ParseRelationships
 from firefly.domain.service.core.auto_generate_aggregate_apis import AutoGenerateAggregateApis
 from firefly.domain.service.crud.create_entity import CreateEntity
 from firefly.domain.service.crud.update_entity import UpdateEntity

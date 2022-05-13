@@ -41,8 +41,6 @@ missing = MISSING()
 
 
 class SqlalchemyRepository(Repository[T]):
-    _map_entities: ffd.MapEntities = None
-    _parse_relationships: ffd.ParseRelationships = None
     _convert_criteria: ffd.ConvertCriteriaToSqlalchemy = None
     _metadata: MetaData = None
     _session: Session = None

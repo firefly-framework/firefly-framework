@@ -36,13 +36,16 @@ from pydantic import Field
 
 kernel = Kernel().boot()
 
-# kernel.sqlalchemy_metadata.create_all()
-users = kernel.registry(domain.User)
+id_ = str(uuid.uuid4())
+user = domain.User.from_dict({
+        'id': id_,
+        'name': 'Bob Loblaw',
+        'settings': {
+            'send_email': True,
+        },
+        'profile': {
+            'title': 'Executive',
+        },
+    })
 
-# users.append(domain.User(name='Bob Loblaw'))
-# users.commit()
-
-user = users.find(lambda u: u.name == 'Bob Loblaw')
 debug(user)
-debug(user.to_dict())
-

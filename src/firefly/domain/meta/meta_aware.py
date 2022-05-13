@@ -21,10 +21,10 @@ import firefly as ff
 
 
 class MetaAware(ABC):
-    _events: Dict[Type[MetaAware], List[ff.TypeOfEvent]] = {}
-    _command: Dict[Type[MetaAware], ff.TypeOfCommand] = {}
-    _query: Dict[Type[MetaAware], ff.TypeOfQuery] = {}
-    _endpoints: Dict[Type[MetaAware], List[ff.Endpoint]] = {}
+    _events: Dict[Type[MetaAware], List[type]] = {}
+    _command: Dict[Type[MetaAware], type] = {}
+    _query: Dict[Type[MetaAware], type] = {}
+    _endpoints: Dict[Type[MetaAware], List[type]] = {}
     _timers: Dict[Type[MetaAware], ff.Timer] = {}
     _agent: Optional[str] = None
     _agent_extension: Optional[tuple] = None
@@ -40,13 +40,13 @@ class MetaAware(ABC):
         return cls._middleware_config is not None
 
     @classmethod
-    def add_event(cls, event: ff.TypeOfEvent):
+    def add_event(cls, event: type):
         if cls not in cls._events:
             cls._events[cls] = []
         cls._events[cls].append(event)
 
     @classmethod
-    def add_endpoint(cls, endpoint: ff.Endpoint):
+    def add_endpoint(cls, endpoint):
         if cls not in cls._endpoints:
             cls._endpoints[cls] = []
         cls._endpoints[cls].append(endpoint)
@@ -58,7 +58,7 @@ class MetaAware(ABC):
         cls._annotations[cls].append(annotation)
 
     @classmethod
-    def set_command(cls, command: ff.TypeOfCommand):
+    def set_command(cls, command):
         cls._command[cls] = command
 
     @classmethod
@@ -66,7 +66,7 @@ class MetaAware(ABC):
         cls._timers[cls] = timer
 
     @classmethod
-    def set_query(cls, query: ff.TypeOfQuery):
+    def set_query(cls, query):
         cls._query[cls] = query
 
     @classmethod

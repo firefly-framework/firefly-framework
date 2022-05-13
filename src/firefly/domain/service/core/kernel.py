@@ -22,6 +22,7 @@ from pprint import pprint
 from typing import Optional, Type, Callable, List, Dict, Any
 
 import boto3
+from devtools import debug
 from dotenv import load_dotenv
 
 import firefly.domain as ffd
@@ -54,16 +55,9 @@ class Kernel(ffd.Container, ffd.SystemBusAware, ffd.LoggerAware):
     _event_listeners: Dict[str, List[ffd.ApplicationService]] = {}
     _command_handlers: Dict[str, ffd.ApplicationService] = {}
     _query_handlers: Dict[str, ffd.ApplicationService] = {}
-    _middleware: List[Type[ffd.Middleware]] = []
+    _middleware: List[str] = []
     _timers: list = []
     _context: str = None
-
-    __instance = None
-
-    def __new__(cls, *args, **kwargs):
-        if not cls.__instance:
-            cls.__instance = super(Kernel, cls).__new__(cls)
-        return cls.__instance
 
     def __init__(self):
         super().__init__()
@@ -253,8 +247,6 @@ class Kernel(ffd.Container, ffd.SystemBusAware, ffd.LoggerAware):
         self.register_object('configuration_factory', ffi.YamlConfigurationFactory)
         self.register_object('message_factory', ffd.MessageFactory)
         self.register_object('serializer', ffd.Serializer)
-        self.register_object('map_entities', ffd.MapEntities)
-        self.register_object('parse_relationships', ffd.ParseRelationships)
         self.register_object('configuration', ffd.Configuration, lambda s: s.configuration_factory())
         self.register_object('fastapi_application', ffd.FastApiApplication)
         self.register_object('chalice_application', ffd.ChaliceApplication)
@@ -285,6 +277,11 @@ class Kernel(ffd.Container, ffd.SystemBusAware, ffd.LoggerAware):
         self.register_object('cognito_client', constructor=lambda s: boto3.client('cognito-idp'))
 
     def _build_services(self):
+        middleware = []
+        for cls in self._middleware:
+            middleware.append(getattr(self, cls))
+        self._middleware = middleware
+
         for cls in self._application_services:
             if hasattr(cls, const.HTTP_ENDPOINTS):
                 for endpoint in getattr(cls, const.HTTP_ENDPOINTS):
@@ -324,11 +321,6 @@ class Kernel(ffd.Container, ffd.SystemBusAware, ffd.LoggerAware):
                         'cron': timer.cron,
                     })
 
-        middleware = []
-        for cls in self._middleware:
-            middleware.append(self._build_service(cls))
-        self._middleware = middleware
-
     def _build_service(self, cls):
         if cls not in self._service_cache:
             try:
@@ -356,6 +348,9 @@ class Kernel(ffd.Container, ffd.SystemBusAware, ffd.LoggerAware):
             cb(k, v, context_name)
 
     def _add_domain_object(self, k: str, v: type, context: str):
+        if v is Kernel:
+            return
+
         if issubclass(v, ffd.Entity) and v is not ffd.Entity and context != 'firefly':
             if context == self._context and v not in self._entities:
                 self._entities.append(v)
@@ -367,10 +362,10 @@ class Kernel(ffd.Container, ffd.SystemBusAware, ffd.LoggerAware):
             self.register_object(inflection.underscore(k), v)
 
     def _add_infrastructure_object(self, k: str, v: type, context: str):
+        key = inflection.underscore(k)
+        self.register_object(key, v)
         if issubclass(v, ffd.Middleware) and getattr(v, const.MIDDLEWARE, None) is not None:
-            self._middleware.append(v)
-        elif self._should_autowire(v):
-            self.register_object(inflection.underscore(k), v)
+            self._middleware.append(key)
 
     def _add_application_object(self, k: str, v: type, context: str):
         if issubclass(v, ffd.ApplicationService):

@@ -28,6 +28,7 @@ T = TypeVar('T')
 
 class CreateEntity(Generic[T], ApplicationService, GenericBase, CrudOperation, SystemBusAware):
     _registry: ffd.Registry = None
+    _context: str = None
 
     def __call__(self, **kwargs) -> ffd.Entity:
         type_ = self._type()
@@ -38,7 +39,7 @@ class CreateEntity(Generic[T], ApplicationService, GenericBase, CrudOperation, S
             entity = type_.from_dict(kwargs)
 
         self._registry(type_).append(entity)
-        self.dispatch(self._build_event(type_, 'create', entity.to_dict(force_all=True), entity.get_class_context()))
+        self.dispatch(self._build_event(type_, 'create', entity.to_dict(), self._context))
 
         return entity
 

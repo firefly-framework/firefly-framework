@@ -84,7 +84,6 @@ class AuthorizeRequest(ffd.Middleware):
 
     def _handle_test_request(self, token: str, event, get_response: Callable, endpoint):
         try:
-            print(endpoint)
             if token.lower() == 'allow' or endpoint.secured is False:
                 return get_response(event)
         except AttributeError:

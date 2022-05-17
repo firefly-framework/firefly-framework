@@ -16,6 +16,8 @@ from __future__ import annotations
 
 from pprint import pprint
 
+from devtools import debug
+
 import firefly.domain as ffd
 from alembic import autogenerate
 from alembic.operations import Operations
@@ -32,7 +34,10 @@ class MigrateDatabase:
     _script = None
     _context: str = None
 
-    def __call__(self):
+    def __call__(self, create: bool = False):
+        if create is True:
+            return self._metadata.create_all(checkfirst=True)
+
         def include_name(name, type_, parent_names):
             if type_ == "schema":
                 return name == self._context

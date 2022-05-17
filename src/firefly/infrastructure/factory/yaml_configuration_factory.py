@@ -111,7 +111,7 @@ class YamlConfigurationFactory(ConfigurationFactory):
         return config
 
     def _load_environment_vars(self):
-        env = os.environ.get('FF_ENVIRONMENT', 'local')
+        env = os.environ.get('FF_ENVIRONMENT', 'dev')
         dir_ = self._move_to_project_root()
         for path in ('.env', f'.env.{env}'):
             if os.path.exists(path):

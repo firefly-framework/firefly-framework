@@ -254,6 +254,7 @@ class Kernel(ffd.Container, ffd.SystemBusAware, ffd.LoggerAware):
         self.register_object('registry', ffd.Registry)
         self.register_object('argparse_executor', ffi.ArgparseExecutor)
         self.register_object('resource_name_generator', ffd.ResourceNameGenerator)
+        self.register_object('agent', ffd.Agent, lambda s: s.build(ffi.AwsAgent))
 
         self.register_object('sqlalchemy_engine_factory', ffi.EngineFactory)
         self.register_object('sqlalchemy_engine', Engine, lambda s: s.sqlalchemy_engine_factory(True))

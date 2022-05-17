@@ -38,7 +38,6 @@ class Rest(ffd.ConfigurationAnnotation):
                 parent = function_name.match(str(cls)).groups()[0]
                 prefix = f'/{inflection.pluralize(inflection.dasherize(inflection.underscore(parent)))}/{{id}}'
 
-            print(cls)
             endpoint = HttpEndpoint(
                 route=prefix + route,
                 method=method,

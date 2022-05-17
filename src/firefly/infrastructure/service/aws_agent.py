@@ -71,7 +71,6 @@ class AwsAgent(Agent, ResourceNameGenerator, ff.LoggerAware):
     _kernel: ff.Kernel = None
     _registry: ff.Registry = None
     _s3_client = None
-    _s3_service: S3Service = None
     _sns_client = None
     _cloudformation_client = None
     _adaptive_memory = None
@@ -79,6 +78,9 @@ class AwsAgent(Agent, ResourceNameGenerator, ff.LoggerAware):
     _context: str = None
 
     def __call__(self, deployment: dict, **kwargs):
+        """
+        TODO Convert this to use CDK.
+        """
         self._env = deployment['environment']
         try:
             self._bucket = self._configuration.contexts.get('firefly').get('bucket')

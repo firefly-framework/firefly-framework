@@ -22,5 +22,5 @@ import firefly.infrastructure as ffi
 class MigrateDatabase(ffd.ApplicationService):
     _migrate_database: ffi.MigrateDatabase = None
 
-    def __call__(self, **kwargs):
-        self._migrate_database()
+    def __call__(self, create: bool = False, **kwargs):
+        self._migrate_database(create)

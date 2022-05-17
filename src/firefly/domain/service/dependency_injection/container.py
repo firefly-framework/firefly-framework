@@ -23,6 +23,7 @@ from typing import Tuple
 from unittest.mock import MagicMock
 
 import inflection
+from devtools import debug
 
 import firefly.domain as ffd
 from pydantic.dataclasses import dataclass
@@ -151,7 +152,7 @@ class Container(ABC):
 
         properties, annotations_ = self._get_class_tree_properties(class_)
         for k, v in properties.items():
-            if str(k).startswith('__') or v is not None:
+            if str(k).startswith('__'):
                 continue
 
             try:

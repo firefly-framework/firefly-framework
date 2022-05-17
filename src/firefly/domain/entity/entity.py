@@ -30,7 +30,7 @@ from sqlalchemy.orm import declarative_base
 import firefly.domain as ffd
 from firefly.domain.utils import is_type_hint
 
-load_dotenv()
+load_dotenv(dotenv_path=os.path.abspath(os.curdir) + '/.env')
 
 meta = MetaData(schema=os.environ.get('CONTEXT'))
 Base = declarative_base(metadata=meta)

@@ -14,14 +14,13 @@
 
 from __future__ import annotations
 
-from typing import Union, Type
+from typing import Any
 
-import firefly.domain as ffd
 from pydantic.dataclasses import dataclass
 
 
 @dataclass
 class Timer:
-    command: Union[str, Type[ffd.Command]]
+    command: Any
     environment: str = None
     cron: str = None

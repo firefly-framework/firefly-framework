@@ -317,7 +317,6 @@ class Kernel(ffd.Container, ffd.SystemBusAware, ffd.LoggerAware):
                 for timer in getattr(cls, const.TIMERS):
                     self._timers.append({
                         'service': self._build_service(cls),
-                        'id': timer.id,
                         'command': timer.command,
                         'environment': timer.environment,
                         'cron': timer.cron,

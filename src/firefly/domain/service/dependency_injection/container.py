@@ -18,7 +18,7 @@ import inspect
 import os
 import typing
 from abc import ABC
-from pprint import pprint
+from datetime import datetime, date
 from types import MethodType
 from typing import Tuple
 from unittest.mock import MagicMock
@@ -159,6 +159,9 @@ class Container(ABC):
             if type(getattr(class_, k)).__name__ == 'function':
                 continue
 
+            if k in annotations_ and (annotations_[k] is datetime or annotations_[k] is date):
+                continue
+
             try:
                 if k in annotations_ and isinstance(self, annotations_[k]):
                     setattr(class_, k, self)
@@ -200,12 +203,7 @@ class Container(ABC):
             annotations_ = {}
 
         properties.update(class_.__dict__)
-        try:
-            annotations_.update(typing.get_type_hints(class_))
-        except AttributeError:
-            if class_.__name__ == 'AuthorizeRequest':
-                print("FUCK FACE")
-                print(typing.get_type_hints(class_))
+        annotations_.update(typing.get_type_hints(class_))
 
         if hasattr(class_, '__bases__'):
             for base in class_.__bases__:

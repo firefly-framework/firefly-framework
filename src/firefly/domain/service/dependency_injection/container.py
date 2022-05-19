@@ -19,6 +19,7 @@ import os
 import typing
 from abc import ABC
 from pprint import pprint
+from types import MethodType
 from typing import Tuple
 from unittest.mock import MagicMock
 
@@ -153,6 +154,9 @@ class Container(ABC):
         properties, annotations_ = self._get_class_tree_properties(class_)
         for k, v in properties.items():
             if str(k).startswith('__'):
+                continue
+
+            if type(getattr(class_, k)).__name__ == 'function':
                 continue
 
             try:

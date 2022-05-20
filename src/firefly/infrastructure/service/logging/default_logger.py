@@ -25,7 +25,7 @@ class DefaultLogger(ffd.Logger):
 
     @property
     def log(self):
-        return logging
+        return logging.getLogger()
 
     def debug(self, message: str, *args, **kwargs):
         if isinstance(message, dict):

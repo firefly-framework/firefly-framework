@@ -72,6 +72,10 @@ class AuthorizeRequest(ffd.Middleware):
         return endpoint
 
     def _validate_token_claims(self, claims: dict, method: str, path: str):
+        print('Getting endpoint')
+        print(claims)
+        print(method)
+        print(path)
         endpoint = self._get_endpoint(path, method)
         if endpoint is not None:
             if endpoint.secured is False:

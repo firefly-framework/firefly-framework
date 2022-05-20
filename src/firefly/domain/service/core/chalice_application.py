@@ -153,7 +153,7 @@ class ChaliceApplication(Application):
             func.__name__ = config['service'].__class__.__name__
             self.app.route(
                 path=config['route'],
-                methods=[str(config['method']).upper()],
+                methods=[str(config['method']).upper(), 'OPTIONS'],
                 name=config['service'].__class__.__name__,
                 cors=True
             )(func)

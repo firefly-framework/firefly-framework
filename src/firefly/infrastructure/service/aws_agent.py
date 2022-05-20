@@ -257,7 +257,7 @@ class AwsAgent(Agent, ResourceNameGenerator, ff.LoggerAware):
             #     'environment': timer.environment,
             #     'cron': timer.cron,
             # }
-            timer_name = config['command']
+            timer_name = config['command'].__name__
             _name = config['service'].__class__.__name__
             target = Target(
                 f'{self.service_name(self._context)}AsyncTarget',
@@ -390,7 +390,7 @@ class AwsAgent(Agent, ResourceNameGenerator, ff.LoggerAware):
                     DependsOn=[queue, dlq, topic]
                 ))
             elif len(list_) > 0:
-                if context_name not in self._context_map.contexts:
+                if context_name != self._context:
                     self._find_or_create_topic(context_name)
                 template.add_resource(SubscriptionResource(
                     self.subscription_name(self._context, context_name),
@@ -723,18 +723,24 @@ class AwsAgent(Agent, ResourceNameGenerator, ff.LoggerAware):
             fp.write("""from __future__ import annotations
             
 import firefly as ff
-from mangum import Mangum
+import logging
+
+logging.getLogger()
 
 kernel = ff.Kernel().boot()
+kernel.logger.set_level_to_debug()
+
+# app = kernel.get_application().app
 
 
-def app(event, scope):
-    print(event)
-    print(scope)
-    return kernel.handle_invocation(event, scope)
-    
-    
-handler = Mangum(kernel.get_application().app, lifespan="off")
+def app(event=None, context=None):
+    if isinstance(event, dict):
+        print(event)
+        event = kernel.translate_http_event(event)
+        print(event)
+    response = kernel.get_application().app(event, context)
+    print(response)
+    return response
 """)
         os.chdir('./build/python-sources')
         with open('firefly.yml', 'w') as fp:

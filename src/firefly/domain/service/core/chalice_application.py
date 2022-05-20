@@ -53,6 +53,10 @@ def chalice_response(response: dict):
 
 def http_event(kernel, service, **kwargs):
     request: Request = kernel.current_request()
+
+    if request.method.lower() == 'options':
+        return Response(None, ACCESS_CONTROL_HEADERS)
+
     try:
         body = kernel.serializer.deserialize(request.raw_body)
         body.update(kwargs)

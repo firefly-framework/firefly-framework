@@ -84,8 +84,9 @@ class Kernel(ffd.Container, ffd.SystemBusAware, ffd.LoggerAware):
 
         self.auto_generate_aggregate_apis()
         self._initialize_entity_crud_operations()
-        self._app = self.chalice_application if os.environ.get('DEPLOYMENT_MODE', 'lambda') == 'lambda' else \
-            self.fastapi_application
+        # self._app = self.chalice_application if os.environ.get('DEPLOYMENT_MODE', 'lambda') == 'lambda' else \
+        #     self.fastapi_application
+        self._app = self.chalice_application
         self._build_services()
         self._app.initialize(self)
 

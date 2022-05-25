@@ -38,7 +38,6 @@ class HttpEndpoint:
         return isinstance(other, HttpEndpoint) and self.route == other.route and self.method == other.method
 
     def validate_scope(self, scope: str):
-        self.info('Calling is_authorized')
         if self.scopes is None or len(self.scopes) == 0:
             return True  # No required scopes, return True
 

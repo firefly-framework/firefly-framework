@@ -20,6 +20,8 @@ from typing import Type, List, Union
 import firefly.domain as ffd
 from pydantic.dataclasses import dataclass
 
+CATEGORIES = ('read', 'write', 'admin')
+
 
 @dataclass
 class HttpEndpoint:
@@ -34,3 +36,41 @@ class HttpEndpoint:
 
     def __eq__(self, other):
         return isinstance(other, HttpEndpoint) and self.route == other.route and self.method == other.method
+
+    def validate_scope(self, scope: str):
+        self.info('Calling is_authorized')
+        if self.scopes is None or len(self.scopes) == 0:
+            return True  # No required scopes, return True
+
+        for s in self.scopes:
+            if self._has_grant(s, scope):
+                return True
+
+        return False
+
+    @staticmethod
+    def _has_grant(scope: str, user_scope: str):
+        parts = scope.lower().split('.')
+        user = user_scope.lower().split('.')
+
+        for i, part in enumerate(parts):
+            if i >= len(user):
+                return False
+
+            if user[i] == 'admin':
+                return True
+
+            if part not in CATEGORIES and part != user[i]:
+                return False
+
+            if part in CATEGORIES:
+                if user[i] not in CATEGORIES:
+                    return False
+                if part == 'admin':
+                    return False
+                if part == 'write':
+                    return user[i] == 'write'
+                if part == 'read':
+                    return user[i] in ('read', 'write')
+
+        return True

@@ -14,11 +14,14 @@
 
 from __future__ import annotations
 
+import os
+
+from chalice import Response
 from devtools import debug
 from mangum import Mangum
-from starlette.types import Scope, Receive, Send
 
 import firefly.domain as ffd
+from firefly.domain.service.core.chalice_application import ACCESS_CONTROL_HEADERS
 
 COGNITO_TRIGGERS = (
     'PreSignUp_SignUp', 'PreSignUp_AdminCreateUser', 'PostConfirmation_ConfirmSignUp',
@@ -43,5 +46,31 @@ class HandleInvocation:
         return self.__mangum
 
     def __call__(self, event, context):
-        debug(event)
+        return self._handle_chalice(event, context)
+
+    def _handle_fastapi(self, event, context):
         return self._mangum(event, context)
+
+    def _handle_chalice(self, event, context):
+        if isinstance(event, dict):
+            print(context)
+            print(event)
+            try:
+                method = event['requestContext']['http']['method']
+                if method.lower() == 'options':
+                    return Response(headers=ACCESS_CONTROL_HEADERS)
+            except KeyError:
+                pass
+
+            if 'triggerSource' in event and event.get('triggerSource') in COGNITO_TRIGGERS:
+                try:
+                    return self._kernel.handle_cognito_event(event, context)
+                except AttributeError:
+                    raise NotImplementedError()
+
+            event = self._kernel.translate_http_event(event)
+            print(event)
+        response = self._kernel.get_application().app(event, context)
+        print(response)
+
+        return response

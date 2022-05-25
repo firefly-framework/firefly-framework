@@ -728,19 +728,11 @@ import logging
 logging.getLogger()
 
 kernel = ff.Kernel().boot()
-kernel.logger.set_level_to_debug()
-
-# app = kernel.get_application().app
+kernel.logger.set_level_to_info()
 
 
 def app(event=None, context=None):
-    if isinstance(event, dict):
-        print(event)
-        event = kernel.translate_http_event(event)
-        print(event)
-    response = kernel.get_application().app(event, context)
-    print(response)
-    return response
+    return kernel.handle_invocation(event, context)
 """)
         os.chdir('./build/python-sources')
         with open('firefly.yml', 'w') as fp:
@@ -955,9 +947,7 @@ def app(event=None, context=None):
                                 'Action': [
                                     'athena:*',
                                     'cloudfront:CreateInvalidation',
-                                    'cognito-idp:AdminConfirmSignUp',
-                                    'cognito-idp:AdminSetUserPassword',
-                                    'cognito-idp:ListUserPoolClients',
+                                    'cognito-idp:*',
                                     'dynamodb:*',
                                     'ec2:*NetworkInterface',
                                     'ec2:DescribeNetworkInterfaces',

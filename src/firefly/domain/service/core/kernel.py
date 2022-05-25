@@ -159,7 +159,7 @@ class Kernel(ffd.Container, ffd.SystemBusAware, ffd.LoggerAware):
         if claims is None:
             return False
 
-        for s in claims['cognito:groups']:
+        for s in claims['scope'].split(' '):
             if s == scope:
                 return True
 

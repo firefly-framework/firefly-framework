@@ -27,7 +27,7 @@ class ChaliceLogger(ffd.Logger):
     @property
     def log(self):
         if self._application.app is None:
-            return logging
+            return logging.getLogger()
         return self._application.app.log
 
     def debug(self, message: str, *args, **kwargs):

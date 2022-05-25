@@ -80,6 +80,10 @@ class AuthorizeRequest(ffd.Middleware):
                 if endpoint.validate_scope(scope):
                     return
             raise ffd.Forbidden()
+
+        if method.lower() == 'options':
+            return
+
         raise RuntimeError('Could not match route. This should never happen.')
 
     def _handle_test_request(self, token: str, event, get_response: Callable, endpoint):

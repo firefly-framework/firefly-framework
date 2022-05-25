@@ -53,6 +53,7 @@ def chalice_response(response: dict):
 
 def http_event(kernel, service, **kwargs):
     request: Request = kernel.current_request()
+
     try:
         body = kernel.serializer.deserialize(request.raw_body)
         body.update(kwargs)

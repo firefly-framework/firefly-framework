@@ -189,10 +189,13 @@ def _generate_model(args: dict, model_type: type, strict: bool = False):
 
 
 def _check_special_types(value: typing.Any, type_: type):
+    val = parse(value)
     if type_ is datetime and isinstance(value, str):
-        return parse(value).replace(tzinfo=None)
+        if val is not None:
+            return val.replace(tzinfo=None)
     elif type_ is date and isinstance(value, str):
-        return parse(value).replace(tzinfo=None).date()
+        if val is not None:
+            return val.replace(tzinfo=None).date()
 
 
 def build_argument_list(params: dict, obj: typing.Union[typing.Callable, type], strict: bool = True,

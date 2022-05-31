@@ -91,15 +91,14 @@ class Kernel(ffd.Container, ffd.SystemBusAware, ffd.LoggerAware):
 
         for t in self._value_objects + self._entities:
             t._logger = self.logger
-            if issubclass(t, ffd.ValueObject) and os.environ.get('DISABLE_DB') is None:
+            if issubclass(t, ffd.ValueObject):
                 t._session = self.sqlalchemy_session
 
-        if os.environ.get('DISABLE_DB') is None:
-            event.listen(
-                self.sqlalchemy_metadata,
-                'before_create',
-                DDL(f"CREATE SCHEMA IF NOT EXISTS {self._context}")
-            )
+        event.listen(
+            self.sqlalchemy_metadata,
+            'before_create',
+            DDL(f"CREATE SCHEMA IF NOT EXISTS {self._context}")
+        )
 
         return self
 
@@ -207,8 +206,7 @@ class Kernel(ffd.Container, ffd.SystemBusAware, ffd.LoggerAware):
 
     def _initialize_entity_crud_operations(self):
         for entity in self._entities:
-            if os.environ.get('DISABLE_DB') is None:
-                entity._session = self.sqlalchemy_session
+            entity._session = self.sqlalchemy_session
             for endpoint in getattr(entity, const.HTTP_ENDPOINTS, []):
                 service = self._locate_service_for_entity(entity, endpoint.method)
                 if len(list(filter(
@@ -258,19 +256,18 @@ class Kernel(ffd.Container, ffd.SystemBusAware, ffd.LoggerAware):
         self.register_object('resource_name_generator', ffd.ResourceNameGenerator)
         self.register_object('agent', ffd.Agent, lambda s: s.build(ffi.AwsAgent))
 
-        if os.environ.get('DISABLE_DB') is None:
-            self.register_object('sqlalchemy_engine_factory', ffi.EngineFactory)
-            self.register_object('sqlalchemy_engine', Engine, lambda s: s.sqlalchemy_engine_factory(True))
-            self.register_object('sqlalchemy_connection', Connection, (lambda s: s.sqlalchemy_engine.connect()))
-            self.register_object(
-                'sqlalchemy_sessionmaker', sessionmaker, lambda s: sessionmaker(bind=s.sqlalchemy_connection)
-            )
-            self.register_object('sqlalchemy_session', Session, lambda s: s.sqlalchemy_sessionmaker())
-            self.register_object('sqlalchemy_metadata', MetaData, bind_metadata)
-            self.register_object(
-                'repository_factory', ffd.RepositoryFactory, lambda s: s.build(ffi.SqlalchemyRepositoryFactory)
-            )
-            self.register_object('convert_criteria_to_sqlalchemy', ffd.ConvertCriteriaToSqlalchemy)
+        self.register_object('sqlalchemy_engine_factory', ffi.EngineFactory)
+        self.register_object('sqlalchemy_engine', Engine, lambda s: s.sqlalchemy_engine_factory(True))
+        self.register_object('sqlalchemy_connection', Connection, lambda s: s.sqlalchemy_engine.connect())
+        self.register_object(
+            'sqlalchemy_sessionmaker', sessionmaker, lambda s: sessionmaker(bind=s.sqlalchemy_connection)
+        )
+        self.register_object('sqlalchemy_session', Session, lambda s: s.sqlalchemy_sessionmaker())
+        self.register_object('sqlalchemy_metadata', MetaData, bind_metadata)
+        self.register_object(
+            'repository_factory', ffd.RepositoryFactory, lambda s: s.build(ffi.SqlalchemyRepositoryFactory)
+        )
+        self.register_object('convert_criteria_to_sqlalchemy', ffd.ConvertCriteriaToSqlalchemy)
 
         self.register_object('cloudformation_client', constructor=lambda s: boto3.client('cloudformation'))
         self.register_object('ddb_client', constructor=lambda s: boto3.client('dynamodb'))

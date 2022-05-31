@@ -14,6 +14,8 @@
 
 from __future__ import annotations
 
+import os
+
 import firefly.domain as ffd
 from firefly.infrastructure.service.aws_agent import AwsAgent
 
@@ -26,6 +28,7 @@ class Deploy(ffd.ApplicationService):
 
     def __call__(self, env: str = 'local', requirements_file: str = None, **kwargs):
         provider = self._config.all.get('provider', 'default')
+        os.environ['DISABLE_DB'] = '1'  # TODO Remove this when aurora serverless isn't needed.
         if env == 'local':
             provider = 'default'
 

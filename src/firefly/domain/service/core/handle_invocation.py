@@ -58,7 +58,7 @@ class HandleInvocation:
             try:
                 method = event['requestContext']['http']['method']
                 if method.lower() == 'options':
-                    return Response(headers=ACCESS_CONTROL_HEADERS)
+                    return Response(body=None, headers=ACCESS_CONTROL_HEADERS)
             except KeyError:
                 pass
 

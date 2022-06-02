@@ -28,7 +28,7 @@ class ApplicationService(FireflyType, ABC, SystemBusAware, LoggerAware):
     _kernel: ffd.Kernel = None
 
     @abstractmethod
-    async def __call__(self, **kwargs):
+    def __call__(self, **kwargs):
         pass
 
     @classmethod

@@ -255,6 +255,7 @@ class Kernel(ffd.Container, ffd.SystemBusAware, ffd.LoggerAware):
         self.register_object('argparse_executor', ffi.ArgparseExecutor)
         self.register_object('resource_name_generator', ffd.ResourceNameGenerator)
         self.register_object('agent', ffd.Agent, lambda s: s.build(ffi.AwsAgent))
+        self.register_object('message_transport', ffd.MessageTransport, lambda s: s.build(ffi.BotoMessageTransport))
 
         self.register_object('sqlalchemy_engine_factory', ffi.EngineFactory)
         self.register_object('sqlalchemy_engine', Engine, lambda s: s.sqlalchemy_engine_factory(True))
@@ -274,6 +275,7 @@ class Kernel(ffd.Container, ffd.SystemBusAware, ffd.LoggerAware):
         self.register_object('lambda_client', constructor=lambda s: boto3.client('lambda'))
         self.register_object('sns_client', constructor=lambda s: boto3.client('sns'))
         self.register_object('sqs_client', constructor=lambda s: boto3.client('sqs'))
+        self.register_object('sqs_resource', constructor=lambda s: boto3.resource('sqs'))
         self.register_object('s3_client', constructor=lambda s: boto3.client('s3'))
         self.register_object('kinesis_client', constructor=lambda s: boto3.client('kinesis'))
         self.register_object('cognito_client', constructor=lambda s: boto3.client('cognito-idp'))

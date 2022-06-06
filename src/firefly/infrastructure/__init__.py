@@ -18,7 +18,7 @@ from firefly.infrastructure.service.aws_agent import AwsAgent
 from firefly.infrastructure.factory.yaml_configuration_factory import YamlConfigurationFactory
 from firefly.infrastructure.factory.memory_configuration_factory import MemoryConfigurationFactory
 from firefly.infrastructure.service.logging.default_logger import DefaultLogger
-# from firefly.infrastructure.service.messaging.boto_message_transport import BotoMessageTransport
+from firefly.infrastructure.service.messaging.boto_message_transport import BotoMessageTransport
 from firefly.infrastructure.service.storage.load_payload import LoadPayload
 from firefly.infrastructure.service.storage.prepare_s3_download import PrepareS3Download
 from firefly.infrastructure.service.storage.s3_service import S3Service

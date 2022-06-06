@@ -164,23 +164,9 @@ class ChaliceApplication(Application):
                 secured=config['secured']
             ))
 
-        for k, v in self.configuration.contexts.items():
-            if k.startswith('firefly') or (v or {}).get('is_extension', False) is True:
-                continue
-            memory_settings = (self.configuration.contexts.get('firefly', {}) or {}).get('memory_settings')
-            if memory_settings is not None:
-                for memory in memory_settings:
-                    func = functools.update_wrapper(functools.partial(sqs_event, kernel=kernel), sqs_event)
-                    func.__name__ = f'sqs_event_{memory}'
-                    self.app.on_sqs_message(
-                        queue=kernel.resource_name_generator.queue_name(app_name, memory)
-                    )(func)
-            else:
-                func = functools.update_wrapper(functools.partial(sqs_event, kernel=kernel), sqs_event)
-                func.__name__ = f'sqs_event'
-                self.app.on_sqs_message(queue=kernel.resource_name_generator.queue_name(app_name))(
-                    func
-                )
+        f = functools.update_wrapper(functools.partial(sqs_event, kernel=kernel), sqs_event)
+        f.__name__ = f'sqs_event'
+        self.app.on_sqs_message(queue=kernel.resource_name_generator.queue_name(app_name))(f)
 
         for endpoint in kernel.get_cli_endpoints():
             func_name = endpoint.service.__name__

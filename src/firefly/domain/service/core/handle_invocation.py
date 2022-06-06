@@ -72,7 +72,8 @@ class HandleInvocation:
                 except AttributeError:
                     raise NotImplementedError()
 
-            event = self._kernel.translate_http_event(event)
+            if 'Records' not in event:
+                event = self._kernel.translate_http_event(event)
             print(event)
         response = self._kernel.get_application().app(event, context)
         print(response)

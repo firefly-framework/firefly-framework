@@ -93,3 +93,14 @@ def map_entities(kernel):
 @pytest.fixture(scope="session")
 def message_factory(kernel):
     return kernel.message_factory
+
+
+@pytest.fixture(scope="session")
+def cache(kernel):
+    return kernel.cache
+
+
+@pytest.fixture(scope="function")
+def transport(kernel):
+    yield kernel.chalice_message_transport
+    kernel.chalice_message_transport.reset()

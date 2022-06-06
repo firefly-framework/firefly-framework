@@ -53,6 +53,9 @@ class HandleInvocation:
 
     def _handle_chalice(self, event, context):
         if isinstance(event, dict):
+            if 'Records' in event:
+                return self._handle_sqs(event)
+
             print(context)
             print(event)
             try:
@@ -72,10 +75,35 @@ class HandleInvocation:
                 except AttributeError:
                     raise NotImplementedError()
 
-            if 'Records' not in event:
-                event = self._kernel.translate_http_event(event)
+            event = self._kernel.translate_http_event(event)
             print(event)
         response = self._kernel.get_application().app(event, context)
         print(response)
 
         return response
+
+    def _handle_sqs(self, event):
+        for e in event.get('Records'):
+            try:
+                message = self._kernel.serializer.deserialize(e.get('body'))
+            except ValueError:
+                message = e.get('body')
+
+            if isinstance(message, dict) and '_type' in message:
+                message = getattr(self._kernel.message_factory, message['_type'])(
+                    f"{message['_context']}.{message['_name']}", message
+                )
+
+            if isinstance(message, ffd.Command):
+                try:
+                    handler = self._kernel.get_command_handlers()[str(message)]
+                    handler(**ffd.build_argument_list(message.to_dict(), handler))
+                except KeyError as ee:
+                    raise ffd.ConfigurationError(f'No command handler registered for message: {message}') from ee
+
+            elif isinstance(message, ffd.Event):
+                try:
+                    for service in self._kernel.get_event_listeners()[str(message)]:
+                        service(**ffd.build_argument_list(message.to_dict(), service))
+                except KeyError:
+                    pass  # Treat a missing event listener as a noop.

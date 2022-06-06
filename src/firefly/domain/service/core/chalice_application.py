@@ -93,33 +93,6 @@ def http_event(kernel, service, **kwargs):
     return json.loads(kernel.serializer.serialize(response))
 
 
-def sqs_event(event: SQSEvent, kernel: ffd.Kernel, **kwargs):
-    for e in event:
-        try:
-            message = kernel.serializer.deserialize(e.body)
-        except ValueError:
-            message = e.body
-
-        if isinstance(message, dict) and '_type' in message:
-            message = getattr(kernel.message_factory, message['_type'])(
-                f"{message['_context']}.{message['_name']}", message
-            )
-
-        if isinstance(message, ffd.Command):
-            try:
-                handler = kernel.get_command_handlers()[str(message)]
-                handler(**ffd.build_argument_list(message.to_dict(), handler))
-            except KeyError as e:
-                raise errors.ConfigurationError(f'No command handler registered for message: {message}') from e
-
-        elif isinstance(message, ffd.Event):
-            try:
-                for service in kernel.get_event_listeners()[str(message)]:
-                    service(**ffd.build_argument_list(message.to_dict(), service))
-            except KeyError:
-                pass  # Treat a missing event listener as a noop.
-
-
 def lambda_handler(event, context, service, serializer):
     return service(**ffd.build_argument_list(serializer.deserialize(event).to_dict(), service))
 
@@ -134,6 +107,8 @@ class ChaliceApplication(Application):
     _router: ffd.RestRouter = None
     _context: str = None
     _debug: str = None
+    _aws_default_region: str = None
+    _account_id: str = None
 
     def initialize(self, kernel: ffd.Kernel):
         app_name = self._context
@@ -164,9 +139,37 @@ class ChaliceApplication(Application):
                 secured=config['secured']
             ))
 
-        f = functools.update_wrapper(functools.partial(sqs_event, kernel=kernel), sqs_event)
-        f.__name__ = f'sqs_event'
-        self.app.on_sqs_message(queue=kernel.resource_name_generator.queue_name(app_name))(f)
+        queue_name = kernel.resource_name_generator.queue_name(app_name)
+        @self.app.on_sqs_message(
+            queue_name,
+            queue_arn=f'arn:aws:sqs:{self._aws_default_region}:{self._account_id}:{queue_name}'
+        )
+        def sqs_event(event: SQSEvent, kernel: ffd.Kernel, **kwargs):
+            print(event)
+            for e in event:
+                try:
+                    message = kernel.serializer.deserialize(e.body)
+                except ValueError:
+                    message = e.body
+
+                if isinstance(message, dict) and '_type' in message:
+                    message = getattr(kernel.message_factory, message['_type'])(
+                        f"{message['_context']}.{message['_name']}", message
+                    )
+
+                if isinstance(message, ffd.Command):
+                    try:
+                        handler = kernel.get_command_handlers()[str(message)]
+                        handler(**ffd.build_argument_list(message.to_dict(), handler))
+                    except KeyError as e:
+                        raise errors.ConfigurationError(f'No command handler registered for message: {message}') from e
+
+                elif isinstance(message, ffd.Event):
+                    try:
+                        for service in kernel.get_event_listeners()[str(message)]:
+                            service(**ffd.build_argument_list(message.to_dict(), service))
+                    except KeyError:
+                        pass  # Treat a missing event listener as a noop.
 
         for endpoint in kernel.get_cli_endpoints():
             func_name = endpoint.service.__name__

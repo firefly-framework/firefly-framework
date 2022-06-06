@@ -140,12 +140,8 @@ class ChaliceApplication(Application):
             ))
 
         queue_name = kernel.resource_name_generator.queue_name(app_name)
-        @self.app.on_sqs_message(
-            queue_name,
-            queue_arn=f'arn:aws:sqs:{self._aws_default_region}:{self._account_id}:{queue_name}'
-        )
+        @self.app.on_sqs_message(queue_name)
         def sqs_event(event: SQSEvent, kernel: ffd.Kernel, **kwargs):
-            print(event)
             for e in event:
                 try:
                     message = kernel.serializer.deserialize(e.body)

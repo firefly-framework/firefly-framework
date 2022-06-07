@@ -95,8 +95,10 @@ def http_event(kernel, service, **kwargs):
 
 def lambda_handler(event, context, service, serializer):
     data = serializer.deserialize(event)
-    if isinstance(data, ffd.Message):
+    try:
         data = data.to_dict()
+    except AttributeError:
+        pass
     return service(**ffd.build_argument_list(data, service))
 
 

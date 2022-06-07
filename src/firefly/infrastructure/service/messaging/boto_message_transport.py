@@ -81,7 +81,7 @@ class BotoMessageTransport(MessageTransport, ResourceNameGenerator):
 
         if getattr(message, '_context') == self._context:
             return self._kernel.get_application().get_test_client().lambda_.invoke(
-                getattr(message, '_name'), message.to_dict()
+                str(message).split('.').pop(), message.to_dict()
             )
 
         try:

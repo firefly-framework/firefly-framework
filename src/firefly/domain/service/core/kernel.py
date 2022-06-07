@@ -56,6 +56,7 @@ class Kernel(ffd.Container, ffd.SystemBusAware, ffd.LoggerAware):
     _command_handlers: Dict[str, ffd.ApplicationService] = {}
     _query_handlers: Dict[str, ffd.ApplicationService] = {}
     _middleware: List[str] = []
+    _post_boot: list[str] = []
     _timers: list = []
     _context: str = None
 
@@ -99,6 +100,9 @@ class Kernel(ffd.Container, ffd.SystemBusAware, ffd.LoggerAware):
             'before_create',
             DDL(f"CREATE SCHEMA IF NOT EXISTS {self._context}")
         )
+
+        for key in self._post_boot:
+            getattr(self, key)(self)
 
         return self
 
@@ -370,6 +374,8 @@ class Kernel(ffd.Container, ffd.SystemBusAware, ffd.LoggerAware):
         self.register_object(key, v)
         if issubclass(v, ffd.Middleware) and getattr(v, const.MIDDLEWARE, None) is not None:
             self._middleware.append(key)
+        if issubclass(v, ffd.PostBoot):
+            self._post_boot.append(key)
 
     def _add_application_object(self, k: str, v: type, context: str):
         if issubclass(v, ffd.ApplicationService):

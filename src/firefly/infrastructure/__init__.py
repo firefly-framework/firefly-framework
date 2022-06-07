@@ -37,3 +37,4 @@ from firefly.infrastructure.service.http.routes_rest_router import RoutesRestRou
 from firefly.infrastructure.service.files.s3_file_system import S3FileSystem
 from firefly.infrastructure.factory.cognito_factory import DefaultCognitoFactory
 from firefly.infrastructure.service.messaging.chalice_message_transport import ChaliceMessageTransport
+from firefly.infrastructure.service.cache.ddb_cache import DdbCache

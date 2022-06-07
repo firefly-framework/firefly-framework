@@ -94,7 +94,10 @@ def http_event(kernel, service, **kwargs):
 
 
 def lambda_handler(event, context, service, serializer):
-    return service(**ffd.build_argument_list(serializer.deserialize(event).to_dict(), service))
+    data = serializer.deserialize(event)
+    if isinstance(data, ffd.Message):
+        data = data.to_dict()
+    return service(**ffd.build_argument_list(data, service))
 
 
 def middleware(event, get_response, service):

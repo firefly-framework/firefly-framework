@@ -27,6 +27,7 @@ from firefly.domain.service.messaging.message_transport import MessageTransport
 
 class BotoMessageTransport(MessageTransport, ResourceNameGenerator):
     _serializer: ff.Serializer = None
+    _kernel: ff.Kernel = None
     _store_large_payloads_in_s3: ff.StoreLargePayloadsInS3 = None
     _load_payload: ff.LoadPayload = None
     _lambda_client = None
@@ -77,6 +78,11 @@ class BotoMessageTransport(MessageTransport, ResourceNameGenerator):
     def _invoke_lambda(self, message: Union[ff.Command, ff.Query]):
         if hasattr(message, '_async') and getattr(message, '_async') is True:
             return self._enqueue_message(message)
+
+        if getattr(message, '_context') == self._context:
+            return self._kernel.get_application().get_test_client().lambda_.invoke(
+                getattr(message, '_name'), message.to_dict()
+            )
 
         try:
             response = self._lambda_client.invoke(

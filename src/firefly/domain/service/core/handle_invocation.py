@@ -37,6 +37,7 @@ COGNITO_TRIGGERS = (
 
 class HandleInvocation:
     _kernel: ffd.Kernel = None
+    _context: str = None
     __mangum: Mangum = None
 
     @property
@@ -53,11 +54,21 @@ class HandleInvocation:
 
     def _handle_chalice(self, event, context):
         if isinstance(event, dict):
+            print(context)
+            print(event)
+
             if 'Records' in event:
                 return self._handle_sqs(event)
 
-            print(context)
-            print(event)
+            if '_name' in event and '_type' in event:
+                services = self._kernel.get_command_handlers() if event.get('_type') == 'command' else \
+                    self._kernel.get_query_handlers()
+                function_name = f"{self._context}.{event.get('_name')}"
+                if function_name not in services:
+                    raise NotImplementedError()
+
+                return services[function_name](**ffd.build_argument_list(event, services[function_name]))
+
             try:
                 method = event['requestContext']['http']['method']
                 if method.lower() == 'options':

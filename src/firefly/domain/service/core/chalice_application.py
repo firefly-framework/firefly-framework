@@ -93,6 +93,15 @@ def http_event(kernel, service, **kwargs):
     return json.loads(kernel.serializer.serialize(response))
 
 
+def lambda_handler(event, context, service, serializer):
+    data = serializer.deserialize(event)
+    try:
+        data = data.to_dict()
+    except AttributeError:
+        pass
+    return service(**ffd.build_argument_list(data, service))
+
+
 def middleware(event, get_response, service):
     return service(event, get_response)
 
@@ -136,7 +145,6 @@ class ChaliceApplication(Application):
             ))
 
         queue_name = kernel.resource_name_generator.queue_name(app_name)
-
         @self.app.on_sqs_message(queue_name)
         def sqs_event(event: SQSEvent, kernel: ffd.Kernel, **kwargs):
             for e in event:
@@ -164,17 +172,22 @@ class ChaliceApplication(Application):
                     except KeyError:
                         pass  # Treat a missing event listener as a noop.
 
-        @self.app.lambda_function()
-        def invoke_lambda(event, context):
-            if '_type' not in event:
-                raise ffd.BadRequest()
+        for endpoint in kernel.get_cli_endpoints():
+            func_name = endpoint.service.__name__
+            func = functools.update_wrapper(
+                functools.partial(lambda_handler, service=kernel.build(endpoint.service), serializer=kernel.serializer),
+                lambda_handler
+            )
+            func.__name__ = func_name
+            self.app.lambda_function(name=func_name)(func)
 
-            services = kernel.get_command_handlers() if event.get('_type') == 'command' else kernel.get_query_handlers()
-            function_name = f"{event.get('_context')}.{event.get('_name')}"
-            if function_name not in services:
-                raise NotImplementedError()
-
-            return services[function_name](**ffd.build_argument_list(event, services[function_name]))
+        for k, v in list(kernel.get_command_handlers().items()) + list(kernel.get_query_handlers().items()):
+            func_name = str(k).split('.').pop()
+            func = functools.update_wrapper(
+                functools.partial(lambda_handler, service=v, serializer=kernel.serializer), lambda_handler
+            )
+            func.__name__ = func_name
+            self.app.lambda_function(name=func_name)(func)
 
     def get_test_client(self):
         return Client(self.app)

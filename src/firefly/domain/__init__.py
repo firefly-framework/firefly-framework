@@ -13,6 +13,7 @@
 #  <http://www.gnu.org/licenses/>.
 
 from firefly.domain.value_object import ValueObject
+from firefly.domain.entity.core.value_object_of_type import ValueObjectOfType
 from firefly.domain.entity.entity import Entity, Base as EntityBase
 from firefly.domain.entity.aggregate_root import AggregateRoot
 from firefly.domain.service.logging.logger import LoggerAware

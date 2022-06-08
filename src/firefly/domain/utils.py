@@ -21,6 +21,7 @@ import typing
 from abc import ABC
 from dataclasses import dataclass, fields
 from time import sleep
+from types import GenericAlias
 
 import firefly as ff
 
@@ -85,7 +86,7 @@ def generate_dc(base: type, _cls, **kwargs):
 
 
 def is_type_hint(obj):
-    return isinstance(obj, (typing._GenericAlias, typing._SpecialForm))
+    return isinstance(obj, (typing._GenericAlias, typing._SpecialForm, GenericAlias))
 
 
 def is_aggregate_reference(t: typing.Any):

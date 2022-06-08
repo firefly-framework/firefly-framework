@@ -140,7 +140,10 @@ class ValueObject:
             for k in list(data.keys()).copy():
                 if k.startswith('_'):
                     del data[k]
-            return cls.schema().load(data, unknown=EXCLUDE, partial=True)
+            try:
+                return cls.schema().load(build_argument_list(data, cls), unknown=EXCLUDE, partial=True)
+            except:
+                return cls.schema().load(data, unknown=EXCLUDE, partial=True)
         except ValidationError as e:
             missing = list(filter(lambda f: not f.startswith('_'), e.args[0].keys()))
             if len(missing) > 0:

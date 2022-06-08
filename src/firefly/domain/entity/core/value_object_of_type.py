@@ -12,31 +12,27 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
-import os
-import uuid
-from typing import Optional, List, Dict, Union
+from __future__ import annotations
 
-from devtools import debug
-from sqlalchemy import inspect
-from sqlalchemy.orm import ColumnProperty
+from sqlalchemy import TypeDecorator
+from sqlalchemy.dialects.postgresql import JSONB
 
-from firefly import Kernel, ValueObject
-from firefly.domain.utils import is_type_hint
 
-os.environ['CONTEXT'] = 'firefly'
-os.environ['FF_ENVIRONMENT'] = 'test'
-os.environ['DB_NAME'] = 'firefly'
-os.environ['DB_USER'] = 'firefly'
-os.environ['DB_PASSWORD'] = 'Abcd1234!'
-os.environ['DB_HOST'] = 'localhost'
-os.environ['DB_TYPE'] = 'postgresql'
-os.environ['DB_PORT'] = '5432'
+class ValueObjectOfType(TypeDecorator):
+    impl = JSONB
 
-import firefly_test.todo.domain as domain
-from pydantic import Field
+    def __init__(self, t):
+        super().__init__()
+        self._type = t
 
-print(is_type_hint(List[ValueObject]))
-print(is_type_hint(list[ValueObject]))
-print(is_type_hint(dict[str, ValueObject]))
-print(is_type_hint(Dict[str, ValueObject]))
-print(is_type_hint(Union[str, Dict[str, ValueObject]]))
+    def process_bind_param(self, value, dialect):
+        if isinstance(value, list):
+            return list(map(lambda x: x.to_dict(), value))
+
+        return value.to_dict()
+
+    def process_result_value(self, value, dialect):
+        if isinstance(value, list):
+            return list(map(lambda x: self._type.from_dict(x), value))
+
+        return self._type.from_dict(value)

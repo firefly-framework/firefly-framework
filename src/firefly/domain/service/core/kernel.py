@@ -199,6 +199,9 @@ class Kernel(ffd.Container, ffd.SystemBusAware, ffd.LoggerAware):
     def get_middleware(self):
         return self._middleware
 
+    def get_application_services(self):
+        return self._application_services
+
     def register_command(self, cls):
         self._command_handlers[str(getattr(cls, const.COMMAND))] = self._build_service(cls)
 

@@ -25,7 +25,7 @@ from firefly.domain.service.resource_name_generator import ResourceNameGenerator
 from firefly.domain.service.messaging.message_transport import MessageTransport
 
 
-class BotoMessageTransport(MessageTransport, ResourceNameGenerator):
+class BotoMessageTransport(MessageTransport, ResourceNameGenerator, ff.LoggerAware):
     _serializer: ff.Serializer = None
     _kernel: ff.Kernel = None
     _store_large_payloads_in_s3: ff.StoreLargePayloadsInS3 = None
@@ -79,10 +79,12 @@ class BotoMessageTransport(MessageTransport, ResourceNameGenerator):
         if hasattr(message, '_async') and getattr(message, '_async') is True:
             return self._enqueue_message(message)
 
-        if getattr(message, '_context') == self._context:
-            return self._kernel.get_application().get_test_client().lambda_.invoke(
-                str(message).split('.').pop(), message.to_dict()
-            )
+        if message.get_context() == self._context:
+            self.info("We're in the same context, running code locally...")
+            for app in self._kernel.get_application_services():
+                if app.__name__ == str(message).split('.').pop():
+                    app = self._kernel.build(app)
+                    return app(**ff.build_argument_list(message.to_dict(), app))
 
         try:
             response = self._lambda_client.invoke(

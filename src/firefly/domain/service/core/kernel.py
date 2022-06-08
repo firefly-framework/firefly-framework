@@ -377,7 +377,7 @@ class Kernel(ffd.Container, ffd.SystemBusAware, ffd.LoggerAware):
         self.register_object(key, v)
         if issubclass(v, ffd.Middleware) and getattr(v, const.MIDDLEWARE, None) is not None:
             self._middleware.append(key)
-        if issubclass(v, ffd.PostBoot):
+        if issubclass(v, ffd.PostBoot) and key not in self._post_boot:
             self._post_boot.append(key)
 
     def _add_application_object(self, k: str, v: type, context: str):

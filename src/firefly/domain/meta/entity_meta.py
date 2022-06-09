@@ -15,11 +15,7 @@
 from __future__ import annotations
 
 from abc import ABCMeta
-# from dataclasses import dataclass
-
-import pydantic
-from pydantic.dataclasses import dataclass
-from pydantic.main import ModelMetaclass
+from dataclasses import dataclass
 
 
 class EntityMeta(ABCMeta):

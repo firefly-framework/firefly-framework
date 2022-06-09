@@ -43,7 +43,7 @@ class Empty:
 _defs = {}
 
 
-class ValueObject:
+class ValueObject(metaclass=ffd.EntityMeta):
     _cache = {}
 
     def __init__(self, **kwargs):

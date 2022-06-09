@@ -12,6 +12,7 @@
 #  You should have received a copy of the GNU General Public License along with Firefly. If not, see
 #  <http://www.gnu.org/licenses/>.
 
+from firefly.domain.meta.entity_meta import EntityMeta
 from firefly.domain.value_object import ValueObject
 from firefly.domain.entity.core.value_object_of_type import ValueObjectOfType
 from firefly.domain.entity.entity import Entity, Base as EntityBase

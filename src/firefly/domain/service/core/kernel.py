@@ -395,4 +395,7 @@ class Kernel(ffd.Container, ffd.SystemBusAware, ffd.LoggerAware):
                 issubclass(v, Exception):
             return False
 
+        if issubclass(v, ffd.ApplicationService):
+            return False
+
         return True

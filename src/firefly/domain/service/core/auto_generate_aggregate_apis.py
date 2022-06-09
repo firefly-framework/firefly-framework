@@ -23,7 +23,7 @@ from firefly.domain.service.core.application_service import ApplicationService
 from firefly.domain.service.logging.logger import LoggerAware
 
 
-class AutoGenerateAggregateApis(ApplicationService, LoggerAware):
+class AutoGenerateAggregateApis(LoggerAware):
     _kernel: ff.Kernel = None
     _context: str = None
 

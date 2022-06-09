@@ -50,6 +50,10 @@ class FireflyEncoder(JSONEncoder):
                 elif isinstance(o, ffd.Query):
                     t = 'query'
                 dic['_type'] = t
+                try:
+                    dic['_context'], _ = str(o).split('.')
+                except ValueError:
+                    pass
                 return dic
             except AttributeError:
                 pass

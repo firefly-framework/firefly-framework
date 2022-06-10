@@ -9,8 +9,8 @@ class ResourceNameGenerator:
     _region: str = None
     _account_id: str = None
 
-    def service_name(self, context: str = ''):
-        slug = f'{self._project}_{self._ff_environment}_{context}'.rstrip('_')
+    def service_name(self, context: str = '', ff_environment: str = None):
+        slug = f'{self._project}_{ff_environment or self._ff_environment}_{context}'.rstrip('_')
         return f'{inflection.camelize(inflection.underscore(slug))}'
 
     def stream_resource_name(self, context: str):
@@ -28,9 +28,9 @@ class ResourceNameGenerator:
         memory = str(memory or '')
         return f'{self.service_name(context)}{memory}{type_.capitalize()}'
 
-    def queue_name(self, context: str, memory: int = None):
+    def queue_name(self, context: str, memory: int = None, ff_environment: str = None):
         memory = str(memory or '')
-        return f'{self.service_name(context)}{memory}Queue'
+        return f'{self.service_name(context, ff_environment=ff_environment)}{memory}Queue'
 
     def ddb_resource_name(self, name: str):
         return f'{self.service_name(name)}DdbTable'

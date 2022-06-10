@@ -152,6 +152,11 @@ class Kernel(ffd.Container, ffd.SystemBusAware, ffd.LoggerAware):
         # Note that this is NOT verifying the token. It's only reading the headers and claims.
         return python_jwt.process_jwt(token)
 
+    def user_employer(self):
+        headers, claims = self.user_token()
+        if headers is not None:
+            return headers.get('employer')
+
     def requesting_user_has_scope(self, scope: str):
         try:
             header, claims = self.user_token()

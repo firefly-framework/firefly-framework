@@ -76,7 +76,7 @@ class Entity(Base):
                 t = types[field_name]
                 if t is caller.__class__ and caller == getattr(self, field_name):
                     continue
-                if inspect.isclass(t) and issubclass(t, (ffd.ValueObject, ffd.Entity)):
+                if inspect.isclass(t) and not is_type_hint(t) and issubclass(t, (ffd.ValueObject, ffd.Entity)):
                     try:
                         ret[field_name] = getattr(self, field_name).to_dict(
                             skip=skip, caller=self

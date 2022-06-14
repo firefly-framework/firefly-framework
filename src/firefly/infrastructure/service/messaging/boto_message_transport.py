@@ -18,11 +18,10 @@ import uuid
 from typing import Any, Union
 
 from botocore.exceptions import ClientError
-from devtools import debug
 
 import firefly as ff
-from firefly.domain.service.resource_name_generator import ResourceNameGenerator
 from firefly.domain.service.messaging.message_transport import MessageTransport
+from firefly.domain.service.resource_name_generator import ResourceNameGenerator
 
 
 class BotoMessageTransport(MessageTransport, ResourceNameGenerator, ff.LoggerAware):

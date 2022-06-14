@@ -17,6 +17,8 @@ from __future__ import annotations
 import json
 from typing import Callable, Any
 
+from chalice import Response
+
 import firefly.domain as ffd
 
 ACCESS_CONTROL_HEADERS = {
@@ -63,4 +65,5 @@ class HandleEnvelope(ffd.Middleware):
 
         if isinstance(ret, dict) and 'status_code' in ret:
             return Response(**ret)
+
         return ret

@@ -19,11 +19,15 @@ from typing import Any
 from pydantic.dataclasses import dataclass
 
 
-@dataclass
 class Envelope:
-    headers: dict = lambda: {}
-    raw_request: dict = lambda: {}
+    headers: dict
+    raw_request: dict
     body: Any = None
+
+    def __init__(self, body=None):
+        self.body = body
+        self.headers = {}
+        self.raw_request = {}
 
     @classmethod
     def wrap(cls, body: Any) -> Envelope:

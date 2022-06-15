@@ -146,7 +146,7 @@ class ChaliceApplication(Application):
 
         queue_name = kernel.resource_name_generator.queue_name(app_name)
         @self.app.on_sqs_message(queue_name)
-        def sqs_event(event: SQSEvent, kernel: ffd.Kernel, **kwargs):
+        def sqs_event(event: SQSEvent, **kwargs):
             for e in event:
                 try:
                     message = kernel.serializer.deserialize(e.body)

@@ -105,10 +105,13 @@ class HandleInvocation:
             except ValueError:
                 message = e.get('body')
 
-            if isinstance(message, dict) and '_type' in message:
-                message = getattr(self._kernel.message_factory, message['_type'])(
-                    f"{message['_context']}.{message['_name']}", message
-                )
+            if isinstance(message, dict):
+                if '_type' in message:
+                    message = getattr(self._kernel.message_factory, message['_type'])(
+                        f"{message['_context']}.{message['_name']}", message
+                    )
+                elif 'Message' in message:
+                    message = self._kernel.serializer.deserialize(message.get('Message'))
 
             if isinstance(message, ffd.Command):
                 try:

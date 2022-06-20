@@ -16,11 +16,13 @@ from __future__ import annotations
 
 import traceback
 
-from firefly import domain
 import requests
 
+from firefly import domain
+from ..resource_name_generator import ResourceNameGenerator
 
-class HandleError(domain.ResourceNameGenerator):
+
+class HandleError(ResourceNameGenerator):
     _sns_client = None
     _serializer: domain.Serializer = None
     _slack_error_url: str = None

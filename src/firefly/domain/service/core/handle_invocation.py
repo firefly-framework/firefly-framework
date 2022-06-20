@@ -95,7 +95,7 @@ class HandleInvocation:
 
             return response
         except Exception as e:
-            self._handle_error(e)
+            self._handle_error(e, event, context)
             raise
 
     def _handle_sqs(self, event):

@@ -37,6 +37,7 @@ COGNITO_TRIGGERS = (
 
 class HandleInvocation:
     _kernel: ffd.Kernel = None
+    _handle_error: ffd.HandleError = None
     _context: str = None
     __mangum: Mangum = None
 
@@ -53,45 +54,49 @@ class HandleInvocation:
         return self._mangum(event, context)
 
     def _handle_chalice(self, event, context):
-        if isinstance(event, dict):
-            print(context)
-            print(event)
+        try:
+            if isinstance(event, dict):
+                print(context)
+                print(event)
 
-            if 'Records' in event:
-                return self._handle_sqs(event)
+                if 'Records' in event:
+                    return self._handle_sqs(event)
 
-            if '_name' in event and '_type' in event:
-                services = self._kernel.get_command_handlers() if event.get('_type') == 'command' else \
-                    self._kernel.get_query_handlers()
-                function_name = f"{self._context}.{event.get('_name')}"
-                if function_name not in services:
-                    raise NotImplementedError()
+                if '_name' in event and '_type' in event:
+                    services = self._kernel.get_command_handlers() if event.get('_type') == 'command' else \
+                        self._kernel.get_query_handlers()
+                    function_name = f"{self._context}.{event.get('_name')}"
+                    if function_name not in services:
+                        raise NotImplementedError()
 
-                return services[function_name](**ffd.build_argument_list(event, services[function_name]))
+                    return services[function_name](**ffd.build_argument_list(event, services[function_name]))
 
-            try:
-                method = event['requestContext']['http']['method']
-                if method.lower() == 'options':
-                    return {
-                        'status_code': 200,
-                        'headers': ACCESS_CONTROL_HEADERS,
-                        'body': None,
-                    }
-            except KeyError:
-                pass
-
-            if 'triggerSource' in event and event.get('triggerSource') in COGNITO_TRIGGERS:
                 try:
-                    return self._kernel.handle_cognito_event(event, context)
-                except AttributeError:
-                    raise NotImplementedError()
+                    method = event['requestContext']['http']['method']
+                    if method.lower() == 'options':
+                        return {
+                            'status_code': 200,
+                            'headers': ACCESS_CONTROL_HEADERS,
+                            'body': None,
+                        }
+                except KeyError:
+                    pass
 
-            event = self._kernel.translate_http_event(event)
-            print(event)
-        response = self._kernel.get_application().app(event, context)
-        print(response)
+                if 'triggerSource' in event and event.get('triggerSource') in COGNITO_TRIGGERS:
+                    try:
+                        return self._kernel.handle_cognito_event(event, context)
+                    except AttributeError:
+                        raise NotImplementedError()
 
-        return response
+                event = self._kernel.translate_http_event(event)
+                print(event)
+            response = self._kernel.get_application().app(event, context)
+            print(response)
+
+            return response
+        except Exception as e:
+            self._handle_error(e)
+            raise
 
     def _handle_sqs(self, event):
         for e in event.get('Records'):

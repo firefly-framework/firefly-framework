@@ -30,6 +30,7 @@ from firefly.domain.service.entity.convert_criteria_to_sqlalchemy import Convert
 from firefly.domain.entity.messaging.envelope import Envelope
 from firefly.domain.service.multithreading.batch_process import BatchProcess
 from firefly.domain.factory.cognito_factory import CognitoFactory
+from firefly.domain.service.core.handle_error import HandleError
 
 from firefly.domain.entity.messaging.message import Message
 from firefly.domain.entity.core.endpoints import HttpEndpoint

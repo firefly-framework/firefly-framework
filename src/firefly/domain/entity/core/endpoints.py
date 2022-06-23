@@ -49,6 +49,9 @@ class HttpEndpoint:
 
     @staticmethod
     def _has_grant(scope: str, user_scope: str):
+        if scope.lower() == user_scope.lower():
+            return True
+
         parts = scope.lower().split('.')
         user = user_scope.lower().split('.')
 

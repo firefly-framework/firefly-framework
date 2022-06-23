@@ -14,10 +14,8 @@
 
 from __future__ import annotations
 
-import os
+import bz2
 
-from chalice import Response
-from devtools import debug
 from mangum import Mangum
 
 import firefly.domain as ffd
@@ -40,6 +38,9 @@ class HandleInvocation:
     _handle_error: ffd.HandleError = None
     _context: str = None
     __mangum: Mangum = None
+    _s3_client = None
+    _serializer: ffd.Serializer = None
+    _bucket: str = None
 
     @property
     def _mangum(self) -> Mangum:
@@ -58,6 +59,11 @@ class HandleInvocation:
             if isinstance(event, dict):
                 print(context)
                 print(event)
+
+                if 'PAYLOAD_KEY' in event:
+                    print('Loading payload')
+                    event = self._load_payload(event.get('PAYLOAD_KEY'))
+                    print(event)
 
                 if 'Records' in event:
                     return self._handle_sqs(event)
@@ -126,3 +132,13 @@ class HandleInvocation:
                         service(**ffd.build_argument_list(message.to_dict(), service))
                 except KeyError:
                     pass  # Treat a missing event listener as a noop.
+
+    def _load_payload(self, key: str):
+        response = self._s3_client.get_object(
+            Bucket=self._bucket,
+            Key=key
+        )
+        data = response['Body'].read()
+        if key.endswith('bz2'):
+            data = bz2.decompress(data)
+        return self._serializer.deserialize(data)

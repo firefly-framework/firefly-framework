@@ -127,6 +127,9 @@ class HandleInvocation:
                     message = self._kernel.serializer.deserialize(message.get('Message'))
 
             if isinstance(message, ffd.Command):
+                if 'PAYLOAD_KEY' in message.to_dict():
+                    print('Loading payload')
+                    message = self._load_payload(message.to_dict().get('PAYLOAD_KEY'))
                 try:
                     handler = self._kernel.get_command_handlers()[str(message)]
                     handler(**ffd.build_argument_list(message.to_dict(), handler))
@@ -134,6 +137,9 @@ class HandleInvocation:
                     raise ffd.ConfigurationError(f'No command handler registered for message: {message}') from ee
 
             elif isinstance(message, ffd.Event):
+                if 'PAYLOAD_KEY' in message.to_dict():
+                    print('Loading payload')
+                    message = self._load_payload(message.to_dict().get('PAYLOAD_KEY'))
                 try:
                     for service in self._kernel.get_event_listeners()[str(message)]:
                         service(**ffd.build_argument_list(message.to_dict(), service))

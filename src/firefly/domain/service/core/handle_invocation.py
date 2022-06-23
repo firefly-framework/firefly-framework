@@ -115,6 +115,10 @@ class HandleInvocation:
                 message = e.get('body')
 
             if isinstance(message, dict):
+                if 'PAYLOAD_KEY' in message:
+                    print('Loading payload')
+                    message = self._load_payload(message.get('PAYLOAD_KEY'))
+
                 if '_type' in message:
                     message = getattr(self._kernel.message_factory, message['_type'])(
                         f"{message['_context']}.{message['_name']}", message

@@ -12,7 +12,7 @@ class DdbCache(ff.Cache):
     _ddb_table: str = None
 
     def set(self, key: str, value: Any, ttl: int = None, **kwargs) -> Any:
-        if '.' in key:
+        if '.' in str(key):
             return self._set_property(key, value)
         else:
             return self._set_item(key, value, ttl)
@@ -50,7 +50,7 @@ class DdbCache(ff.Cache):
         raise NotImplemented('DdbCache does not support clear()')
 
     def increment(self, key: str, amount: int = 1, **kwargs) -> Any:
-        k = key.split('.').pop(0)
+        k = str(key).split('.').pop(0)
         attribute_names, path = self._process_path(key)
 
         params = {
@@ -74,7 +74,7 @@ class DdbCache(ff.Cache):
         return None
 
     def decrement(self, key: str, amount: int = 1, **kwargs) -> Any:
-        return self.increment(key, amount=(-amount))
+        return self.increment(str(key), amount=(-amount))
 
     def add(self, key: str, value: Any, **kwargs) -> Any:
         k = key.split('.').pop(0)

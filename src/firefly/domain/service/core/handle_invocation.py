@@ -78,8 +78,11 @@ class HandleInvocation:
                     return services[function_name](**ffd.build_argument_list(event, services[function_name]))
 
                 try:
+                    print('checking method')
                     method = event['requestContext']['http']['method']
+                    print(f'Got method: {method}')
                     if method.lower() == 'options':
+                        print('Returning access control headers')
                         return {
                             'status_code': 200,
                             'headers': ACCESS_CONTROL_HEADERS,

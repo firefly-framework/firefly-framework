@@ -48,6 +48,10 @@ class AuthorizeRequest(ffd.Middleware):
         request = self._kernel.current_request()
         if request is None or not hasattr(event, 'method'):
             return get_response(event)
+        elif request is not None:
+            endpoint = self._get_endpoint(event.path, event.method)
+            if endpoint.secured is False:
+                return get_response(event)
 
         headers = request.headers
         token = None

@@ -59,6 +59,7 @@ setuptools.setup(
         'sqlalchemy[asyncio]>=1.4.36',
         'terminaltables>=3.1.0',
         'troposphere>=2.7.1',
+        'uvicorn>=0.18.2',
         'warrant>=0.6.1',
     ],
     extras_require={

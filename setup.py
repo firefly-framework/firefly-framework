@@ -34,7 +34,7 @@ setuptools.setup(
         'dateparser>=0.7.4',
         'dirsync>=2.2.3',
         'inflection>=0.3.1',
-        'Jinja2==2.11.3',
+        'Jinja2==3.1.3',
         'jinjasql>=0.1.8',
         'python-dateutil>=2.8.1',
         'python-dotenv>=0.10.3',
